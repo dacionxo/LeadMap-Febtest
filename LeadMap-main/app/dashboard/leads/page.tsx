@@ -335,7 +335,27 @@ function LeadsPageContent() {
         {activeView === 'map' && (
           <GoogleMapsView 
             isActive={activeView === 'map'}
-            listings={listings}
+            listings={listings.map(l => ({
+              id: l.listing_id,
+              address: l.street || '',
+              city: l.city || '',
+              state: l.state || '',
+              zip: l.zip_code || '',
+              price: l.list_price || 0,
+              price_drop_percent: 0, // Not available in Listing type
+              days_on_market: 0, // Not available in Listing type
+              url: l.property_url || '',
+              latitude: l.lat || undefined,
+              longitude: l.lng || undefined,
+              beds: l.beds || undefined,
+              sqft: l.sqft || undefined,
+              year_built: l.year_built || undefined,
+              agent_name: l.agent_name || undefined,
+              agent_email: l.agent_email || undefined,
+              expired: !l.active,
+              geo_source: null,
+              enrichment_confidence: null
+            }))}
             loading={listingsLoading}
           />
         )}

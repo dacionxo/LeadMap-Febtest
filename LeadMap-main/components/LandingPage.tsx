@@ -220,7 +220,17 @@ export default function LandingPage() {
           }
         })
 
-        if (error) throw error
+        if (error) {
+          // Check if user already exists
+          if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
+            throw new Error('An account with this email already exists. Please sign in instead or use a different email address.')
+          }
+          // Check if email is already confirmed but user exists
+          if (error.message?.includes('already confirmed') || error.message?.includes('Email already confirmed')) {
+            throw new Error('This email is already registered. Please sign in instead.')
+          }
+          throw error
+        }
 
         if (data.user) {
           // Steps 5-7: Generate email verification token → Store token → Send verification email
@@ -229,6 +239,7 @@ export default function LandingPage() {
           // Check if email confirmation is required
           if (data.user && !data.session) {
             // Email confirmation required - show success message
+            // Supabase automatically sends verification email
             setEmailSent(true)
           } else if (data.session) {
             // Email confirmation not required - create profile and redirect
@@ -265,9 +276,15 @@ export default function LandingPage() {
         router.push('/dashboard')
       }
     } catch (error: any) {
-      // Handle rate limit errors specifically
+      // Handle specific error types
       if (error.message?.includes('rate limit') || error.message?.includes('Request rate limit')) {
         setError('Too many requests. Please wait a moment and try again.')
+      } else if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
+        setError(error.message || 'An account with this email already exists. Please sign in instead.')
+      } else if (error.message?.includes('Invalid email')) {
+        setError('Please enter a valid email address.')
+      } else if (error.message?.includes('Password')) {
+        setError('Password must be at least 6 characters long.')
       } else {
         setError(error.message || 'An error occurred. Please try again.')
       }
@@ -817,16 +834,41 @@ export default function LandingPage() {
                         <p className="text-error dark:text-error-400 text-xs">{error}</p>
                       </div>
                     )}
+                    {emailSent && isSignUp && (
+                      <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg shadow-sm">
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                              Verification email sent!
+                            </h3>
+                            <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">
+                              We've sent a verification link to <strong className="text-gray-900 dark:text-white">{email}</strong>
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              Check your inbox and click the link to verify your account. The link expires in 24 hours.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </form>
 
-                  {/* Divider */}
-                  <div className="flex items-center my-4">
-                    <div className="flex-1 border-t border-gray-300 dark:border-gray-700"></div>
-                    <span className="px-3 text-xs text-gray-500 dark:text-gray-400">or</span>
-                    <div className="flex-1 border-t border-gray-300 dark:border-gray-700"></div>
-                  </div>
+                  {/* Divider - Only show if email not sent */}
+                  {!emailSent && (
+                    <div className="flex items-center my-4">
+                      <div className="flex-1 border-t border-gray-300 dark:border-gray-700"></div>
+                      <span className="px-3 text-xs text-gray-500 dark:text-gray-400">or</span>
+                      <div className="flex-1 border-t border-gray-300 dark:border-gray-700"></div>
+                    </div>
+                  )}
 
-                  {/* Social Login Buttons */}
+                  {/* Social Login Buttons - Only show if email not sent */}
+                  {!emailSent && (
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       type="button"
@@ -925,6 +967,7 @@ export default function LandingPage() {
                       )}
                     </button>
                   </div>
+                  )}
 
                   {/* Terms Disclaimer */}
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">

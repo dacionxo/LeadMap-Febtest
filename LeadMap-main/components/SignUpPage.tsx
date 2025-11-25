@@ -38,7 +38,17 @@ export default function SignUpPage() {
         }
       })
 
-      if (error) throw error
+      if (error) {
+        // Check if user already exists
+        if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please sign in instead or use a different email address.')
+        }
+        // Check if email is already confirmed but user exists
+        if (error.message?.includes('already confirmed') || error.message?.includes('Email already confirmed')) {
+          throw new Error('This email is already registered. Please sign in instead.')
+        }
+        throw error
+      }
 
       if (data.user) {
         // Steps 5-7: Generate email verification token → Store token → Send verification email
@@ -47,6 +57,7 @@ export default function SignUpPage() {
         // Check if email confirmation is required
         if (data.user && !data.session) {
           // Email confirmation required - show success message
+          // Supabase automatically sends verification email
           setEmailSent(true)
         } else if (data.session) {
           // Email confirmation not required - create profile and redirect
@@ -73,9 +84,15 @@ export default function SignUpPage() {
         }
       }
     } catch (error: any) {
-      // Handle rate limit errors specifically
+      // Handle specific error types
       if (error.message?.includes('rate limit') || error.message?.includes('Request rate limit')) {
         setError('Too many requests. Please wait a moment and try again.')
+      } else if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
+        setError(error.message || 'An account with this email already exists. Please sign in instead.')
+      } else if (error.message?.includes('Invalid email')) {
+        setError('Please enter a valid email address.')
+      } else if (error.message?.includes('Password')) {
+        setError('Password must be at least 6 characters long.')
       } else {
         setError(error.message || 'An error occurred. Please try again.')
       }
@@ -195,21 +212,39 @@ export default function SignUpPage() {
                     {/* Email Verification Success Message */}
                     {emailSent ? (
                       <div className="space-y-6">
-                        <div className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                            Check your email
-                          </h2>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            We've sent a verification link to <strong>{email}</strong>
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Click the link in the email to verify your account and complete your registration. 
-                            The link will expire in 24 hours.
-                          </p>
+                        <div className="p-6 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg shadow-sm">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                                Verification email sent!
+                              </h2>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                We've sent a verification link to <strong className="text-gray-900 dark:text-white">{email}</strong>
+                              </p>
+                              <div className="bg-white dark:bg-gray-800 p-4 rounded border border-green-200 dark:border-green-800 mb-4">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  <strong className="text-gray-900 dark:text-white">Next steps:</strong>
+                                </p>
+                                <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                  <li>Check your inbox (and spam folder) for an email from us</li>
+                                  <li>Click the verification link in the email</li>
+                                  <li>You'll be automatically signed in and redirected to your dashboard</li>
+                                </ol>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <strong>Note:</strong> The verification link will expire in 24 hours. If you don't see the email, check your spam folder.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                         <div className="text-center">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Didn't receive the email? Check your spam folder or
+                            Didn't receive the email?
                           </p>
                           <button
                             type="button"
@@ -219,7 +254,7 @@ export default function SignUpPage() {
                             }}
                             className="text-sm text-primary hover:underline font-medium"
                           >
-                            Try again
+                            Try signing up again
                           </button>
                         </div>
                       </div>

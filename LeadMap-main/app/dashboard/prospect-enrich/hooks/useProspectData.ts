@@ -134,13 +134,25 @@ export function useProspectData(userId: string | undefined) {
     if (!userId) return
 
     try {
-      // 1. Get all contact IDs for this user that came from listings
-      const { data: contacts } = await supabase
+      // 1. Get contact IDs for this user that came from listings, filtered by category
+      const activeCategory = getPrimaryCategory(selectedFilters)
+      
+      let contactsQuery = supabase
         .from('contacts')
-        .select('source_id')
+        .select('source_id, tags')
         .eq('user_id', userId)
         .eq('source', 'listing')
         .not('source_id', 'is', null)
+
+      // Filter by category: for "all" show all saved, for specific categories filter by tag
+      if (activeCategory !== 'all') {
+        // Filter contacts that have this category in their tags array
+        // Supabase PostgREST: use contains operator to check if array contains value
+        contactsQuery = contactsQuery.contains('tags', [activeCategory])
+      }
+      // For "all", don't add category filter - show all saved contacts
+
+      const { data: contacts } = await contactsQuery
 
       if (!contacts || contacts.length === 0) {
         setCrmContactIds(new Set())
@@ -152,8 +164,6 @@ export function useProspectData(userId: string | undefined) {
       setCrmContactIds(ids)
 
       // 2. Fetch the full listing details for these saved items
-      const activeCategory = getPrimaryCategory(selectedFilters)
-      
       if (activeCategory === 'all') {
         // For "All", we need to check all potential tables
         // This is expensive but necessary if we want to show saved items across all categories

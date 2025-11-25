@@ -199,8 +199,11 @@ function ProspectEnrichInner() {
       const sourceId = lead.listing_id || lead.property_url
       if (!sourceId) return
 
-      // Use the add_to_list function
-      await add_to_list(supabase, profile.id, sourceId, lead, listId)
+      // Get the current category from selected filters
+      const currentCategory = getPrimaryCategory(selectedFilters)
+      
+      // Use the add_to_list function with category
+      await add_to_list(supabase, profile.id, sourceId, lead, listId, currentCategory)
       
       // Refresh the lists
       await fetchCrmContacts(selectedFilters)
@@ -246,44 +249,12 @@ function ProspectEnrichInner() {
       const sourceId = lead.listing_id || lead.property_url
       if (!sourceId) return
 
+      // Get the current category from selected filters
+      const currentCategory = getPrimaryCategory(selectedFilters)
+
       if (saved) {
-        // Check if already saved - prevent saving twice
-        if (crmContactIds.has(sourceId)) {
-          // Already saved, don't save again
-          return
-        }
-        
-        // Add to saved (create contact)
-        const nameParts = lead.agent_name?.split(' ') || []
-        const firstName = nameParts[0] || null
-        const lastName = nameParts.slice(1).join(' ') || 'Property Owner'
-
-        const contactData = {
-          user_id: profile.id,
-          first_name: firstName,
-          last_name: lastName,
-          email: lead.agent_email || null,
-          phone: lead.agent_phone || null,
-          address: lead.street || null,
-          city: lead.city || null,
-          state: lead.state || null,
-          zip_code: lead.zip_code || null,
-          source: 'listing',
-          source_id: sourceId,
-          status: 'new',
-          notes: `Saved prospect: ${lead.property_url || 'N/A'}`
-        }
-
-        const { error } = await supabase
-          .from('contacts')
-          .insert([contactData])
-
-        if (error && error.code !== '23505') {
-          // Ignore duplicate errors
-          console.error('Error saving prospect:', error)
-          alert('Failed to save prospect')
-          return
-        }
+        // Use add_to_list which now handles category
+        await add_to_list(supabase, profile.id, sourceId, lead, undefined, currentCategory)
       } else {
         // Remove from saved (delete contact)
         const { error } = await supabase
@@ -327,10 +298,16 @@ function ProspectEnrichInner() {
       
       let successCount = 0
       // Save each unsaved listing
+      // Get the current category from selected filters
+      const currentCategory = getPrimaryCategory(selectedFilters)
+      
       for (const listing of unsavedListings) {
         try {
-          await handleSaveProspect(listing, true)
-          successCount++
+          const sourceId = listing.listing_id || listing.property_url
+          if (sourceId) {
+            await add_to_list(supabase, profile.id, sourceId, listing, undefined, currentCategory)
+            successCount++
+          }
         } catch (error) {
           console.error('Error saving listing:', error)
         }
@@ -365,8 +342,10 @@ function ProspectEnrichInner() {
         }
         
         try {
-          console.log('Adding listing to list:', { listId, listingId, listing_id: listing.listing_id, property_url: listing.property_url })
-          await add_to_list(supabase, profile.id, listingId, listing, listId)
+          // Get the current category from selected filters
+          const currentCategory = getPrimaryCategory(selectedFilters)
+          console.log('Adding listing to list:', { listId, listingId, listing_id: listing.listing_id, property_url: listing.property_url, category: currentCategory })
+          await add_to_list(supabase, profile.id, listingId, listing, listId, currentCategory)
           successCount++
           // Add to listItemIds immediately to update Net New count
           setListItemIds(prev => {
@@ -2277,6 +2256,7 @@ function ProspectEnrichInner() {
                           }}
                           crmContactIds={crmContactIds}
                           onSave={handleSaveProspect}
+                          category={activeCategory}
                           onAction={(action, listing) => {
                             if (action === 'email') {
                               handleGenerateEmail(listing as any)
@@ -2742,6 +2722,7 @@ function ProspectEnrichInner() {
                           }}
                           crmContactIds={crmContactIds}
                           onSave={handleSaveProspect}
+                          category={activeCategory}
                           onAction={(action, listing) => {
                             if (action === 'email') {
                               handleGenerateEmail(listing as any)

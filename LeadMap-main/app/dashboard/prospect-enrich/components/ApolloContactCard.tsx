@@ -53,6 +53,7 @@ interface ApolloContactCardProps {
   isSaved?: boolean
   onSave?: (listing: Listing, saved: boolean) => void
   isDark?: boolean
+  category?: string // Category to assign saved listings to
 }
 
 export default function ApolloContactCard({
@@ -64,7 +65,8 @@ export default function ApolloContactCard({
   onClick,
   isSaved = false,
   onSave,
-  isDark = false
+  isDark = false,
+  category
 }: ApolloContactCardProps) {
   const [showActions, setShowActions] = useState(false)
 
@@ -740,6 +742,7 @@ export default function ApolloContactCard({
               onAction?.('unsave', listing)
             }}
             variant="icon"
+            category={category}
           />
 
           <button

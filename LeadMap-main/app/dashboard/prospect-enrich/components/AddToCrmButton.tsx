@@ -24,9 +24,10 @@ interface SaveButtonProps {
   onUnsaved?: () => void
   variant?: 'default' | 'compact' | 'icon'
   listId?: string // Optional list ID to add to specific list
+  category?: string // Category to assign the saved listing to ('all', 'expired', 'probate', 'fsbo', 'frbo', 'foreclosure', 'imports', 'trash')
 }
 
-export default function SaveButton({ listing, saved = false, onSaved, onUnsaved, variant = 'default', listId }: SaveButtonProps) {
+export default function SaveButton({ listing, saved = false, onSaved, onUnsaved, variant = 'default', listId, category }: SaveButtonProps) {
   const { profile } = useApp()
   const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(false)
@@ -110,8 +111,8 @@ export default function SaveButton({ listing, saved = false, onSaved, onUnsaved,
           return
         }
         
-        // Save listing
-        await add_to_list(supabase, profile.id, sourceId, listing, listId)
+        // Save listing with category
+        await add_to_list(supabase, profile.id, sourceId, listing, listId, category || 'all')
         setIsSaved(true)
         
         // Call the callback to refresh the list

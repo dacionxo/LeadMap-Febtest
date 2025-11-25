@@ -106,6 +106,7 @@ interface VirtualizedListingsTableProps {
   onStatsChange?: (stats: PaginationStats) => void
   showSummary?: boolean
   showPagination?: boolean
+  category?: string // Category to assign saved listings to
 }
 
 // ============================================================================
@@ -150,7 +151,8 @@ export default function VirtualizedListingsTable({
   pagination,
   onStatsChange,
   showSummary = true,
-  showPagination = true
+  showPagination = true,
+  category
 }: VirtualizedListingsTableProps) {
   // ==========================================================================
   // State Management
@@ -658,6 +660,7 @@ export default function VirtualizedListingsTable({
                   isSaved={crmContactIds.has(listing.listing_id)}
                   onSave={onSave}
                   isDark={isDark}
+                  category={category}
                 />
               </div>
             )

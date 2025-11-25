@@ -36,6 +36,7 @@ function normalizeListingIdentifier(value?: string | null): string | null {
  * @param listingId - Listing ID to save
  * @param listing - Listing data
  * @param targetListId - Optional list ID to add to specific list
+ * @param category - Optional category to assign the saved listing to ('all', 'expired', 'probate', 'fsbo', 'frbo', 'foreclosure', 'imports', 'trash')
  */
 export async function add_to_list(
   supabase: any,
@@ -53,7 +54,8 @@ export async function add_to_list(
     agent_phone?: string | null
     list_price?: number | null
   },
-  targetListId?: string
+  targetListId?: string,
+  category?: string
 ) {
   if (!profileId) {
     throw new Error('Please log in to save listings')
@@ -202,11 +204,16 @@ export async function add_to_list(
     // Check if contact already exists
     const { data: existingContact } = await supabase
       .from('contacts')
-      .select('id')
+      .select('id, tags')
       .eq('user_id', profileId)
       .eq('source', 'listing')
       .eq('source_id', sourceId)
       .maybeSingle()
+
+    // Prepare category tag - use provided category or default to 'all'
+    const categoryTag = category || 'all'
+    const tags = existingContact?.tags || []
+    const updatedTags = tags.includes(categoryTag) ? tags : [...tags.filter(t => !['all', 'expired', 'probate', 'fsbo', 'frbo', 'foreclosure', 'imports', 'trash'].includes(t)), categoryTag]
 
     if (!existingContact) {
       // Parse agent name
@@ -214,7 +221,7 @@ export async function add_to_list(
       const firstName = nameParts[0] || null
       const lastName = nameParts.slice(1).join(' ') || 'Property Owner'
 
-      // Create contact from listing
+      // Create contact from listing with category in tags
       const contactData = {
         user_id: profileId,
         first_name: firstName,
@@ -228,7 +235,8 @@ export async function add_to_list(
         source: 'listing',
         source_id: sourceId,
         status: 'new',
-        notes: `Saved from property listing: ${listing.property_url || 'N/A'}\nList Price: ${listing.list_price ? `$${listing.list_price.toLocaleString()}` : 'N/A'}`
+        tags: updatedTags, // Store category in tags array
+        notes: `Saved from property listing: ${listing.property_url || 'N/A'}\nList Price: ${listing.list_price ? `$${listing.list_price.toLocaleString()}` : 'N/A'}\nCategory: ${categoryTag}`
       }
 
       const { error: contactError } = await supabase
@@ -237,7 +245,13 @@ export async function add_to_list(
 
       if (contactError) {
         if (contactError.code === '23505') {
-          // Already saved, ignore
+          // Already saved, but update category
+          await supabase
+            .from('contacts')
+            .update({ tags: updatedTags, updated_at: new Date().toISOString() })
+            .eq('user_id', profileId)
+            .eq('source', 'listing')
+            .eq('source_id', sourceId)
           return
         }
         throw contactError
@@ -248,6 +262,12 @@ export async function add_to_list(
         .from('users')
         .update({ has_real_data: true })
         .eq('id', profileId)
+    } else {
+      // Update existing contact with new category
+      await supabase
+        .from('contacts')
+        .update({ tags: updatedTags, updated_at: new Date().toISOString() })
+        .eq('id', existingContact.id)
     }
   }
 }

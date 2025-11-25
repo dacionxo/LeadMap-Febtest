@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
     // Verify the user is authenticated
     // Note: If email confirmation is required, the user might not be fully authenticated
     // immediately after signup. We'll still try to create the profile using the service role.
-    const supabase = createRouteHandlerClient({ cookies: async () => await cookies() })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     // Log auth status for debugging (but don't block if user exists in auth.users)
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
         id: userId,
         email,
         name: name || email.split('@')[0] || 'User',
+        role: 'user',
         trial_end: trialEnd.toISOString(),
         is_subscribed: false,
         plan_tier: 'free'
@@ -136,8 +138,31 @@ export async function POST(request: NextRequest) {
     )
   } catch (error: any) {
     console.error('Create profile error:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code
+    })
+    
+    // Provide more helpful error messages
+    let errorMessage = 'Internal server error'
+    let errorDetails = error.message || 'Unknown error occurred'
+    
+    if (error.message?.includes('cookies')) {
+      errorMessage = 'Authentication error'
+      errorDetails = 'Failed to read authentication cookies'
+    } else if (error.message?.includes('JSON')) {
+      errorMessage = 'Invalid request data'
+      errorDetails = 'Failed to parse request body'
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { 
+        error: errorMessage, 
+        details: errorDetails,
+        ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+      },
       { status: 500 }
     )
   }

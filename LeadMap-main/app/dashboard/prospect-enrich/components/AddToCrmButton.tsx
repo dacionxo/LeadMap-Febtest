@@ -9,15 +9,15 @@ import { add_to_list } from '../utils/listUtils'
 interface SaveButtonProps {
   listing: {
     listing_id?: string
-    property_url?: string
-    street?: string
-    city?: string
-    state?: string
-    zip_code?: string
-    agent_name?: string
-    agent_email?: string
-    agent_phone?: string
-    list_price?: number
+    property_url?: string | null
+    street?: string | null
+    city?: string | null
+    state?: string | null
+    zip_code?: string | null
+    agent_name?: string | null
+    agent_email?: string | null
+    agent_phone?: string | null
+    list_price?: number | null
   }
   saved?: boolean
   onSaved?: () => void

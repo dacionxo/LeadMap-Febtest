@@ -1,7 +1,16 @@
+'use client'
+
 import DashboardLayout from '../components/DashboardLayout'
 import { Zap, Search, MapPin, Globe, Workflow } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function ToolsPage() {
+  const router = useRouter()
+
+  const handleViewMap = () => {
+    router.push('/dashboard/leads?view=map')
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -41,7 +50,10 @@ export default function ToolsPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Visualize your prospects on an interactive map
             </p>
-            <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+            <button 
+              onClick={handleViewMap}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            >
               View Map →
             </button>
           </div>

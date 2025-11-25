@@ -133,7 +133,14 @@ export default function ListDetailPage() {
       const response = await fetch(`/api/lists/${listId}/items?${params}`)
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        let errorData: any = {}
+        try {
+          errorData = await response.json()
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorData = { error: response.statusText || 'Unknown error' }
+        }
+        
         console.error('❌ API Error:', { 
           status: response.status, 
           statusText: response.statusText,
@@ -147,7 +154,13 @@ export default function ListDetailPage() {
           router.push('/dashboard/lists')
           return
         }
-        throw new Error(errorData.error || 'Failed to fetch list items')
+        
+        // Don't throw error, just set empty state
+        console.error('Failed to fetch list items:', errorData.error || 'Unknown error')
+        setListings([])
+        setTotalCount(0)
+        setTotalPages(0)
+        return
       }
 
       const data: ListItemsResponse = await response.json()

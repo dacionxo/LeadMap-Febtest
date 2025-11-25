@@ -52,7 +52,8 @@ export async function GET(
     }
 
     // Verify user authentication first
-    const supabaseAuth = createRouteHandlerClient({ cookies: async () => await cookies() })
+    const cookieStore = await cookies()
+    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
     if (authError || !user) {

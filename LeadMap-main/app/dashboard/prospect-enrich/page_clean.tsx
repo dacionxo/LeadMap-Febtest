@@ -124,7 +124,7 @@ function ProspectEnrichContent() {
   const [selectedFilters, setSelectedFilters] = useState<Set<FilterType>>(new Set<FilterType>(['all']))
   const [apolloFilters, setApolloFilters] = useState<Record<string, any>>({})
   const [filtersVisible, setFiltersVisible] = useState(true)
-  const [viewTypeSelector, setViewTypeSelector] = useState<'default' | 'table' | 'cards' | 'map'>('default')
+  const [viewTypeSelector, setViewTypeSelector] = useState<'database_analytics' | 'table' | 'cards' | 'map'>('table')
   const [sortBy, setSortBy] = useState('relevance')
   const [listings, setListings] = useState<Listing[]>([])
   const [allListings, setAllListings] = useState<Listing[]>([])

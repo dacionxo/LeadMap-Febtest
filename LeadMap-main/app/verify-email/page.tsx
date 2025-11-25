@@ -161,7 +161,7 @@ export default function VerifyEmailPage() {
 
                       {/* Main Heading */}
                       <h1 className="antialiased desktop-xl:text-[56px] desktop-xl:tracking-[-1.12px] desktop-xl:leading-[90%] desktop:text-[48px] desktop:tracking-[-0.96px] desktop:leading-[90%] desktop-s:text-[40px] desktop-s:tracking-[-0.8px] desktop-s:leading-[90%] tablet:text-[36px] tablet:tracking-[-0.72px] tablet:leading-none text-[32px] tracking-[-0.64px] leading-none font-heading font-bold text-gray-900 dark:text-white mb-4">
-                        You're in. Verify your email to get started.
+                        {isLoggedIn ? "You're all set! Welcome to NextDeal." : "You're in. Verify your email to get started."}
                       </h1>
 
                       {/* Instructions */}

@@ -16,6 +16,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isHomePage = pathname === '/'
+  const isSignupPage = pathname === '/signup'
+  const isLoginPage = pathname === '/login'
+  const isDemoPage = pathname === '/demo'
+  const isLightModePage = isHomePage || isSignupPage || isLoginPage || isDemoPage
   const [theme, setTheme] = useState<Theme>('system')
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
   const [mounted, setMounted] = useState(false)
@@ -37,8 +41,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     let resolved: 'light' | 'dark' = 'light'
 
-    // Force light mode on home page
-    if (isHomePage) {
+    // Force light mode on home, signup, login, and demo pages
+    if (isLightModePage) {
       resolved = 'light'
       root.classList.add('light')
     } else if (theme === 'system') {
@@ -51,15 +55,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     setResolvedTheme(resolved)
-    // Only save theme to localStorage if not on home page
-    if (!isHomePage) {
+    // Only save theme to localStorage if not on light mode pages
+    if (!isLightModePage) {
       localStorage.setItem('theme', theme)
     }
-  }, [theme, mounted, isHomePage])
+  }, [theme, mounted, isLightModePage])
 
-  // Listen for system theme changes (only when not on home page)
+  // Listen for system theme changes (only when not on light mode pages)
   useEffect(() => {
-    if (!mounted || theme !== 'system' || isHomePage) return
+    if (!mounted || theme !== 'system' || isLightModePage) return
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (e: MediaQueryListEvent) => {
@@ -71,7 +75,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [theme, mounted, isHomePage])
+  }, [theme, mounted, isLightModePage])
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>

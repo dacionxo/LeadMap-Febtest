@@ -221,14 +221,31 @@ export default function LandingPage() {
         })
 
         if (error) {
-          // Check if user already exists
-          if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
+          // Comprehensive check for existing user errors
+          const errorMessage = error.message?.toLowerCase() || ''
+          const errorCode = error.code || ''
+          
+          // Check various ways Supabase indicates user already exists
+          if (errorMessage.includes('already registered') || 
+              errorMessage.includes('user already registered') ||
+              errorMessage.includes('already exists') ||
+              errorMessage.includes('already confirmed') ||
+              errorMessage.includes('email already confirmed') ||
+              errorMessage.includes('email address is already registered') ||
+              errorMessage.includes('user with this email already exists') ||
+              errorCode === 'user_already_registered' ||
+              errorCode === 'email_already_exists') {
             throw new Error('An account with this email already exists. Please sign in instead or use a different email address.')
           }
-          // Check if email is already confirmed but user exists
-          if (error.message?.includes('already confirmed') || error.message?.includes('Email already confirmed')) {
-            throw new Error('This email is already registered. Please sign in instead.')
+          
+          // Also check for specific Supabase error status codes
+          if (error.status === 422 || error.status === 400) {
+            // 422 or 400 might indicate validation errors including existing user
+            if (errorMessage.includes('email') && (errorMessage.includes('taken') || errorMessage.includes('exists'))) {
+              throw new Error('An account with this email already exists. Please sign in instead or use a different email address.')
+            }
           }
+          
           throw error
         }
 

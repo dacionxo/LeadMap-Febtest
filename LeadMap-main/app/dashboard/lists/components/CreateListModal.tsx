@@ -5,12 +5,13 @@ import { X, Filter, Upload } from 'lucide-react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 interface CreateListModalProps {
+  type?: 'people' | 'properties'
   onClose: () => void
   onCreated: () => void
   supabase: SupabaseClient
 }
 
-export default function CreateListModal({ onClose, onCreated, supabase }: CreateListModalProps) {
+export default function CreateListModal({ type = 'properties', onClose, onCreated, supabase }: CreateListModalProps) {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +41,7 @@ export default function CreateListModal({ onClose, onCreated, supabase }: Create
         .insert([
           {
             name: name.trim(),
-            type: 'properties', // Default for backward compatibility, but not used in UI
+            type: type,
             user_id: user?.id
           }
         ])

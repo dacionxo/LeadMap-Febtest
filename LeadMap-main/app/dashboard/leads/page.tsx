@@ -335,7 +335,27 @@ function LeadsPageContent() {
         {activeView === 'map' && (
           <GoogleMapsView 
             isActive={activeView === 'map'}
-            listings={listings.map(l => ({
+            listings={listings.map((l): {
+              id: string;
+              address: string;
+              city: string;
+              state: string;
+              zip: string;
+              price: number;
+              price_drop_percent: number;
+              days_on_market: number;
+              url: string;
+              latitude?: number;
+              longitude?: number;
+              beds?: number;
+              sqft?: number;
+              year_built?: number;
+              agent_name?: string;
+              agent_email?: string;
+              expired?: boolean;
+              geo_source?: string | null;
+              enrichment_confidence?: number | null;
+            } => ({
               id: l.listing_id,
               address: l.street || '',
               city: l.city || '',

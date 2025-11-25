@@ -35,6 +35,62 @@ interface Listing {
 
 type FilterType = 'all' | 'expired' | 'probate' | 'geo' | 'enriched'
 
+// Type for GoogleMapsView Lead interface - must match exactly
+interface MapLead {
+  id: string
+  address: string
+  city: string
+  state: string
+  zip: string
+  price: number
+  price_drop_percent: number
+  days_on_market: number
+  url: string
+  latitude?: number
+  longitude?: number
+  property_type?: string
+  beds?: number
+  sqft?: number
+  year_built?: number
+  description?: string
+  agent_name?: string
+  agent_email?: string
+  primary_photo?: string
+  expired?: boolean
+  geo_source?: string | null
+  owner_email?: string
+  enrichment_confidence?: number | null
+}
+
+// Helper function to transform Listing to MapLead
+function transformListingToLead(listing: Listing): MapLead {
+  return {
+    id: listing.listing_id,
+    address: listing.street || '',
+    city: listing.city || '',
+    state: listing.state || '',
+    zip: listing.zip_code || '',
+    price: listing.list_price || 0,
+    price_drop_percent: 0,
+    days_on_market: 0,
+    url: listing.property_url || '',
+    latitude: undefined,
+    longitude: undefined,
+    property_type: undefined,
+    beds: listing.beds ?? undefined,
+    sqft: listing.sqft ?? undefined,
+    year_built: undefined,
+    description: undefined,
+    agent_name: listing.agent_name ?? undefined,
+    agent_email: listing.agent_email ?? undefined,
+    primary_photo: undefined,
+    expired: !listing.active,
+    geo_source: null,
+    owner_email: undefined,
+    enrichment_confidence: null
+  }
+}
+
 export default function Dashboard() {
   const { user, profile, loading } = useApp()
   const [activeTab, setActiveTab] = useState<'table' | 'map'>('table')
@@ -260,7 +316,7 @@ export default function Dashboard() {
         ) : (
           <GoogleMapsView 
             isActive={activeTab === 'map'}
-            listings={listings}
+            listings={listings.map(transformListingToLead)}
             loading={listingsLoading}
           />
         )}

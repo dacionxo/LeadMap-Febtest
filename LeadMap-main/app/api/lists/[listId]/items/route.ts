@@ -263,18 +263,23 @@ export async function GET(
     }
 
     // Remove duplicates based on listing_id
-    const uniqueListings = filteredListings.reduce((acc: any[], listing: any) => {
+    type ListingItem = {
+      listing_id?: string | null
+      contact_id?: string | null
+      [key: string]: any
+    }
+    const uniqueListings = filteredListings.reduce((acc: ListingItem[], listing: ListingItem) => {
       const id = listing.listing_id || listing.contact_id
       if (!id) return acc
       
-      const exists = acc.find((l: any) => 
+      const exists = acc.find((l: ListingItem) => 
         (l.listing_id || l.contact_id) === id
       )
       if (!exists) {
         acc.push(listing)
       }
       return acc
-    }, [] as any[])
+    }, [] as ListingItem[])
 
     // Apply client-side sorting if needed (for fields not in list_items)
     if (sortBy !== 'created_at') {

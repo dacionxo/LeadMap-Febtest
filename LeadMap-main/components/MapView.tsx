@@ -154,10 +154,48 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading }) => {
       }
     }, 5000); // Check after 5 seconds
 
+    // Watch for Google Maps error messages in the DOM
+    const observer = new MutationObserver((mutations) => {
+      if (googleMapsFailed) return; // Already failed, no need to check
+      
+      for (const mutation of mutations) {
+        for (const node of Array.from(mutation.addedNodes)) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+            const text = element.textContent || '';
+            const innerHTML = element.innerHTML || '';
+            
+            if (
+              text.includes("didn't load Google Maps correctly") || 
+              text.includes('Google Maps JavaScript API error') ||
+              text.includes('gm_authFailure') ||
+              text.includes('Oops! Something went wrong') ||
+              innerHTML.includes("didn't load Google Maps correctly")
+            ) {
+              console.log('Detected Google Maps error message in DOM, switching to Mapbox');
+              handleGoogleMapsError();
+              observer.disconnect();
+              return;
+            }
+          }
+        }
+      }
+    });
+
+    // Start observing the document for changes
+    if (typeof document !== 'undefined') {
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+
     return () => {
       window.onerror = originalError;
       window.removeEventListener('unhandledrejection', handleRejection);
       clearTimeout(checkTimeout);
+      observer.disconnect();
     };
   }, [googleMapsFailed]);
 

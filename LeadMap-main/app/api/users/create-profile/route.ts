@@ -51,8 +51,7 @@ export async function POST(request: NextRequest) {
     // Verify the user is authenticated
     // Note: If email confirmation is required, the user might not be fully authenticated
     // immediately after signup. We'll still try to create the profile using the service role.
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient({ cookies: async () => await cookies() })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     // Log auth status for debugging (but don't block if user exists in auth.users)

@@ -7,6 +7,9 @@
 
 import { ActionType, ActionContext, Listing } from '@/app/contexts/PageStateContext'
 
+// Re-export ActionType for convenience
+export type { ActionType, ActionContext, Listing } from '@/app/contexts/PageStateContext'
+
 // ============================================================================
 // Action Route Configuration
 // ============================================================================

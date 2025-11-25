@@ -51,6 +51,54 @@ interface Listing {
 type FilterType = 'all' | 'expired' | 'probate' | 'geo' | 'enriched'
 type ViewType = 'table' | 'map' | 'analytics'
 
+// Type for GoogleMapsView Lead interface
+interface MapLead {
+  id: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  price: number;
+  price_drop_percent: number;
+  days_on_market: number;
+  url: string;
+  latitude?: number;
+  longitude?: number;
+  beds?: number;
+  sqft?: number;
+  year_built?: number;
+  agent_name?: string;
+  agent_email?: string;
+  expired?: boolean;
+  geo_source?: string | null;
+  enrichment_confidence?: number | null;
+}
+
+// Helper function to transform Listing to MapLead
+function transformListingToLead(listing: Listing): MapLead {
+  return {
+    id: listing.listing_id,
+    address: listing.street || '',
+    city: listing.city || '',
+    state: listing.state || '',
+    zip: listing.zip_code || '',
+    price: listing.list_price || 0,
+    price_drop_percent: 0,
+    days_on_market: 0,
+    url: listing.property_url || '',
+    latitude: listing.lat || undefined,
+    longitude: listing.lng || undefined,
+    beds: listing.beds || undefined,
+    sqft: listing.sqft || undefined,
+    year_built: listing.year_built || undefined,
+    agent_name: listing.agent_name || undefined,
+    agent_email: listing.agent_email || undefined,
+    expired: !listing.active,
+    geo_source: null,
+    enrichment_confidence: null
+  }
+}
+
 function LeadsPageContent() {
   const { profile } = useApp()
   const searchParams = useSearchParams()
@@ -335,47 +383,7 @@ function LeadsPageContent() {
         {activeView === 'map' && (
           <GoogleMapsView 
             isActive={activeView === 'map'}
-            listings={listings.map((l): {
-              id: string;
-              address: string;
-              city: string;
-              state: string;
-              zip: string;
-              price: number;
-              price_drop_percent: number;
-              days_on_market: number;
-              url: string;
-              latitude?: number;
-              longitude?: number;
-              beds?: number;
-              sqft?: number;
-              year_built?: number;
-              agent_name?: string;
-              agent_email?: string;
-              expired?: boolean;
-              geo_source?: string | null;
-              enrichment_confidence?: number | null;
-            } => ({
-              id: l.listing_id,
-              address: l.street || '',
-              city: l.city || '',
-              state: l.state || '',
-              zip: l.zip_code || '',
-              price: l.list_price || 0,
-              price_drop_percent: 0, // Not available in Listing type
-              days_on_market: 0, // Not available in Listing type
-              url: l.property_url || '',
-              latitude: l.lat || undefined,
-              longitude: l.lng || undefined,
-              beds: l.beds || undefined,
-              sqft: l.sqft || undefined,
-              year_built: l.year_built || undefined,
-              agent_name: l.agent_name || undefined,
-              agent_email: l.agent_email || undefined,
-              expired: !l.active,
-              geo_source: null,
-              enrichment_confidence: null
-            }))}
+            listings={listings.map(transformListingToLead)}
             loading={listingsLoading}
           />
         )}

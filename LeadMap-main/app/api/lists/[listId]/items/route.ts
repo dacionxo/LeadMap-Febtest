@@ -263,11 +263,11 @@ export async function GET(
     }
 
     // Remove duplicates based on listing_id
-    const uniqueListings = filteredListings.reduce((acc, listing) => {
+    const uniqueListings = filteredListings.reduce((acc: any[], listing: any) => {
       const id = listing.listing_id || listing.contact_id
       if (!id) return acc
       
-      const exists = acc.find(l => 
+      const exists = acc.find((l: any) => 
         (l.listing_id || l.contact_id) === id
       )
       if (!exists) {

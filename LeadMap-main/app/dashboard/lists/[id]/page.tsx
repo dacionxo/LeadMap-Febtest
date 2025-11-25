@@ -406,7 +406,8 @@ export default function ListDetailPage() {
         return
       }
 
-      const itemIds = listItems.map(item => item.id)
+      const typedListItems = listItems as Array<{ id: string }>
+      const itemIds = typedListItems.map(item => item.id)
 
       const response = await fetch(`/api/lists/${listId}/items/bulk`, {
         method: 'POST',

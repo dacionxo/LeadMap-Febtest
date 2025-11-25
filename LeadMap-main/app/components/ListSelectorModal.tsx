@@ -95,7 +95,7 @@ export default function ListSelectorModal({
     } finally {
       setLoading(false)
     }
-  }, [profile?.id, supabase, itemType])
+  }, [profile?.id, supabase])
 
   useEffect(() => {
     if (isOpen && profile?.id) {

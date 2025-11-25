@@ -62,19 +62,20 @@ const MapboxView: React.FC<MapboxViewProps> = ({ isActive, listings, loading }) 
     
     return `
       <div style="
-        width: 32px;
-        height: 32px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         background-color: ${color};
-        border: 2px solid white;
+        border: 1.5px solid white;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
+        font-size: 9px;
         font-weight: bold;
         color: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         cursor: pointer;
+        line-height: 1;
       ">${symbol}</div>
     `;
   };

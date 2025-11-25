@@ -17,10 +17,10 @@ export const runtime = 'nodejs'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { listId: string } }
+  { params }: { params: Promise<{ listId: string }> }
 ) {
   try {
-    const listId = params.listId
+    const { listId } = await params
     const body = await request.json()
     const { action, itemIds } = body
 

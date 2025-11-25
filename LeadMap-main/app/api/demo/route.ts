@@ -111,8 +111,18 @@ export async function POST(request: NextRequest) {
         if (process.env.RESEND_API_KEY) {
           try {
             // Dynamic import with error handling
-            // @ts-ignore - resend is optional dependency
-            const resendModule = await import('resend').catch(() => null)
+            // resend is an optional dependency - only import if available
+            let resendModule: any = null
+            try {
+              // Use webpackIgnore to prevent Next.js from trying to resolve at build time
+              // @ts-ignore - resend is optional
+              resendModule = await import(/* webpackIgnore: true */ 'resend').catch(() => null)
+            } catch (e) {
+              // Module not found - resend is optional, continue without email
+              console.log('Resend module not available, skipping email send')
+              resendModule = null
+            }
+            
             if (resendModule && resendModule.Resend) {
               const { Resend } = resendModule
               const resend = new Resend(process.env.RESEND_API_KEY)

@@ -22,10 +22,10 @@ export const runtime = 'nodejs'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { listId: string } }
+  { params }: { params: Promise<{ listId: string }> }
 ) {
   try {
-    const listId = params.listId
+    const { listId } = await params
     const { searchParams } = new URL(request.url)
     
     // Parse query parameters

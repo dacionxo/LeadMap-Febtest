@@ -199,33 +199,151 @@ export default function LeadDetailModal({
 
   // Memoize address calculations
   const address = useMemo(() => {
-    return [listing?.street, listing?.city, listing?.state, listing?.zip_code]
-      .filter(Boolean)
-      .join(', ') || 'Address not available'
-  }, [listing?.street, listing?.city, listing?.state, listing?.zip_code])
+    if (!listing) return 'Address not available'
+    
+    const hasValue = (val: any): boolean => val != null && String(val).trim().length > 0
+    
+    // Try direct fields first
+    const parts = [
+      listing.street,
+      listing.city,
+      listing.state,
+      listing.zip_code
+    ]
+      .filter(val => hasValue(val))
+      .map(val => String(val).trim())
+    
+    if (parts.length > 0) {
+      return parts.join(', ')
+    }
+    
+    // Check other JSONB field for alternative address fields
+    if (listing.other) {
+      const other = listing.other as any
+      const otherParts = [
+        other.address,
+        other.street_address,
+        other.full_address,
+        other.city,
+        other.state,
+        other.zip,
+        other.zip_code,
+        other.postal_code
+      ]
+        .filter(val => hasValue(val))
+        .map(val => String(val).trim())
+      
+      if (otherParts.length > 0) {
+        return otherParts.join(', ')
+      }
+    }
+    
+    return 'Address not available'
+  }, [listing])
+
+  // Helper function to check if a value is actually present (not null, undefined, or empty string)
+  const hasValue = (val: any): boolean => {
+    return val != null && String(val).trim().length > 0
+  }
 
   // Build streetAddress - use street if available, otherwise try to build from available fields
   const streetAddress = useMemo(() => {
-    if (listing?.street) {
-      return listing.street
+    if (!listing) return ''
+    
+    // Try direct street field first
+    if (hasValue(listing.street)) {
+      return String(listing.street).trim()
     }
+    
+    // Check other JSONB field for alternative address fields
+    if (listing.other) {
+      const other = listing.other as any
+      // Check for common alternative field names
+      if (hasValue(other.address)) {
+        return String(other.address).trim()
+      }
+      if (hasValue(other.street_address)) {
+        return String(other.street_address).trim()
+      }
+      if (hasValue(other.full_address)) {
+        return String(other.full_address).trim()
+      }
+    }
+    
     // If no street, try to build from city, state, zip
-    const cityStateZip = [listing?.city, listing?.state, listing?.zip_code]
-      .filter(Boolean)
+    const cityStateZip = [
+      listing.city, 
+      listing.state, 
+      listing.zip_code
+    ]
+      .filter(val => hasValue(val))
+      .map(val => String(val).trim())
       .join(', ')
+    
     if (cityStateZip) {
       return cityStateZip
     }
+    
+    // Check other JSONB for city/state/zip
+    if (listing.other) {
+      const other = listing.other as any
+      const otherCityStateZip = [
+        other.city,
+        other.state,
+        other.zip,
+        other.zip_code,
+        other.postal_code
+      ]
+        .filter(val => hasValue(val))
+        .map(val => String(val).trim())
+        .join(', ')
+      
+      if (otherCityStateZip) {
+        return otherCityStateZip
+      }
+    }
+    
     // If still nothing, try property_url as last resort
-    if (listing?.property_url) {
+    if (listing.property_url) {
       return 'Property Listing'
     }
+    
     return ''
-  }, [listing?.street, listing?.city, listing?.state, listing?.zip_code, listing?.property_url])
+  }, [listing])
   
   const cityStateZip = useMemo(() => {
-    return [listing?.city, listing?.state, listing?.zip_code].filter(Boolean).join(', ')
-  }, [listing?.city, listing?.state, listing?.zip_code])
+    if (!listing) return ''
+    
+    const hasValue = (val: any): boolean => val != null && String(val).trim().length > 0
+    
+    const parts = [
+      listing.city, 
+      listing.state, 
+      listing.zip_code
+    ]
+      .filter(val => hasValue(val))
+      .map(val => String(val).trim())
+    
+    // Also check other JSONB if direct fields are empty
+    if (parts.length === 0 && listing.other) {
+      const other = listing.other as any
+      const otherParts = [
+        other.city,
+        other.state,
+        other.zip,
+        other.zip_code,
+        other.postal_code
+      ]
+        .filter(val => hasValue(val))
+        .map(val => String(val).trim())
+      
+      if (otherParts.length > 0) {
+        return otherParts.join(', ')
+      }
+    }
+    
+    return parts.join(', ')
+  }, [listing])
 
   // Memoize property badges
   const propertyBadges = useMemo(() => {
@@ -1257,10 +1375,40 @@ function MapPreview({ listing }: { listing: Listing | null }) {
     setImageLoading(true)
   }, [listing?.listing_id])
   
-  // Build address string for Street View
-  const address = [listing?.street, listing?.city, listing?.state, listing?.zip_code]
-    .filter(Boolean)
-    .join(', ')
+  // Build address string for Street View - use robust checking
+  const hasValue = (val: any): boolean => val != null && String(val).trim().length > 0
+  
+  const addressParts = [
+    listing?.street,
+    listing?.city,
+    listing?.state,
+    listing?.zip_code
+  ]
+    .filter(val => hasValue(val))
+    .map(val => String(val).trim())
+  
+  // Check other JSONB if direct fields are empty
+  if (addressParts.length === 0 && listing?.other) {
+    const other = listing.other as any
+    const otherParts = [
+      other.address,
+      other.street_address,
+      other.full_address,
+      other.city,
+      other.state,
+      other.zip,
+      other.zip_code,
+      other.postal_code
+    ]
+      .filter(val => hasValue(val))
+      .map(val => String(val).trim())
+    
+    if (otherParts.length > 0) {
+      addressParts.push(...otherParts)
+    }
+  }
+  
+  const address = addressParts.join(', ')
 
   // Get coordinates if available
   const lat = listing?.lat ? Number(listing.lat) : null

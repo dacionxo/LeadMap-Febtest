@@ -76,56 +76,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // CASE 3: User exists BUT email is NOT verified → Resend verification email
-    try {
-      // Use Supabase Admin API to generate a new verification link
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'signup',
-        email: email,
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`
-        }
-      })
-
-      if (linkError) {
-        console.error('Error generating verification link:', linkError)
-        // If we can't resend, still block signup to prevent duplicates
-        return NextResponse.json(
-          { 
-            exists: true,
-            verified: false,
-            shouldProceed: false,
-            error: 'You already signed up but haven\'t verified your email. Please check your inbox or contact support.',
-            code: 'RESEND_FAILED'
-          },
-          { status: 400 }
-        )
-      }
-
-      // Note: Supabase Admin API generateLink doesn't automatically send email
-      // We need to use the magic link or have Supabase configured to send emails
-      // For now, return success and let the frontend handle the resend via normal flow
-      return NextResponse.json({
-        exists: true,
-        verified: false,
-        shouldProceed: false,
-        message: 'You already signed up, but haven\'t verified your email. We\'ll resend the verification email.',
-        code: 'RESEND_VERIFICATION',
-        userId: existingUser.id
-      })
-    } catch (resendErr: any) {
-      console.error('Error in resend verification:', resendErr)
-      return NextResponse.json(
-        { 
-          exists: true,
-          verified: false,
-          shouldProceed: false,
-          error: 'Unable to resend verification email. Please try again later or contact support.',
-          code: 'RESEND_FAILED'
-        },
-        { status: 500 }
-      )
-    }
+    // CASE 3: User exists BUT email is NOT verified → Return status for frontend to handle resend
+    // The frontend will call /api/auth/resend-verification to actually resend the email
+    return NextResponse.json({
+      exists: true,
+      verified: false,
+      shouldProceed: false,
+      message: 'You already signed up, but haven\'t verified your email. We\'ll resend the verification email.',
+      code: 'RESEND_VERIFICATION',
+      userId: existingUser.id
+    })
   } catch (error: any) {
     console.error('Check user error:', error)
     // On error, allow signup attempt (Supabase will handle duplicate check)

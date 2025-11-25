@@ -383,7 +383,7 @@ function LeadsPageContent() {
         {activeView === 'map' && (
           <GoogleMapsView 
             isActive={activeView === 'map'}
-            listings={listings.map(transformListingToLead)}
+            listings={listings.map(transformListingToLead) as any}
             loading={listingsLoading}
           />
         )}

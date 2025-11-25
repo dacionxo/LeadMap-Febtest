@@ -75,15 +75,15 @@ export async function GET(request: NextRequest) {
         console.warn('SUPABASE_SERVICE_ROLE_KEY not configured, skipping profile creation. User can still sign in.')
         // Don't block the redirect, just log the warning
       }
+
+      // URL to redirect to after sign in process completes
+      // If user was verified, redirect to verification confirmation page
+      if (data.user && data.session) {
+        return NextResponse.redirect(`${requestUrl.origin}/verify-email?verified=true`)
+      }
     }
   }
-
-  // URL to redirect to after sign in process completes
-  // If user was verified, redirect to verification confirmation page
-  if (data.user && data.session) {
-    return NextResponse.redirect(`${requestUrl.origin}/verify-email?verified=true`)
-  }
   
-  // Fallback to dashboard if no session
+  // Fallback to dashboard if no code or no session
   return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
 }

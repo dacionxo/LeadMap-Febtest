@@ -98,12 +98,13 @@ const MapComponent: React.FC<{
 
     try {
       // Set timeout to detect if map fails to initialize
+      // Give Google Maps more time to load before timing out
       initTimeoutRef.current = setTimeout(() => {
         if (!map) {
           console.error('Google Maps failed to initialize within timeout');
           if (onError) onError();
         }
-      }, 10000); // 10 second timeout
+      }, 15000); // 15 second timeout - give more time for API to load
 
       const mapInstance = new google.maps.Map(mapRef.current, {
         center: { lat: 28.5383, lng: -81.3792 },
@@ -284,15 +285,18 @@ const render = (status: Status, onError?: () => void): React.ReactElement => {
         </div>
       );
     case Status.FAILURE:
-      // Trigger fallback to Mapbox
+      // Trigger fallback to Mapbox with a longer delay to avoid premature switching
       if (onError) {
-        setTimeout(() => onError(), 100);
+        setTimeout(() => {
+          console.log('Google Maps wrapper reported failure, triggering fallback');
+          onError();
+        }, 2000); // Wait 2 seconds before switching to ensure it's a real failure
       }
       return (
         <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Switching to Mapbox...</p>
+            <p className="text-gray-600">Loading map...</p>
           </div>
         </div>
       );

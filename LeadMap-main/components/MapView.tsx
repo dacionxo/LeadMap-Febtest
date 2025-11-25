@@ -147,12 +147,13 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading }) => {
     window.addEventListener('unhandledrejection', handleRejection);
 
     // Check for Google Maps API availability after a delay
+    // Give it more time to load before checking
     const checkTimeout = setTimeout(() => {
       if (typeof window !== 'undefined' && !window.google?.maps && !googleMapsFailed) {
-        console.log('Google Maps API not detected, switching to Mapbox');
+        console.log('Google Maps API not detected after delay, switching to Mapbox');
         handleGoogleMapsError();
       }
-    }, 5000); // Check after 5 seconds
+    }, 8000); // Check after 8 seconds - give Google Maps more time to load
 
     // Watch for Google Maps error messages in the DOM
     const observer = new MutationObserver((mutations) => {
@@ -226,18 +227,11 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading }) => {
 
   // Fallback to Mapbox (automatically switches when Google Maps fails)
   return (
-    <>
-      {googleMapsFailed && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-          <span className="font-semibold">Note:</span> Using Mapbox as fallback (Google Maps unavailable)
-        </div>
-      )}
-      <MapboxViewFallback
-        isActive={isActive}
-        listings={listings}
-        loading={loading}
-      />
-    </>
+    <MapboxViewFallback
+      isActive={isActive}
+      listings={listings}
+      loading={loading}
+    />
   );
 };
 

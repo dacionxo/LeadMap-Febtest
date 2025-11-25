@@ -3,6 +3,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 
+// Extend window type for Google Maps
+declare global {
+  interface Window {
+    google?: {
+      maps: typeof google.maps;
+    };
+  }
+}
+
 interface Lead {
   id: string;
   address: string;
@@ -33,17 +42,20 @@ interface GoogleMapsViewEnhancedProps {
   isActive: boolean;
   listings: Lead[];
   loading: boolean;
+  onError?: () => void;
 }
 
 const MapComponent: React.FC<{ 
   leads: Lead[]; 
   onStreetViewClick: (lat: number, lng: number, address: string) => void;
   onMapReady: (map: google.maps.Map) => void;
-}> = ({ leads, onStreetViewClick, onMapReady }) => {
+  onError?: () => void;
+}> = ({ leads, onStreetViewClick, onMapReady, onError }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [infoWindow, setInfoWindow] = useState<google.maps.InfoWindow | null>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to get marker color based on lead type
   const getMarkerColor = (lead: Lead) => {
@@ -75,28 +87,79 @@ const MapComponent: React.FC<{
   useEffect(() => {
     if (!mapRef.current || map) return;
 
-    const mapInstance = new google.maps.Map(mapRef.current, {
-      center: { lat: 28.5383, lng: -81.3792 },
-      zoom: 10,
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
-        }
-      ]
-    });
+    // Check if google.maps is available
+    if (typeof window === 'undefined' || !window.google || !window.google.maps) {
+      console.error('Google Maps API not loaded');
+      if (onError) {
+        setTimeout(() => onError(), 100);
+      }
+      return;
+    }
 
-    setMap(mapInstance);
-    onMapReady(mapInstance);
-    
-    const infoWindowInstance = new google.maps.InfoWindow();
-    setInfoWindow(infoWindowInstance);
-    
-    mapInstance.addListener('click', () => {
-      infoWindowInstance.close();
-    });
-  }, [onMapReady]);
+    try {
+      // Set timeout to detect if map fails to initialize
+      initTimeoutRef.current = setTimeout(() => {
+        if (!map) {
+          console.error('Google Maps failed to initialize within timeout');
+          if (onError) onError();
+        }
+      }, 10000); // 10 second timeout
+
+      const mapInstance = new google.maps.Map(mapRef.current, {
+        center: { lat: 28.5383, lng: -81.3792 },
+        zoom: 10,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ]
+      });
+
+      // Check if map instance is valid
+      if (!mapInstance) {
+        throw new Error('Failed to create map instance');
+      }
+
+      setMap(mapInstance);
+      onMapReady(mapInstance);
+      
+      // Clear timeout on success
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      
+      const infoWindowInstance = new google.maps.InfoWindow();
+      setInfoWindow(infoWindowInstance);
+      
+      mapInstance.addListener('click', () => {
+        infoWindowInstance.close();
+      });
+
+      // Listen for map errors
+      mapInstance.addListener('error', (error: any) => {
+        console.error('Google Maps error event:', error);
+        if (onError) onError();
+      });
+    } catch (error) {
+      console.error('Error initializing Google Maps:', error);
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      if (onError) {
+        setTimeout(() => onError(), 100);
+      }
+    }
+
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+    };
+  }, [onMapReady, onError, map]);
 
   useEffect(() => {
     if (!map || !leads.length) return;
@@ -209,7 +272,7 @@ const MapComponent: React.FC<{
   return <div ref={mapRef} style={{ width: '100%', height: '600px' }} />;
 };
 
-const render = (status: Status): React.ReactElement => {
+const render = (status: Status, onError?: () => void): React.ReactElement => {
   switch (status) {
     case Status.LOADING:
       return (
@@ -221,12 +284,15 @@ const render = (status: Status): React.ReactElement => {
         </div>
       );
     case Status.FAILURE:
+      // Trigger fallback to Mapbox
+      if (onError) {
+        setTimeout(() => onError(), 100);
+      }
       return (
-        <div className="flex items-center justify-center h-96 bg-red-50 rounded-lg">
+        <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
           <div className="text-center">
-            <div className="text-red-600 text-6xl mb-4">⚠️</div>
-            <h3 className="text-lg font-semibold text-red-800 mb-2">Map Failed to Load</h3>
-            <p className="text-red-600">Please check your Google Maps API key and try again.</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Switching to Mapbox...</p>
           </div>
         </div>
       );
@@ -235,7 +301,7 @@ const render = (status: Status): React.ReactElement => {
   }
 };
 
-const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActive, listings, loading }) => {
+const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActive, listings, loading, onError }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -454,11 +520,12 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
         )}
       </div>
       
-      <Wrapper apiKey={GOOGLE_MAPS_API_KEY} render={render}>
+      <Wrapper apiKey={GOOGLE_MAPS_API_KEY} render={(status) => render(status, onError)}>
         <MapComponent 
           leads={listings} 
           onStreetViewClick={handleStreetViewClick}
           onMapReady={handleMapReady}
+          onError={onError}
         />
       </Wrapper>
     </div>

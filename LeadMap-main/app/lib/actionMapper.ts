@@ -5,10 +5,10 @@
  * Enables cross-page communication and action routing
  */
 
-import { ActionType, ActionContext, Listing } from '@/app/contexts/PageStateContext'
+import type { ActionType, ActionContext, Listing } from '@/app/contexts/PageStateContext'
 
-// Re-export ActionType for convenience
-export type { ActionType, ActionContext, Listing } from '@/app/contexts/PageStateContext'
+// Re-export ActionType for convenience - use explicit export syntax
+export type { ActionType, ActionContext, Listing }
 
 // ============================================================================
 // Action Route Configuration

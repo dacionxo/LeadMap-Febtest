@@ -35,7 +35,11 @@ interface GoogleMapsViewEnhancedProps {
   loading: boolean;
 }
 
-const MapComponent: React.FC<{ leads: Lead[]; onStreetViewClick: (lat: number, lng: number, address: string) => void }> = ({ leads, onStreetViewClick }) => {
+const MapComponent: React.FC<{ 
+  leads: Lead[]; 
+  onStreetViewClick: (lat: number, lng: number, address: string) => void;
+  onMapReady: (map: google.maps.Map) => void;
+}> = ({ leads, onStreetViewClick, onMapReady }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
@@ -84,6 +88,7 @@ const MapComponent: React.FC<{ leads: Lead[]; onStreetViewClick: (lat: number, l
     });
 
     setMap(mapInstance);
+    onMapReady(mapInstance);
     
     const infoWindowInstance = new google.maps.InfoWindow();
     setInfoWindow(infoWindowInstance);
@@ -91,7 +96,7 @@ const MapComponent: React.FC<{ leads: Lead[]; onStreetViewClick: (lat: number, l
     mapInstance.addListener('click', () => {
       infoWindowInstance.close();
     });
-  }, []);
+  }, [onMapReady]);
 
   useEffect(() => {
     if (!map || !leads.length) return;
@@ -235,9 +240,13 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [streetViewUrl, setStreetViewUrl] = useState<string | null>(null);
   const searchMarkerRef = useRef<google.maps.Marker | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+
+  // Callback when map is ready
+  const handleMapReady = (map: google.maps.Map) => {
+    mapInstanceRef.current = map;
+  };
 
   // Handle Street View click
   const handleStreetViewClick = (lat: number, lng: number, address: string) => {
@@ -446,7 +455,11 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
       </div>
       
       <Wrapper apiKey={GOOGLE_MAPS_API_KEY} render={render}>
-        <MapComponent leads={listings} onStreetViewClick={handleStreetViewClick} />
+        <MapComponent 
+          leads={listings} 
+          onStreetViewClick={handleStreetViewClick}
+          onMapReady={handleMapReady}
+        />
       </Wrapper>
     </div>
   );

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useApp } from '@/app/providers'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import LeadsTable from '@/components/LeadsTable'
-import MapboxView from '@/components/MapboxView'
+import MapView from '@/components/MapView'
 import EmailTemplateModal from '@/components/EmailTemplateModal'
 import { postEnrichLeads } from '@/lib/api'
 import { Search, Filter, Download } from 'lucide-react'
@@ -391,7 +391,7 @@ function LeadsPageContent() {
           />
         )}
         {activeView === 'map' && (
-          <MapboxView 
+          <MapView 
             isActive={activeView === 'map'}
             listings={listings.map(transformListingToLead) as any}
             loading={listingsLoading}

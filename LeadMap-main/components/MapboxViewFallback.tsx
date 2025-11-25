@@ -30,13 +30,13 @@ interface Lead {
   enrichment_confidence?: number | null;
 }
 
-interface MapboxViewProps {
+interface MapboxViewFallbackProps {
   isActive: boolean;
   listings: Lead[];
   loading: boolean;
 }
 
-const MapboxView: React.FC<MapboxViewProps> = ({ isActive, listings, loading }) => {
+const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({ isActive, listings, loading }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
@@ -588,5 +588,5 @@ const MapboxView: React.FC<MapboxViewProps> = ({ isActive, listings, loading }) 
   );
 };
 
-export default MapboxView;
+export default MapboxViewFallback;
 

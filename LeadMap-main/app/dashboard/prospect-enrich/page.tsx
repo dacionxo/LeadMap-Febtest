@@ -6,7 +6,7 @@ import { useApp } from '@/app/providers'
 import { useTheme } from '@/components/ThemeProvider'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import LeadsTable from '@/components/LeadsTable'
-import MapboxView from '@/components/MapboxView'
+import MapView from '@/components/MapView'
 import EmailTemplateModal from '@/components/EmailTemplateModal'
 import SaveButton from './components/AddToCrmButton'
 import { add_to_list } from './utils/listUtils'
@@ -1719,7 +1719,7 @@ function ProspectEnrichInner() {
 
             {viewTypeSelector === 'map' && (
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <MapboxView 
+                <MapView 
                   isActive={true}
                   listings={filteredListings.map(l => ({
                     id: l.listing_id,

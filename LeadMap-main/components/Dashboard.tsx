@@ -5,7 +5,7 @@ import { useApp } from '@/app/providers'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Navigation from './Navigation'
 import LeadsTable from './LeadsTable'
-import MapboxView from './MapboxView'
+import MapView from './MapView'
 import TrialExpired from './TrialExpired'
 import EmailTemplateModal from './EmailTemplateModal'
 import { postEnrichLeads } from '@/lib/api'
@@ -316,7 +316,7 @@ export default function Dashboard() {
             onGenerateEmail={handleGenerateEmail}
           />
         ) : (
-          <MapboxView 
+          <MapView 
             isActive={activeTab === 'map'}
             listings={listings.map(transformListingToLead)}
             loading={listingsLoading}

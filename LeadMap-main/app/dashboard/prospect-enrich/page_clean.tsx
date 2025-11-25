@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useApp } from '@/app/providers'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import LeadsTable from '@/components/LeadsTable'
-import MapboxView from '@/components/MapboxView'
+import MapView from '@/components/MapView'
 import EmailTemplateModal from '@/components/EmailTemplateModal'
 import AddToCrmButton from './components/AddToCrmButton'
 import ProspectInsights from './components/ProspectInsights'
@@ -839,7 +839,7 @@ function ProspectEnrichContent() {
 
             {activeView === 'map' && (
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <MapboxView isActive={activeView === 'map'} listings={filteredListings.map(transformListingToLead)} loading={listingsLoading} />
+                <MapView isActive={activeView === 'map'} listings={filteredListings.map(transformListingToLead)} loading={listingsLoading} />
               </div>
             )}
 

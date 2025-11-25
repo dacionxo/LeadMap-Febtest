@@ -1225,37 +1225,112 @@ export default function LeadDetailModal({
 
 // MapPreview component - uses Google Street View (like DealMachine)
 function MapPreview({ listing }: { listing: Listing | null }) {
+  const [imageError, setImageError] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
+  
   // Use Street View API key if available, otherwise fall back to general Google Maps API key
-  const streetViewApiKey = process.env.NEXT_PUBLIC_GOOGLE_STREET_VIEW_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const streetViewApiKey = process.env.NEXT_PUBLIC_GOOGLE_STREET_VIEW_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBkD3srgAqEHFM4DbU-dv6Zc4EEoB5yhBU'
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyCZ0i53LQCnvju3gZYXW5ZQe_IfgWBDM9M'
+  
+  // Reset state when listing changes
+  useEffect(() => {
+    setImageError(false)
+    setImageLoading(true)
+  }, [listing?.listing_id])
   
   // Build address string for Street View
   const address = [listing?.street, listing?.city, listing?.state, listing?.zip_code]
     .filter(Boolean)
     .join(', ')
 
-  // Try to use Google Street View if we have an address and API key
-  if (streetViewApiKey && address) {
-    const encodedAddress = encodeURIComponent(address)
-    const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=640x480&location=${encodedAddress}&key=${streetViewApiKey}`
+  // Get coordinates if available
+  const lat = listing?.lat ? Number(listing.lat) : null
+  const lng = listing?.lng ? Number(listing.lng) : null
+
+  // Try to use Google Street View if we have an address/coordinates and API key
+  if (streetViewApiKey && (address || (lat && lng))) {
+    // Prefer coordinates if available, otherwise use address
+    const location = (lat && lng) ? `${lat},${lng}` : encodeURIComponent(address)
+    const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=640x480&location=${location}&key=${streetViewApiKey}&fov=90&heading=0&pitch=0`
+    
     return (
-      <img
-        src={streetViewUrl}
-        alt="Property Street View"
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover'
-        }}
-        onError={(e) => {
-          // Fallback to static map if street view fails
-          const lat = listing?.lat
-          const lng = listing?.lng
-          if (lat && lng) {
-            e.currentTarget.src = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=640x480&markers=color:red%7C${lat},${lng}&key=${googleMapsApiKey}`
-          }
-        }}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {imageLoading && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f3f4f6',
+            zIndex: 1
+          }}>
+            <div style={{
+              textAlign: 'center',
+              color: '#6b7280',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '3px solid #e5e7eb',
+                borderTop: '3px solid #3b82f6',
+                borderRadius: '50%',
+                margin: '0 auto 12px',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              <div>Loading Street View...</div>
+            </div>
+          </div>
+        )}
+        <img
+          src={streetViewUrl}
+          alt="Property Street View"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: imageError ? 'none' : 'block'
+          }}
+          onLoad={() => {
+            setImageLoading(false)
+            setImageError(false)
+          }}
+          onError={(e) => {
+            setImageLoading(false)
+            setImageError(true)
+            // Fallback to static map if street view fails
+            if (lat && lng && googleMapsApiKey) {
+              const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=640x480&markers=color:red%7C${lat},${lng}&key=${googleMapsApiKey}`
+              e.currentTarget.src = staticMapUrl
+              e.currentTarget.style.display = 'block'
+            }
+          }}
+        />
+        {imageError && !lat && !lng && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f3f4f6',
+            color: '#6b7280',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontSize: '14px',
+            textAlign: 'center',
+            padding: '20px'
+          }}>
+            Street View not available for this location
+          </div>
+        )}
+      </div>
     )
   }
 

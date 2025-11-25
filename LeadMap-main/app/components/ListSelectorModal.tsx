@@ -38,6 +38,7 @@ export default function ListSelectorModal({
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newListName, setNewListName] = useState('')
+  const [newListType, setNewListType] = useState<'people' | 'properties'>('properties')
   const [creating, setCreating] = useState(false)
   const [addingToList, setAddingToList] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -377,6 +378,7 @@ export default function ListSelectorModal({
                   onClick={() => {
                     setShowCreateForm(false)
                     setNewListName('')
+                    setNewListType('properties')
                     setError(null)
                   }}
                   style={{

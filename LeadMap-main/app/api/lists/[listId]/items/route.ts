@@ -283,7 +283,7 @@ export async function GET(
 
     // Apply client-side sorting if needed (for fields not in list_items)
     if (sortBy !== 'created_at') {
-      uniqueListings.sort((a, b) => {
+      uniqueListings.sort((a: ListingItem, b: ListingItem) => {
         const aVal = a[sortBy]
         const bVal = b[sortBy]
         

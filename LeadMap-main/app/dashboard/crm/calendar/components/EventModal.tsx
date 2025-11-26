@@ -16,6 +16,7 @@ interface EventModalProps {
       description?: string
       relatedType?: string
       relatedId?: string
+      timezone?: string
     }
   } | null
   onClose: () => void
@@ -24,11 +25,56 @@ interface EventModalProps {
 }
 
 export default function EventModal({ event, onClose, onEdit, onDelete }: EventModalProps) {
-  if (!event) return null
+  const [timezone, setTimezone] = useState<string>('UTC')
+  const [loading, setLoading] = useState(true)
+
+  // Fetch current timezone setting
+  useEffect(() => {
+    const fetchTimezone = async () => {
+      try {
+        const response = await fetch('/api/calendar/settings', {
+          credentials: 'include',
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setTimezone(data.settings?.default_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone)
+        }
+      } catch (error) {
+        console.error('Error fetching timezone:', error)
+        setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (event) {
+      fetchTimezone()
+    }
+  }, [event])
+
+  // Listen for timezone updates
+  useEffect(() => {
+    const handleSettingsUpdate = (e: CustomEvent) => {
+      if (e.detail?.default_timezone) {
+        setTimezone(e.detail.default_timezone)
+      }
+    }
+
+    window.addEventListener('calendarSettingsUpdated', handleSettingsUpdate as EventListener)
+    return () => {
+      window.removeEventListener('calendarSettingsUpdated', handleSettingsUpdate as EventListener)
+    }
+  }, [])
+
+  if (!event || loading) return null
+
+  // Use event's timezone if available, otherwise use current setting
+  const displayTimezone = event.extendedProps?.timezone || timezone
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleString('en-US', {
+      timeZone: displayTimezone,
       weekday: 'short',
       year: 'numeric',
       month: 'short',
@@ -41,6 +87,7 @@ export default function EventModal({ event, onClose, onEdit, onDelete }: EventMo
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleTimeString('en-US', {
+      timeZone: displayTimezone,
       hour: 'numeric',
       minute: '2-digit',
     })
@@ -103,6 +150,9 @@ export default function EventModal({ event, onClose, onEdit, onDelete }: EventMo
                   <Clock className="w-4 h-4" />
                   <span>
                     {formatTime(event.start)} - {formatTime(event.end)}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-500">
+                    ({displayTimezone})
                   </span>
                 </div>
               )}

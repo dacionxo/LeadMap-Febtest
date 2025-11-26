@@ -7,7 +7,8 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import type { EventInput, DateSelectArg, EventClickArg, EventChangeArg } from '@fullcalendar/core'
-import { Calendar, Plus, Settings, RefreshCw, ChevronLeft, ChevronRight, Search, HelpCircle, Grid3x3, Check } from 'lucide-react'
+import { Calendar, Plus, Settings, RefreshCw, ChevronLeft, ChevronRight, Search, HelpCircle, Grid3x3, Check, X } from 'lucide-react'
+import CalendarHelpModal from './CalendarHelpModal'
 
 interface CalendarEvent {
   id: string
@@ -33,10 +34,13 @@ interface CalendarViewProps {
 
 export default function CalendarView({ onEventClick, onDateSelect }: CalendarViewProps) {
   const [events, setEvents] = useState<EventInput[]>([])
+  const [allEvents, setAllEvents] = useState<EventInput[]>([]) // Store all events for search
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<any>(null)
   const [view, setView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'>('dayGridMonth')
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showHelp, setShowHelp] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
 
   // Load settings on mount
@@ -148,17 +152,91 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         }
       })
 
+      setAllEvents(formattedEvents)
       setEvents(formattedEvents)
     } catch (error) {
       console.error('Error fetching events:', error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [settings?.show_declined_events, settings?.color_code_by_event_type])
+
+  // Filter events based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setEvents(allEvents)
+      return
+    }
+
+    const query = searchQuery.toLowerCase()
+    const filtered = allEvents.filter((event) => {
+      const title = event.title?.toLowerCase() || ''
+      const description = event.extendedProps?.description?.toLowerCase() || ''
+      const location = event.extendedProps?.location?.toLowerCase() || ''
+      const eventType = event.extendedProps?.eventType?.toLowerCase() || ''
+      
+      return (
+        title.includes(query) ||
+        description.includes(query) ||
+        location.includes(query) ||
+        eventType.includes(query)
+      )
+    })
+
+    setEvents(filtered)
+    
+    // Highlight matching events by navigating to first match
+    if (filtered.length > 0 && calendarRef.current) {
+      const firstEvent = filtered[0]
+      if (firstEvent.start) {
+        calendarRef.current.getApi().gotoDate(new Date(firstEvent.start as string))
+      }
+    }
+  }, [searchQuery, allEvents])
 
   useEffect(() => {
     fetchEvents()
   }, [fetchEvents, view, settings?.show_declined_events, settings?.color_code_by_event_type])
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't handle shortcuts when typing in inputs
+      if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
+        return
+      }
+
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault()
+        goToToday()
+      } else if (e.key === 'ArrowLeft' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        navigateMonth('prev')
+      } else if (e.key === 'ArrowRight' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        navigateMonth('next')
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault()
+        changeView('dayGridMonth')
+      } else if (e.key === 'w' || e.key === 'W') {
+        e.preventDefault()
+        changeView('timeGridWeek')
+      } else if (e.key === 'd' || e.key === 'D') {
+        e.preventDefault()
+        changeView('timeGridDay')
+      } else if (e.key === '/' || e.key === '?') {
+        e.preventDefault()
+        // Focus search or show help
+        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement
+        if (searchInput) {
+          searchInput.focus()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [])
 
   const getEventColor = (eventType?: string): string => {
     const colors: Record<string, string> = {
@@ -290,12 +368,49 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         {/* Right: Actions & View Selector */}
         <div className="flex items-center gap-2">
           {/* Search */}
-          <button className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
-            <Search className="w-4 h-4" />
-          </button>
+          <div className="relative">
+            {searchQuery ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search events..."
+                  className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                  autoFocus
+                />
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  title="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  const input = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement
+                  if (input) {
+                    input.focus()
+                  } else {
+                    setSearchQuery('')
+                  }
+                }}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                title="Search events (Press /)"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           
           {/* Help */}
-          <button className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+            title="Help (Press ?)"
+          >
             <HelpCircle className="w-4 h-4" />
           </button>
           
@@ -674,6 +789,9 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
           />
         </div>
       </div>
+
+      {/* Help Modal */}
+      <CalendarHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   )
 }

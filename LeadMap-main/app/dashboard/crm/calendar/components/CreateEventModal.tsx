@@ -25,6 +25,7 @@ export default function CreateEventModal({
   onSuccess,
 }: CreateEventModalProps) {
   const [loading, setLoading] = useState(false)
+  const [settings, setSettings] = useState<any>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -38,16 +39,57 @@ export default function CreateEventModal({
     reminderMinutes: [] as number[],
   })
 
+  // Load settings on mount
+  useEffect(() => {
+    if (isOpen) {
+      fetchSettings()
+    }
+  }, [isOpen])
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/calendar/settings', {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setSettings(data.settings)
+        // Apply default duration if no initial end date
+        if (!initialEndDate && data.settings?.default_event_duration_minutes) {
+          const duration = data.settings.default_event_duration_minutes
+          if (initialDate) {
+            const endDate = new Date(initialDate.getTime() + duration * 60 * 1000)
+            setFormData((prev) => ({
+              ...prev,
+              endTime: endDate.toISOString().slice(0, 16),
+            }))
+          }
+        }
+        // Apply default reminders
+        if (data.settings?.default_reminders) {
+          const reminders = data.settings.default_reminders.map((r: any) => r.minutes)
+          setFormData((prev) => ({
+            ...prev,
+            reminderMinutes: reminders,
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+    }
+  }
+
   useEffect(() => {
     if (initialDate) {
-      const endDate = initialEndDate || new Date(initialDate.getTime() + 30 * 60 * 1000) // Default 30 min
+      const defaultDuration = settings?.default_event_duration_minutes || 30
+      const endDate = initialEndDate || new Date(initialDate.getTime() + defaultDuration * 60 * 1000)
       setFormData((prev) => ({
         ...prev,
         startTime: initialDate.toISOString().slice(0, 16),
         endTime: endDate.toISOString().slice(0, 16),
       }))
     }
-  }, [initialDate, initialEndDate])
+  }, [initialDate, initialEndDate, settings])
 
   const eventTypes = [
     { value: 'call', label: 'Phone Call' },
@@ -74,6 +116,7 @@ export default function CreateEventModal({
     try {
       const startTime = new Date(formData.startTime).toISOString()
       const endTime = new Date(formData.endTime).toISOString()
+      const timezone = settings?.default_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
 
       const response = await fetch('/api/calendar/events', {
         method: 'POST',
@@ -85,13 +128,14 @@ export default function CreateEventModal({
           eventType: formData.eventType,
           startTime,
           endTime,
+          timezone,
           allDay: formData.allDay,
           location: formData.location,
           conferencingLink: formData.conferencingLink || null,
           relatedType: relatedType || null,
           relatedId: relatedId || null,
           notes: formData.notes,
-          reminderMinutes: formData.reminderMinutes,
+          reminderMinutes: formData.reminderMinutes.length > 0 ? formData.reminderMinutes : (settings?.default_reminders?.map((r: any) => r.minutes) || [15]),
         }),
       })
 

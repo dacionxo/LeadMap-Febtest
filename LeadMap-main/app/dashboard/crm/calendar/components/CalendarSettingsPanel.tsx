@@ -64,10 +64,17 @@ export default function CalendarSettingsPanel({ isOpen, onClose }: CalendarSetti
       if (response.ok) {
         const data = await response.json()
         setSettings(data.settings)
+        // Trigger settings update event for calendar view
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('calendarSettingsUpdated', { detail: data.settings }))
+        }
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update settings')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating settings:', error)
-      alert('Failed to update settings')
+      alert(error.message || 'Failed to update settings')
     } finally {
       setSaving(false)
     }

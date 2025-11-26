@@ -136,6 +136,7 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     const updateData: any = {}
+    // Map camelCase to snake_case for database
     if (body.defaultTimezone !== undefined) updateData.default_timezone = body.defaultTimezone
     if (body.defaultEventDurationMinutes !== undefined) updateData.default_event_duration_minutes = body.defaultEventDurationMinutes
     if (body.defaultEventVisibility !== undefined) updateData.default_event_visibility = body.defaultEventVisibility

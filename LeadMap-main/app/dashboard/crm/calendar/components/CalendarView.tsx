@@ -34,9 +34,58 @@ interface CalendarViewProps {
 export default function CalendarView({ onEventClick, onDateSelect }: CalendarViewProps) {
   const [events, setEvents] = useState<EventInput[]>([])
   const [loading, setLoading] = useState(true)
+  const [settings, setSettings] = useState<any>(null)
   const [view, setView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'>('dayGridMonth')
   const [currentDate, setCurrentDate] = useState(new Date())
   const calendarRef = useRef<FullCalendar>(null)
+
+  // Load settings on mount
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+
+  // Listen for settings updates
+  useEffect(() => {
+    const handleSettingsUpdate = (event: CustomEvent) => {
+      setSettings(event.detail)
+    }
+
+    window.addEventListener('calendarSettingsUpdated', handleSettingsUpdate as EventListener)
+    return () => {
+      window.removeEventListener('calendarSettingsUpdated', handleSettingsUpdate as EventListener)
+    }
+  }, [])
+
+  // Apply default view from settings on initial load
+  useEffect(() => {
+    if (settings?.default_view && calendarRef.current) {
+      const viewMap: Record<string, 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'> = {
+        month: 'dayGridMonth',
+        week: 'timeGridWeek',
+        day: 'timeGridDay',
+        agenda: 'listWeek',
+      }
+      const mappedView = viewMap[settings.default_view] || 'dayGridMonth'
+      if (mappedView !== view) {
+        setView(mappedView)
+        calendarRef.current.getApi().changeView(mappedView)
+      }
+    }
+  }, [settings?.default_view])
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/calendar/settings', {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setSettings(data.settings)
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+    }
+  }
 
   // Fetch events
   const fetchEvents = useCallback(async () => {
@@ -504,48 +553,75 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
           .fc-loading {
             opacity: 0.6;
           }
+
+          /* View Density - Compact */
+          .fc-view-harness-compact .fc-daygrid-day {
+            min-height: 60px;
+          }
+
+          .fc-view-harness-compact .fc-daygrid-day-number {
+            padding: 4px;
+            font-size: 12px;
+          }
+
+          .fc-view-harness-compact .fc-event {
+            font-size: 11px;
+            padding: 1px 4px;
+          }
+
+          .fc-view-harness-compact .fc-timegrid-slot {
+            height: 36px;
+          }
+
+          /* View Density - Comfortable (default) */
+          .fc-view-harness-comfortable .fc-daygrid-day {
+            min-height: 100px;
+          }
         `}</style>
         
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-          initialView={view}
-          headerToolbar={false}
-          events={events}
-          editable={true}
-          selectable={true}
-          selectMirror={true}
-          dayMaxEvents={true}
-          weekends={true}
-          select={handleDateSelect}
-          eventClick={handleEventClick}
-          eventChange={handleEventChange}
-          height="auto"
-          eventDisplay="block"
-          eventTimeFormat={{
-            hour: 'numeric',
-            minute: '2-digit',
-            meridiem: 'short',
-          }}
-          slotMinTime="06:00:00"
-          slotMaxTime="22:00:00"
-          allDaySlot={true}
-          nowIndicator={true}
-          locale="en"
-          firstDay={0}
-          businessHours={{
-            daysOfWeek: [1, 2, 3, 4, 5],
-            startTime: '09:00',
-            endTime: '17:00',
-          }}
-          dayHeaderFormat={{ weekday: 'short' }}
-          dayHeaderContent={(args) => {
-            return args.text.toUpperCase()
-          }}
-          loading={(isLoading) => {
-            setLoading(isLoading)
-          }}
-        />
+        <div className={settings?.view_density === 'compact' ? 'fc-view-harness-compact' : 'fc-view-harness-comfortable'}>
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+            initialView={view}
+            headerToolbar={false}
+            events={events}
+            editable={true}
+            selectable={true}
+            selectMirror={true}
+            dayMaxEvents={true}
+            weekends={settings?.show_weekends !== false}
+            select={handleDateSelect}
+            eventClick={handleEventClick}
+            eventChange={handleEventChange}
+            height="auto"
+            eventDisplay="block"
+            eventTimeFormat={{
+              hour: 'numeric',
+              minute: '2-digit',
+              meridiem: 'short',
+            }}
+            slotMinTime="06:00:00"
+            slotMaxTime="22:00:00"
+            allDaySlot={true}
+            nowIndicator={true}
+            locale="en"
+            firstDay={0}
+            timeZone={settings?.default_timezone || 'local'}
+            businessHours={{
+              daysOfWeek: [1, 2, 3, 4, 5],
+              startTime: '09:00',
+              endTime: '17:00',
+            }}
+            dayHeaderFormat={{ weekday: 'short' }}
+            dayHeaderContent={(args) => {
+              return args.text.toUpperCase()
+            }}
+            loading={(isLoading) => {
+              setLoading(isLoading)
+            }}
+          />
+        </div>
       </div>
     </div>
   )

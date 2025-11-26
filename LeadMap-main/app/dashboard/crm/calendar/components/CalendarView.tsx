@@ -66,8 +66,8 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         // Update FullCalendar's timezone - this will automatically re-render events in new timezone
         calendar.setOption('timeZone', newTimezone)
         
-        // Force calendar to re-render with new timezone
-        calendar.render()
+        // FullCalendar automatically re-renders when timeZone option changes
+        // No need to manually call render() or refetch events
       }
     }
 

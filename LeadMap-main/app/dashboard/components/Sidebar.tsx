@@ -20,8 +20,7 @@ import {
   Calendar,
   BarChart3,
   CheckCircle2,
-  Megaphone,
-  MessageCircle
+  Megaphone
 } from 'lucide-react'
 import { useApp } from '@/app/providers'
 import { useSidebar } from './SidebarContext'
@@ -77,9 +76,7 @@ const navSections: NavSection[] = [
   },
   {
     title: 'CONVERSATIONS',
-    items: [
-      { label: 'Conversations', icon: MessageCircle, href: '/dashboard/conversations' }
-    ]
+    items: []
   },
   {
     title: 'TOOLS & AUTOMATION',
@@ -303,50 +300,7 @@ export default function Sidebar() {
       {profile && !profile.is_subscribed && isOpen && (
         <div className="p-3 border-t border-gray-200 dark:border-gray-700">
           <button
-            onClick={async () => {
-              try {
-                const priceId = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID
-                if (!priceId) {
-                  console.error('Stripe price ID not configured')
-                  router.push('/pricing')
-                  return
-                }
-
-                const response = await fetch('/api/stripe/create-checkout-session', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ priceId }),
-                })
-
-                const data = await response.json()
-
-                if (data.sessionId) {
-                  const { loadStripe } = await import('@stripe/stripe-js')
-                  const stripe = await loadStripe(
-                    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-                  )
-
-                  if (stripe) {
-                    const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId })
-                    if (error) {
-                      console.error('Error redirecting to checkout:', error)
-                      router.push('/pricing')
-                    }
-                  } else {
-                    console.error('Stripe failed to load')
-                    router.push('/pricing')
-                  }
-                } else {
-                  console.error('No sessionId in response:', data)
-                  router.push('/pricing')
-                }
-              } catch (error) {
-                console.error('Error creating checkout session:', error)
-                router.push('/pricing')
-              }
-            }}
+            onClick={() => router.push('/pricing')}
             className="w-full px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
           >
             Upgrade Plan

@@ -40,8 +40,10 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
   const [view, setView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'>('dayGridMonth')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [searchQuery, setSearchQuery] = useState('')
+  const [showSearch, setShowSearch] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Load settings on mount
   useEffect(() => {
@@ -233,14 +235,18 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         changeView('timeGridDay')
       } else if (e.key === '/' && !e.shiftKey) {
         e.preventDefault()
-        // Focus calendar search input specifically
-        const calendarSearchInput = document.querySelector('.calendar-search-input') as HTMLInputElement
-        if (calendarSearchInput) {
-          calendarSearchInput.focus()
-        }
+        // Show and focus calendar search input
+        setShowSearch(true)
+        setTimeout(() => {
+          searchInputRef.current?.focus()
+        }, 0)
       } else if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
         e.preventDefault()
         setShowHelp(true)
+      } else if (e.key === 'Escape' && searchQuery) {
+        // Clear search on Escape
+        setSearchQuery('')
+        setShowSearch(false)
       }
     }
 
@@ -379,19 +385,29 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         <div className="flex items-center gap-2">
           {/* Search */}
           <div className="relative">
-            {searchQuery ? (
+            {showSearch || searchQuery ? (
               <div className="flex items-center gap-2">
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => {
+                    // Keep search open if there's a query
+                    if (!searchQuery.trim()) {
+                      setShowSearch(false)
+                    }
+                  }}
                   placeholder="Search calendar events..."
                   className="calendar-search-input px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
                   autoFocus
                   onClick={(e) => e.stopPropagation()}
                 />
                 <button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => {
+                    setSearchQuery('')
+                    setShowSearch(false)
+                  }}
                   className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   title="Clear search"
                 >
@@ -401,19 +417,11 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
             ) : (
               <button
                 onClick={() => {
-                  const input = document.querySelector('.calendar-search-input') as HTMLInputElement
-                  if (input) {
-                    input.focus()
-                  } else {
-                    // If input doesn't exist yet, trigger it to show
-                    setSearchQuery('')
-                    setTimeout(() => {
-                      const newInput = document.querySelector('.calendar-search-input') as HTMLInputElement
-                      if (newInput) {
-                        newInput.focus()
-                      }
-                    }, 0)
-                  }
+                  setShowSearch(true)
+                  // Focus input after it renders
+                  setTimeout(() => {
+                    searchInputRef.current?.focus()
+                  }, 0)
                 }}
                 className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
                 title="Search calendar events (Press /)"

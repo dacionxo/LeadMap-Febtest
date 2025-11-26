@@ -405,7 +405,7 @@ export default function ListsPage() {
                   }}
                 >
                   <Users size={18} />
-                  Create a people list
+                  Create a prospects list
                 </button>
                 <button
                   onClick={() => handleCreateList('properties')}
@@ -470,7 +470,7 @@ export default function ListsPage() {
                     color: '#111827',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                   }}>
-                    People {peopleLists.length}
+                    Prospects {peopleLists.length}
                   </h2>
                 </div>
 
@@ -605,8 +605,16 @@ export default function ListsPage() {
                                 </span>
                               </div>
                             </td>
-                            <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                              {list.item_count || 0}
+                            <td style={{ padding: '12px 16px' }}>
+                              <span style={{
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                color: '#111827',
+                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+                                letterSpacing: '0.025em'
+                              }}>
+                                {list.item_count || 0}
+                              </span>
                             </td>
                             <td style={{ padding: '12px 16px' }}>
                               <span style={{
@@ -621,7 +629,7 @@ export default function ListsPage() {
                                 fontWeight: 500
                               }}>
                                 <Users size={12} />
-                                People
+                                Prospects
                               </span>
                             </td>
                             <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
@@ -724,7 +732,7 @@ export default function ListsPage() {
                     color: '#111827',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                   }}>
-                    Companies {propertiesLists.length}
+                    Properties {propertiesLists.length}
                   </h2>
                 </div>
 
@@ -859,8 +867,16 @@ export default function ListsPage() {
                                 </span>
                               </div>
                             </td>
-                            <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                              {list.item_count || 0}
+                            <td style={{ padding: '12px 16px' }}>
+                              <span style={{
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                color: '#111827',
+                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+                                letterSpacing: '0.025em'
+                              }}>
+                                {list.item_count || 0}
+                              </span>
                             </td>
                             <td style={{ padding: '12px 16px' }}>
                               <span style={{

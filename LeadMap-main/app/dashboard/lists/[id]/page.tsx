@@ -615,8 +615,7 @@ export default function ListDetailPage() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: '#ffffff',
-        position: 'relative'
+        backgroundColor: '#ffffff'
       }}>
         {/* Header */}
         <div style={{
@@ -904,6 +903,7 @@ export default function ListDetailPage() {
         <div style={{
           flex: 1,
           padding: '24px 32px',
+          backgroundColor: '#ffffff',
           position: 'relative',
           zIndex: 1,
           overflow: 'hidden',
@@ -913,16 +913,14 @@ export default function ListDetailPage() {
         }}>
           {loading ? (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.95) 100%)',
-              borderRadius: '12px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
               padding: '64px',
               textAlign: 'center',
-              boxShadow: '0 4px 12px -2px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-              border: '1px solid rgba(99, 102, 241, 0.1)',
-              backdropFilter: 'blur(10px)'
+              border: '1px solid #e5e7eb'
             }}>
               <div style={{
-                color: '#000000',
+                color: '#111827',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                 fontSize: '16px',
                 fontWeight: 500
@@ -932,16 +930,14 @@ export default function ListDetailPage() {
             </div>
           ) : listings.length === 0 ? (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.95) 100%)',
-              borderRadius: '12px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
               padding: '64px',
               textAlign: 'center',
-              boxShadow: '0 4px 12px -2px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-              border: '1px solid rgba(99, 102, 241, 0.1)',
-              backdropFilter: 'blur(10px)'
+              border: '1px solid #e5e7eb'
             }}>
               <div style={{
-                color: '#000000',
+                color: '#111827',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                 fontSize: '16px',
                 fontWeight: 500,
@@ -950,10 +946,9 @@ export default function ListDetailPage() {
                 {searchQuery ? 'No items match your search' : 'No items in this list'}
               </div>
               <div style={{
-                color: '#000000',
+                color: '#6b7280',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                fontSize: '14px',
-                opacity: 0.7
+                fontSize: '14px'
               }}>
                 {searchQuery ? 'Try adjusting your search terms' : 'Add items to this list to get started'}
               </div>

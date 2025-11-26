@@ -15,7 +15,6 @@ export default async function SignUp() {
 
   try {
     const cookieStore = await cookies()
-    // @ts-expect-error - Supabase types expect Promise but runtime needs sync function
     const supabase = createServerComponentClient({ cookies: () => cookieStore })
     
     try {

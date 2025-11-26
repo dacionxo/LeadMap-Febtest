@@ -32,7 +32,6 @@ export function getClientComponentClient() {
 export async function getServerComponentClient() {
   if (!serverComponentClient) {
     const cookieStore = await cookies()
-    // @ts-expect-error - Supabase types expect Promise but runtime needs sync function
     serverComponentClient = createServerComponentClient({ cookies: () => cookieStore })
   }
   return serverComponentClient

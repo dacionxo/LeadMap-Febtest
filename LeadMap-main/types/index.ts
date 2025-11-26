@@ -78,6 +78,3 @@ export interface PricingPlan {
   features: string[]
   popular: boolean
 }
-
-// Re-export Supabase auth helpers types for better compatibility
-export * from './supabase-auth-helpers'

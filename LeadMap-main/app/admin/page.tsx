@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   const cookieStore = await cookies()
-  // @ts-expect-error - Supabase types expect Promise but runtime needs sync function
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
   
   const { data: { user } } = await supabase.auth.getUser()

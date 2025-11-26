@@ -30,12 +30,12 @@ export async function GET(request: NextRequest) {
 
     // Decode state to get user ID and email
     let userId: string
-    let email: string | undefined
+    let stateEmail: string | undefined
     let provider: string | undefined
     try {
       const decoded = JSON.parse(Buffer.from(state, 'base64').toString())
       userId = decoded.userId
-      email = decoded.email
+      stateEmail = decoded.email
       provider = decoded.provider || 'google'
     } catch {
       return NextResponse.redirect(
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userInfo = await userInfoResponse.json()
-    const email = userInfo.email
+    const userEmail = userInfo.email || stateEmail
 
     // Get primary calendar
     const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList/primary', {
@@ -116,12 +116,12 @@ export async function GET(request: NextRequest) {
     })
 
     let calendarId = 'primary'
-    let calendarName = email
+    let calendarName = userEmail
 
     if (calendarResponse.ok) {
       const calendarInfo = await calendarResponse.json()
       calendarId = calendarInfo.id
-      calendarName = calendarInfo.summary || email
+      calendarName = calendarInfo.summary || userEmail
     }
 
     // Save connection to database
@@ -151,14 +151,14 @@ export async function GET(request: NextRequest) {
       .select('id')
       .eq('user_id', user.id)
       .eq('provider', 'google')
-      .eq('email', email)
+      .eq('email', userEmail)
       .single()
 
     const connectionData = {
       user_id: user.id,
       provider: 'google',
       provider_account_id: userInfo.id,
-      email,
+      email: userEmail,
       access_token: access_token, // In production, encrypt this
       refresh_token: refresh_token || null, // In production, encrypt this
       token_expires_at: tokenExpiresAt,

@@ -112,16 +112,7 @@ export default function TasksPage() {
       const { data, error } = await query
 
       if (error) throw error
-      
-      // Filter by task type on client side
-      let filteredData = data || []
-      if (taskTypeFilter === 'overdue') {
-        filteredData = filteredData.filter(isOverdue)
-      } else if (taskTypeFilter !== 'all') {
-        filteredData = filteredData.filter(task => getTaskType(task) === taskTypeFilter)
-      }
-      
-      setTasks(filteredData)
+      setTasks(data || [])
       
       // Update active filters count
       let count = 0
@@ -250,6 +241,14 @@ export default function TasksPage() {
   }
 
   const filteredTasks = tasks.filter(task => {
+    // Filter by task type
+    if (taskTypeFilter === 'overdue') {
+      if (!isOverdue(task)) return false
+    } else if (taskTypeFilter !== 'all') {
+      if (getTaskType(task) !== taskTypeFilter) return false
+    }
+    
+    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       return task.title.toLowerCase().includes(query) || 
@@ -258,11 +257,11 @@ export default function TasksPage() {
     return true
   })
 
-  // Count tasks by type
+  // Count tasks by type (from all tasks, not filtered)
   const getTaskCount = (type: TaskTypeFilter): number => {
-    if (type === 'all') return filteredTasks.length
-    if (type === 'overdue') return filteredTasks.filter(isOverdue).length
-    return filteredTasks.filter(task => getTaskType(task) === type).length
+    if (type === 'all') return tasks.length
+    if (type === 'overdue') return tasks.filter(isOverdue).length
+    return tasks.filter(task => getTaskType(task) === type).length
   }
 
   const pendingTasks = filteredTasks.filter(t => t.status === 'pending' || t.status === 'in_progress')

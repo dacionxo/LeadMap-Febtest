@@ -133,7 +133,7 @@ async function triggerFollowUpWorkflow({
   supabase,
 }: {
   event: any
-  supabase: ReturnType<typeof createClient>
+  supabase: any // Using any to avoid complex Supabase type issues
 }) {
   const actions: string[] = []
 

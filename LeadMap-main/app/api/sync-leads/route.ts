@@ -9,8 +9,9 @@ import { cookies } from 'next/headers'
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
-    const supabase = createRouteHandlerClient({ cookies: async () => await cookies() })
+    // Verify authentication - await cookies first, then pass sync function
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {

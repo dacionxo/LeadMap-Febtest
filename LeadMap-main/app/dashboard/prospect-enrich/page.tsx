@@ -213,6 +213,66 @@ function ProspectEnrichInner() {
     }
   }
 
+  const handleBulkAddToList = async (listId: string) => {
+    if (!profile?.id || selectedIds.size === 0) return
+
+    try {
+      // Get the selected listings
+      const selectedListings = listings.filter(l => selectedIds.has(l.listing_id || ''))
+      
+      if (selectedListings.length === 0) {
+        alert('No listings selected')
+        return
+      }
+
+      // Prepare items for bulk add
+      const items = selectedListings
+        .map(listing => {
+          const itemId = listing.listing_id || listing.property_url
+          if (!itemId) return null
+          return {
+            itemId: itemId,
+            itemType: 'listing' as const
+          }
+        })
+        .filter((item): item is { itemId: string; itemType: 'listing' } => item !== null)
+
+      if (items.length === 0) {
+        alert('No valid listings to add')
+        return
+      }
+
+      // Use bulk-add API endpoint (Apollo-grade)
+      const response = await fetch('/api/lists/bulk-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listIds: [listId],
+          items: items
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add listings to list')
+      }
+
+      // Clear selection
+      setSelectedIds(new Set())
+      setShowAddToListModal(false)
+
+      // Show success message
+      alert(`Successfully added ${items.length} listing${items.length > 1 ? 's' : ''} to list`)
+
+      // Refresh data
+      await fetchCrmContacts(selectedFilters)
+    } catch (error: any) {
+      console.error('Error adding to list:', error)
+      alert(error.message || 'Failed to add listings to list')
+    }
+  }
+
   const handleRemoveFromCrm = async (lead: Listing) => {
     if (!profile?.id) return
     

@@ -138,7 +138,7 @@ export async function add_to_list(
       throw new Error(`List not found or inaccessible: ${listCheckError?.message || 'Unknown error'}`)
     }
     
-    // Step 5: Insert into list_items with comprehensive error handling
+    // Step 5: Use the new API endpoint to add to list_memberships
     console.log('💾 Adding to list:', {
       list_id: targetListId,
       list_name: listData.name || 'Unknown',
@@ -150,47 +150,36 @@ export async function add_to_list(
       verification: verificationDetails
     })
     
-    const { data: insertedData, error: listError } = await supabase
-      .from('list_items')
-      .insert({
-        list_id: targetListId,
-        item_type: 'listing',
-        item_id: normalizedItemId
+    // Use the new API endpoint (Apollo-grade workflow)
+    const response = await fetch(`/api/lists/${targetListId}/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        itemId: normalizedItemId,
+        itemType: 'listing'
       })
-      .select()
+    })
 
-    if (listError) {
-      if (listError.code === '23505') {
-        // Already in list - this is not an error, just return silently
+    const data = await response.json()
+
+    if (!response.ok) {
+      // If it's a duplicate, that's fine - return silently
+      if (data.error?.includes('duplicate') || data.error?.includes('already')) {
         console.log('ℹ️ Item already in list, skipping duplicate')
         return
       }
-      console.error('❌ Error adding to list_items:', {
-        error: listError,
-        code: listError.code,
-        message: listError.message,
-        details: listError.details,
-        hint: listError.hint
+      console.error('❌ Error adding to list:', {
+        error: data.error,
+        status: response.status
       })
-      throw new Error(`Failed to add item to list: ${listError.message}`)
+      throw new Error(data.error || 'Failed to add item to list')
     }
     
-    console.log('✅ Successfully added to list_items:', {
-      inserted: insertedData,
+    console.log('✅ Successfully added to list:', {
+      membership: data.membership,
       item_id: normalizedItemId,
       list_id: targetListId
     })
-    
-    // Step 6: Update the list's updated_at timestamp
-    const { error: updateError } = await supabase
-      .from('lists')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', targetListId)
-    
-    if (updateError) {
-      console.warn('⚠️ Failed to update list timestamp:', updateError)
-      // Don't throw - this is not critical
-    }
     
     // Return success (backward compatible - callers don't need return value)
     return

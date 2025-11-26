@@ -77,14 +77,21 @@ export default function SaveButton({ listing, saved = false, onSaved, onUnsaved,
           throw deleteError
         }
 
-        // Also remove from lists if in any
+        // Also remove from lists if in any (use new API)
         if (listId) {
-          await supabase
-            .from('list_items')
-            .delete()
-            .eq('list_id', listId)
-            .eq('item_type', 'listing')
-            .eq('item_id', sourceId)
+          try {
+            await fetch(`/api/lists/${listId}/remove`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                itemId: sourceId,
+                itemType: 'listing'
+              })
+            })
+          } catch (error) {
+            console.warn('Failed to remove from list:', error)
+            // Don't throw - this is not critical
+          }
         }
 
         setIsSaved(false)

@@ -50,14 +50,44 @@ export default function ListsPage() {
     }
   }
 
+  const [newListName, setNewListName] = useState('')
+  const [creating, setCreating] = useState(false)
+
   const handleCreateList = (type: 'people' | 'properties') => {
     setNewListType(type)
+    setNewListName('')
     setShowCreateModal(true)
   }
 
-  const handleListCreated = () => {
-    fetchLists()
-    setShowCreateModal(false)
+  const handleListCreated = async () => {
+    if (!newListName.trim()) return
+
+    try {
+      setCreating(true)
+      const response = await fetch('/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newListName.trim(),
+          type: newListType,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        fetchLists()
+        setShowCreateModal(false)
+        setNewListName('')
+      } else {
+        alert(data.error || 'Failed to create list')
+      }
+    } catch (error) {
+      console.error('Error creating list:', error)
+      alert('Failed to create list')
+    } finally {
+      setCreating(false)
+    }
   }
 
   // Separate lists by type
@@ -937,7 +967,7 @@ export default function ListsPage() {
           )}
         </div>
 
-        {/* Create List Modal - TODO: Implement CreateListModal component */}
+        {/* Create List Modal */}
         {showCreateModal && (
           <div style={{
             position: 'fixed',
@@ -950,64 +980,77 @@ export default function ListsPage() {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000
-          }}>
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '8px',
-              padding: '24px',
-              maxWidth: '400px',
-              width: '90%'
-            }}>
+          }}
+          onClick={() => setShowCreateModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                padding: '24px',
+                maxWidth: '400px',
+                width: '90%'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>
                 Create {newListType === 'people' ? 'People' : 'Properties'} List
               </h3>
               <input
                 type="text"
                 placeholder="List name"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '6px',
                   marginBottom: '16px',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const input = e.currentTarget as HTMLInputElement
-                    if (input.value.trim()) {
-                      // TODO: Create list
-                      handleListCreated()
-                    }
+                  if (e.key === 'Enter' && !creating && newListName.trim()) {
+                    handleListCreated()
+                  } else if (e.key === 'Escape') {
+                    setShowCreateModal(false)
                   }
                 }}
               />
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setShowCreateModal(false)}
+                  disabled={creating}
                   style={{
                     padding: '8px 16px',
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     backgroundColor: '#ffffff',
-                    cursor: 'pointer'
+                    cursor: creating ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                   }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleListCreated}
+                  disabled={!newListName.trim() || creating}
                   style={{
                     padding: '8px 16px',
                     border: 'none',
                     borderRadius: '6px',
-                    backgroundColor: '#6366f1',
+                    backgroundColor: creating || !newListName.trim() ? '#9ca3af' : '#6366f1',
                     color: '#ffffff',
-                    cursor: 'pointer'
+                    cursor: creating || !newListName.trim() ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                   }}
                 >
-                  Create
+                  {creating ? 'Creating...' : 'Create'}
                 </button>
               </div>
             </div>

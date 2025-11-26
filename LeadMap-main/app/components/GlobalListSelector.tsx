@@ -30,8 +30,8 @@ export default function GlobalListSelector() {
         throw new Error('No items to add')
       }
 
-      // Normalize identifiers before storing (consistent with listUtils.ts)
-      const itemsToInsert = listingIds
+      // Use the new API endpoint for bulk add (Apollo-grade)
+      const items = listingIds
         .map(listingId => {
           const normalizedId = normalizeListingIdentifier(listingId)
           if (!normalizedId) {
@@ -39,38 +39,30 @@ export default function GlobalListSelector() {
             return null
           }
           return {
-            list_id: listId,
-            item_type: 'listing' as const,
-            item_id: normalizedId
+            itemId: normalizedId,
+            itemType: 'listing' as const
           }
         })
-        .filter((item): item is { list_id: string; item_type: 'listing'; item_id: string } => item !== null)
+        .filter((item): item is { itemId: string; itemType: 'listing' } => item !== null)
 
-      if (itemsToInsert.length === 0) {
+      if (items.length === 0) {
         throw new Error('No valid items to add after normalization')
       }
 
-      // Use upsert to avoid duplicates (UNIQUE constraint handles this)
-      const { error } = await supabase
-        .from('list_items')
-        .upsert(itemsToInsert, {
-          onConflict: 'list_id,item_type,item_id'
+      // Use bulk-add API endpoint
+      const response = await fetch('/api/lists/bulk-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listIds: [listId],
+          items: items
         })
+      })
 
-      if (error) {
-        console.error('Error adding to list:', error)
-        throw new Error(error.message || 'Failed to add items to list')
-      }
+      const data = await response.json()
 
-      // Update the list's updated_at timestamp (consistent with listUtils.ts)
-      const { error: updateError } = await supabase
-        .from('lists')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', listId)
-
-      if (updateError) {
-        console.warn('⚠️ Failed to update list timestamp:', updateError)
-        // Don't throw - this is not critical
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add items to list')
       }
 
       // Clear selection after successful add
@@ -93,34 +85,28 @@ export default function GlobalListSelector() {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        throw new Error('User not found')
+      // Use the new API endpoint
+      const response = await fetch('/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          type: 'properties', // Default for backward compatibility
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create list')
       }
 
-      const { data, error } = await supabase
-        .from('lists')
-        .insert([
-          {
-            name: name.trim(),
-            type: 'properties', // Default for backward compatibility, but not used in UI
-            user_id: user.id
-          }
-        ])
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Error creating list:', error)
-        throw new Error(error.message || 'Failed to create list')
-      }
-
-      return data.id
+      return data.list.id
     } catch (error: any) {
       console.error('Error in handleCreateNewList:', error)
       throw error
     }
-  }, [profile?.id, supabase])
+  }, [profile?.id])
 
   if (!showListSelector || !listSelectorContext) {
     return null

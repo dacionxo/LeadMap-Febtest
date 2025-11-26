@@ -35,9 +35,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Authenticate user
+    // Authenticate user - await cookies first, then pass sync function
+    const cookieStore = await cookies()
     const supabaseAuth = createRouteHandlerClient({
-      cookies: async () => await cookies(),
+      cookies: () => cookieStore,
     })
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
 

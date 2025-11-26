@@ -1,17 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import CalendarView from './components/CalendarView'
 import EventModal from './components/EventModal'
 import CreateEventModal from './components/CreateEventModal'
+import CalendarSettingsPanel from './components/CalendarSettingsPanel'
 import { Plus } from 'lucide-react'
 
 export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [createModalDate, setCreateModalDate] = useState<Date | undefined>()
   const [createModalEndDate, setCreateModalEndDate] = useState<Date | undefined>()
+
+  // Listen for settings open event
+  useEffect(() => {
+    const handleOpenSettings = () => {
+      setIsSettingsOpen(true)
+    }
+
+    window.addEventListener('openCalendarSettings', handleOpenSettings)
+    return () => {
+      window.removeEventListener('openCalendarSettings', handleOpenSettings)
+    }
+  }, [])
 
   const handleEventClick = (event: any) => {
     setSelectedEvent(event)
@@ -90,6 +104,12 @@ export default function CalendarPage() {
           onSuccess={() => {
             window.location.reload()
           }}
+        />
+
+        {/* Calendar Settings Panel */}
+        <CalendarSettingsPanel
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
         />
       </div>
     </DashboardLayout>

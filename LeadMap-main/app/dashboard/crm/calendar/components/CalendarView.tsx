@@ -227,7 +227,16 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
           </button>
           
           {/* Settings */}
-          <button className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
+          <button
+            onClick={() => {
+              // This will be handled by parent component
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('openCalendarSettings'))
+              }
+            }}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+            title="Settings"
+          >
             <Settings className="w-4 h-4" />
           </button>
 

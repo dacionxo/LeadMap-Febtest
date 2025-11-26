@@ -23,9 +23,8 @@ export async function GET(request: NextRequest) {
     const includeCount = searchParams.get('includeCount') === 'true'
 
     // Authenticate user
-    const cookieStore = await cookies()
     const supabaseAuth = createRouteHandlerClient({
-      cookies: () => cookieStore,
+      cookies: async () => await cookies(),
     })
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
 
@@ -131,9 +130,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate user
-    const cookieStore = await cookies()
     const supabaseAuth = createRouteHandlerClient({
-      cookies: () => cookieStore,
+      cookies: async () => await cookies(),
     })
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
 

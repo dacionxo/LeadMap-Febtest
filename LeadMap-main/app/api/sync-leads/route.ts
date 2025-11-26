@@ -99,11 +99,11 @@ export async function POST(request: NextRequest) {
       .eq('listing_source_name', source)
 
     // Find listings that should be marked as inactive (not in incoming batch)
-    const incomingIds = new Set(upsertData.map(l => l.listing_id))
+    const incomingIds = new Set(upsertData.map((l: { listing_id: string }) => l.listing_id))
     
     const inactiveListings = (existingActive || [])
-      .filter(l => !incomingIds.has(l.listing_id))
-      .map(l => l.listing_id)
+      .filter((l: { listing_id: string; property_url?: string | null }) => !incomingIds.has(l.listing_id))
+      .map((l: { listing_id: string }) => l.listing_id)
 
     // Mark inactive listings
     if (inactiveListings.length > 0) {

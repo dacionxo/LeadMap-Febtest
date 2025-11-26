@@ -184,77 +184,93 @@ export async function GET(
     // Fetch listings - Apollo-style dual-key lookup (listing_id OR property_url)
     // NOTE: listings table has NO 'id' column - only listing_id (TEXT PRIMARY KEY) and property_url (TEXT UNIQUE)
     if (listingItems.length > 0) {
-      // Extract all item_id values from memberships
+      // Extract all item_id values from memberships (as TEXT)
       const listingItemIds = listingItems
-        .map(item => item.item_id)
+        .map(item => String(item.item_id).trim())
         .filter(Boolean)
         .slice(0, 1000) // Limit to prevent query size issues
 
-      console.log('🔍 Fetching listings with item_ids:', listingItemIds.slice(0, 5))
+      if (listingItemIds.length === 0) {
+        console.warn('⚠️ No valid listing item_ids found after filtering')
+      } else {
+        console.log('🔍 Fetching listings with item_ids:', listingItemIds.slice(0, 5))
 
-      // Fetch by listing_id (primary key)
-      const { data: listingsA, error: errA } = await supabase
-        .from('listings')
-        .select('*')
-        .in('listing_id', listingItemIds)
+        // Fetch by listing_id (primary key) - CORRECT COLUMN
+        const { data: listingsA, error: errA } = await supabase
+          .from('listings')
+          .select('*')
+          .in('listing_id', listingItemIds)
 
-      if (errA) {
-        console.error('❌ Error fetching by listing_id:', errA)
-      } else if (listingsA) {
-        console.log(`✅ Found ${listingsA.length} listings by listing_id`)
+        if (errA) {
+          console.error('❌ Error fetching by listing_id:', errA)
+        } else if (listingsA) {
+          console.log(`✅ Found ${listingsA.length} listings by listing_id (primary key)`)
+        }
+
+        // Fetch by property_url (fallback for URL-based item_ids) - CORRECT COLUMN
+        const { data: listingsB, error: errB } = await supabase
+          .from('listings')
+          .select('*')
+          .in('property_url', listingItemIds)
+
+        if (errB) {
+          console.error('❌ Error fetching by property_url:', errB)
+        } else if (listingsB) {
+          console.log(`✅ Found ${listingsB.length} listings by property_url (unique key)`)
+        }
+
+        // Merge results safely (remove duplicates by listing_id)
+        const listingMap = new Map<string, any>()
+        
+        // Add listings from first query (by listing_id)
+        if (listingsA && listingsA.length > 0) {
+          listingsA.forEach(listing => {
+            if (listing.listing_id) {
+              listingMap.set(String(listing.listing_id), listing)
+            }
+          })
+        }
+
+        // Add listings from second query (by property_url) - won't duplicate if listing_id matches
+        if (listingsB && listingsB.length > 0) {
+          listingsB.forEach(listing => {
+            if (listing.listing_id && !listingMap.has(String(listing.listing_id))) {
+              listingMap.set(String(listing.listing_id), listing)
+            }
+          })
+        }
+
+        // Convert map to array
+        const listings = Array.from(listingMap.values())
+        fetchedListings.push(...listings)
+
+        console.log(`📊 Total unique listings fetched: ${listings.length} out of ${listingItemIds.length} memberships`)
+        
+        if (listings.length === 0 && listingItemIds.length > 0) {
+          console.warn('⚠️ WARNING: No listings found despite having item_ids. Check if item_id values match listing_id or property_url in listings table.')
+          console.warn('Sample item_ids:', listingItemIds.slice(0, 3))
+        }
       }
-
-      // Fetch by property_url (fallback for URL-based item_ids)
-      const { data: listingsB, error: errB } = await supabase
-        .from('listings')
-        .select('*')
-        .in('property_url', listingItemIds)
-
-      if (errB) {
-        console.error('❌ Error fetching by property_url:', errB)
-      } else if (listingsB) {
-        console.log(`✅ Found ${listingsB.length} listings by property_url`)
-      }
-
-      // Merge results safely (remove duplicates by listing_id)
-      const listingMap = new Map<string, any>()
-      
-      // Add listings from first query (by listing_id)
-      if (listingsA) {
-        listingsA.forEach(listing => {
-          if (listing.listing_id) {
-            listingMap.set(listing.listing_id, listing)
-          }
-        })
-      }
-
-      // Add listings from second query (by property_url) - won't duplicate if listing_id matches
-      if (listingsB) {
-        listingsB.forEach(listing => {
-          if (listing.listing_id && !listingMap.has(listing.listing_id)) {
-            listingMap.set(listing.listing_id, listing)
-          }
-        })
-      }
-
-      // Convert map to array
-      const listings = Array.from(listingMap.values())
-      fetchedListings.push(...listings)
-
-      console.log(`📊 Total unique listings fetched: ${listings.length} out of ${listingItemIds.length} memberships`)
     }
 
     // Fetch contacts
+    // NOTE: contacts table has 'id' column (UUID PRIMARY KEY)
     if (contactItems.length > 0) {
       const contactIds = contactItems
-        .map(item => item.item_id)
+        .map(item => String(item.item_id).trim())
         .filter(Boolean)
         .slice(0, 1000)
 
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('contacts')
-        .select('*')
-        .in('id', contactIds)
+      if (contactIds.length === 0) {
+        console.warn('⚠️ No valid contact item_ids found after filtering')
+      } else {
+        console.log('🔍 Fetching contacts with item_ids:', contactIds.slice(0, 5))
+
+        // CORRECT COLUMN: contacts.id is UUID PRIMARY KEY
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('contacts')
+          .select('*')
+          .in('id', contactIds)
 
       if (!contactsError && contactsData) {
         // Convert contacts to listing-like format for consistent display

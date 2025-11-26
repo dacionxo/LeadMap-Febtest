@@ -150,8 +150,11 @@ export default function CreateEventModal({
       const endTime = new Date(formData.endTime).toISOString()
       const timezone = settings?.default_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
 
-      const response = await fetch('/api/calendar/events', {
-        method: 'POST',
+      const url = isEditMode ? `/api/calendar/events/${eventId}` : '/api/calendar/events'
+      const method = isEditMode ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
@@ -173,7 +176,7 @@ export default function CreateEventModal({
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to create event')
+        throw new Error(error.error || (isEditMode ? 'Failed to update event' : 'Failed to create event'))
       }
 
       if (onSuccess) onSuccess()

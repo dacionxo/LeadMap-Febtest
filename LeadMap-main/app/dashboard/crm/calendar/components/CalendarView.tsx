@@ -54,45 +54,20 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
   useEffect(() => {
     const handleSettingsUpdate = (event: CustomEvent) => {
       const newSettings = event.detail
+      const oldTimezone = settings?.default_timezone
+      const newTimezone = newSettings?.default_timezone
+      
       setSettings(newSettings)
-      // Refetch events when timezone changes to update display
-      if (newSettings?.default_timezone && calendarRef.current) {
-        // Trigger event refetch by calling fetchEvents after a short delay
-        setTimeout(() => {
-          const calendar = calendarRef.current?.getApi()
-          if (calendar) {
-            const view = calendar.view
-            const start = view.activeStart.toISOString()
-            const end = view.activeEnd.toISOString()
-            fetch(`/api/calendar/events?start=${start}&end=${end}`, {
-              credentials: 'include',
-            }).then(res => res.json()).then(data => {
-              // Re-format and set events
-              const formattedEvents: EventInput[] = (data.events || []).map((event: any) => {
-                let eventColor = event.color || getEventColor(event.event_type)
-                return {
-                  id: event.id,
-                  title: event.title,
-                  start: event.start_time,
-                  end: event.end_time,
-                  allDay: event.all_day,
-                  backgroundColor: eventColor,
-                  borderColor: eventColor,
-                  extendedProps: {
-                    eventType: event.event_type,
-                    location: event.location,
-                    description: event.description,
-                    relatedType: event.related_type,
-                    relatedId: event.related_id,
-                    status: event.status || 'confirmed',
-                  },
-                }
-              })
-              setAllEvents(formattedEvents)
-              setEvents(formattedEvents)
-            })
-          }
-        }, 100)
+      
+      // If timezone changed, update FullCalendar and refresh events
+      if (newTimezone && newTimezone !== oldTimezone && calendarRef.current) {
+        const calendar = calendarRef.current.getApi()
+        
+        // Update FullCalendar's timezone - this will automatically re-render events in new timezone
+        calendar.setOption('timeZone', newTimezone)
+        
+        // Force calendar to re-render with new timezone
+        calendar.render()
       }
     }
 
@@ -100,7 +75,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
     return () => {
       window.removeEventListener('calendarSettingsUpdated', handleSettingsUpdate as EventListener)
     }
-  }, [])
+  }, [settings?.default_timezone])
 
   // Apply default view from settings on initial load
   useEffect(() => {
@@ -823,7 +798,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
             nowIndicator={true}
             locale="en"
             firstDay={0}
-            timeZone={settings?.default_timezone || 'local'}
+            timeZone={settings?.default_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
             businessHours={{
               daysOfWeek: [1, 2, 3, 4, 5],
               startTime: '09:00',

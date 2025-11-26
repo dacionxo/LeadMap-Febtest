@@ -181,8 +181,8 @@ export async function POST(request: NextRequest) {
           { 
             error: 'Invalid date/time format',
             details: {
-              start_error: startDateTime.invalidReason,
-              end_error: endDateTime.invalidReason
+              start_error: startDateTime.invalidReason || 'Invalid start time',
+              end_error: endDateTime.invalidReason || 'Invalid end time'
             }
           },
           { status: 400 }
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       
       startUtc = startDateTime.toUTC().toISO()
       endUtc = endDateTime.toUTC().toISO()
-
+      
       if (!startUtc || !endUtc) {
         return NextResponse.json(
           { error: 'Failed to convert date/time to UTC' },

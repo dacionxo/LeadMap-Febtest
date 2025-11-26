@@ -11,6 +11,26 @@
     {
       "path": "/api/calendar/followups/process",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/calendar/cron/sync",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/calendar/cron/token-refresh",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/calendar/cron/sync-retry",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/calendar/cron/cleanup",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/calendar/cron/webhook-renewal",
+      "schedule": "0 3 * * *"
     }
   ]
 }

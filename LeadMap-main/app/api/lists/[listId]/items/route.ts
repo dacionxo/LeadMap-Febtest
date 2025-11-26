@@ -260,19 +260,34 @@ export async function GET(
           console.warn('Missing item_ids (first 5):', missingIds.slice(0, 5))
           console.warn('This means item_id values in list_memberships do not match listing_id or property_url in listings table')
           
-          // Try to find what these IDs might be
+          // Diagnostic: Try to find what these IDs might be
           if (missingIds.length > 0 && missingIds.length <= 10) {
-            console.log('🔍 Attempting to find these IDs in listings table...')
+            console.log('🔍 DIAGNOSTIC: Checking why item_ids are not matching...')
             for (const missingId of missingIds.slice(0, 5)) {
-              const { data: checkListing } = await supabase
+              // Try exact match first
+              const { data: exactMatch } = await supabase
                 .from('listings')
                 .select('listing_id, property_url')
                 .or(`listing_id.eq.${missingId},property_url.eq.${missingId}`)
                 .limit(1)
-              if (checkListing && checkListing.length > 0) {
-                console.log(`  Found match for "${missingId}":`, checkListing[0])
+              
+              if (exactMatch && exactMatch.length > 0) {
+                console.log(`  ✅ Found exact match for "${missingId}":`, exactMatch[0])
               } else {
-                console.log(`  No match found for "${missingId}"`)
+                // Try case-insensitive and partial matches
+                const { data: partialMatch } = await supabase
+                  .from('listings')
+                  .select('listing_id, property_url')
+                  .or(`listing_id.ilike.%${missingId}%,property_url.ilike.%${missingId}%`)
+                  .limit(3)
+                
+                if (partialMatch && partialMatch.length > 0) {
+                  console.log(`  ⚠️ Found partial matches for "${missingId}":`, partialMatch)
+                  console.log(`  💡 SUGGESTION: item_id "${missingId}" should be stored as "${partialMatch[0].listing_id}" or "${partialMatch[0].property_url}"`)
+                } else {
+                  console.log(`  ❌ No match found for "${missingId}" - this item_id does not exist in listings table`)
+                  console.log(`  💡 This listing may have been deleted or the item_id was stored incorrectly`)
+                }
               }
             }
           }

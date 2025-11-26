@@ -54,6 +54,13 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    // Get user settings to check show_declined_events
+    const { data: userSettings } = await supabase
+      .from('user_calendar_settings')
+      .select('show_declined_events')
+      .eq('user_id', user.id)
+      .single()
+
     // Build query
     let query = supabase
       .from('calendar_events')
@@ -76,6 +83,11 @@ export async function GET(request: NextRequest) {
     }
     if (relatedId) {
       query = query.eq('related_id', relatedId)
+    }
+
+    // Filter declined events if setting is disabled
+    if (userSettings?.show_declined_events === false) {
+      query = query.neq('status', 'cancelled')
     }
 
     const { data: events, error } = await query

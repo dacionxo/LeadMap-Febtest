@@ -122,9 +122,26 @@ export async function add_to_list(
       throw new Error('Cannot add to list: listing has no listing_id or property_url')
     }
 
-    const normalizedItemId = normalizeListingIdentifier(itemIdToStore)
-    if (!normalizedItemId) {
-      throw new Error('Cannot add to list: failed to normalize listing identifier')
+    // Apollo Pattern: Store the canonical ID from database when available
+    // Only normalize if it's a URL and we don't have a canonical listing_id
+    // This ensures maximum compatibility when fetching
+    let finalItemId: string
+    if (verificationDetails.found && verificationDetails.canonicalId) {
+      // We found the listing in DB and have canonical listing_id - use it as-is
+      finalItemId = verificationDetails.canonicalId
+      console.log('✅ Using canonical listing_id from database:', finalItemId)
+    } else if (verificationDetails.found && itemIdToStore) {
+      // We found the listing but no canonical ID - use what we found
+      finalItemId = itemIdToStore
+      console.log('✅ Using found listing identifier:', finalItemId)
+    } else {
+      // Listing not in DB yet - normalize for consistency
+      const normalized = normalizeListingIdentifier(itemIdToStore)
+      if (!normalized) {
+        throw new Error('Cannot add to list: failed to normalize listing identifier')
+      }
+      finalItemId = normalized
+      console.log('⚠️ Listing not in DB, using normalized identifier:', finalItemId)
     }
     
     // Step 4: Verify list exists and is accessible
@@ -143,7 +160,7 @@ export async function add_to_list(
       list_id: targetListId,
       list_name: listData.name || 'Unknown',
       list_type: listData.type,
-      item_id: normalizedItemId,
+      item_id: finalItemId,
       original_listing_id: listing.listing_id,
       original_property_url: listing.property_url,
       passed_listingId: listingId,
@@ -155,7 +172,7 @@ export async function add_to_list(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        itemId: normalizedItemId,
+        itemId: finalItemId,
         itemType: 'listing'
       })
     })
@@ -177,7 +194,7 @@ export async function add_to_list(
     
     console.log('✅ Successfully added to list:', {
       membership: data.membership,
-      item_id: normalizedItemId,
+      item_id: finalItemId,
       list_id: targetListId
     })
     

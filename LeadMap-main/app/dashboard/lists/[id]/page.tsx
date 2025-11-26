@@ -134,9 +134,14 @@ export default function ListDetailPage() {
         ...(debouncedSearch && { search: debouncedSearch })
       })
 
-      const response = await fetch(`/api/lists/${listId}/items?${params}`)
+      const response = await fetch(`/api/lists/${listId}/items?${params}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
       
-        if (!response.ok) {
+      if (!response.ok) {
         let errorData: any = {}
         try {
           errorData = await response.json()
@@ -152,6 +157,15 @@ export default function ListDetailPage() {
             error: errorData.error,
             details: errorData.details
           })
+        }
+        
+        if (response.status === 401) {
+          // Unauthorized - redirect to login
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('Unauthorized - redirecting to login')
+          }
+          router.push('/login?redirect=' + encodeURIComponent(window.location.pathname))
+          return
         }
         
         if (response.status === 404) {

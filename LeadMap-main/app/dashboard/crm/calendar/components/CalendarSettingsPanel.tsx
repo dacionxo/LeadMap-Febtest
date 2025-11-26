@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Settings, Calendar as CalendarIcon, Bell, Eye, Palette, Clock, Globe, Layout } from 'lucide-react'
+import { useTheme } from '@/components/ThemeProvider'
 
 interface CalendarSettingsPanelProps {
   isOpen: boolean
@@ -68,6 +69,8 @@ export default function CalendarSettingsPanel({ isOpen, onClose }: CalendarSetti
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('calendarSettingsUpdated', { detail: data.settings }))
         }
+        // Show success feedback (subtle, no alert)
+        console.log('Settings updated successfully')
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to update settings')
@@ -406,8 +409,9 @@ function NotificationSettings({ settings, onUpdate, saving }: any) {
 
 // Appearance Settings Component
 function AppearanceSettings({ settings, onUpdate, saving }: any) {
+  const { theme, setTheme } = useTheme()
   const [formData, setFormData] = useState({
-    appearance: settings?.appearance || 'system',
+    appearance: settings?.appearance || theme || 'system',
     colorCodeByEventType: settings?.color_code_by_event_type ?? true,
     showDeclinedEvents: settings?.show_declined_events ?? false,
   })
@@ -415,15 +419,21 @@ function AppearanceSettings({ settings, onUpdate, saving }: any) {
   useEffect(() => {
     if (settings) {
       setFormData({
-        appearance: settings.appearance || 'system',
+        appearance: settings.appearance || theme || 'system',
         colorCodeByEventType: settings.color_code_by_event_type ?? true,
         showDeclinedEvents: settings.show_declined_events ?? false,
       })
     }
-  }, [settings])
+  }, [settings, theme])
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    
+    // If changing theme, also update the global theme
+    if (field === 'appearance') {
+      setTheme(value as 'light' | 'dark' | 'system')
+    }
+    
     onUpdate({ [field]: value })
   }
 

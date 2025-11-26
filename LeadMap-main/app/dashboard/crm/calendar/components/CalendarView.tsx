@@ -107,22 +107,46 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
       }
 
       const data = await response.json()
-      const formattedEvents: EventInput[] = (data.events || []).map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        start: event.start_time,
-        end: event.end_time,
-        allDay: event.all_day,
-        backgroundColor: event.color || getEventColor(event.event_type),
-        borderColor: event.color || getEventColor(event.event_type),
-        extendedProps: {
-          eventType: event.event_type,
-          location: event.location,
-          description: event.description,
-          relatedType: event.related_type,
-          relatedId: event.related_id,
-        },
-      }))
+      
+      // Filter events based on settings
+      let filteredEvents = data.events || []
+      
+      // Filter out declined events if setting is disabled
+      if (settings?.show_declined_events === false) {
+        filteredEvents = filteredEvents.filter((event: any) => event.status !== 'cancelled')
+      }
+      
+      const formattedEvents: EventInput[] = filteredEvents.map((event: any) => {
+        // Apply color coding based on settings
+        let eventColor = event.color
+        if (!eventColor) {
+          if (settings?.color_code_by_event_type !== false) {
+            // Use event type colors
+            eventColor = getEventColor(event.event_type)
+          } else {
+            // Use default calendar color
+            eventColor = settings?.default_calendar_color || '#3b82f6'
+          }
+        }
+        
+        return {
+          id: event.id,
+          title: event.title,
+          start: event.start_time,
+          end: event.end_time,
+          allDay: event.all_day,
+          backgroundColor: eventColor,
+          borderColor: eventColor,
+          extendedProps: {
+            eventType: event.event_type,
+            location: event.location,
+            description: event.description,
+            relatedType: event.related_type,
+            relatedId: event.related_id,
+            status: event.status,
+          },
+        }
+      })
 
       setEvents(formattedEvents)
     } catch (error) {
@@ -134,7 +158,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
 
   useEffect(() => {
     fetchEvents()
-  }, [fetchEvents, view])
+  }, [fetchEvents, view, settings?.show_declined_events, settings?.color_code_by_event_type])
 
   const getEventColor = (eventType?: string): string => {
     const colors: Record<string, string> = {
@@ -576,6 +600,18 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
           /* View Density - Comfortable (default) */
           .fc-view-harness-comfortable .fc-daygrid-day {
             min-height: 100px;
+          }
+
+          /* Color Coding - When disabled, all events use default color */
+          [data-color-code="false"] .fc-event {
+            background-color: var(--default-calendar-color, #3b82f6) !important;
+            border-color: var(--default-calendar-color, #3b82f6) !important;
+          }
+
+          /* Declined/Cancelled Events Styling */
+          .fc-event[data-status="cancelled"] {
+            opacity: 0.5;
+            text-decoration: line-through;
           }
         `}</style>
         

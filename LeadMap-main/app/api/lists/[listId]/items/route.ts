@@ -3,6 +3,84 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+// Helper functions for identifier normalization (Apollo pattern)
+function isProbablyUrl(value: string) {
+  const lower = value.toLowerCase()
+  return (
+    lower.includes('http://') ||
+    lower.includes('https://') ||
+    lower.startsWith('www.') ||
+    lower.includes('.com') ||
+    lower.includes('.net') ||
+    lower.includes('.org') ||
+    lower.includes('.io')
+  )
+}
+
+function normalizeUrl(value: string) {
+  let working = value.trim()
+  if (!working) return working
+
+  if (!working.toLowerCase().startsWith('http')) {
+    working = `https://${working}`
+  }
+
+  try {
+    const url = new URL(working)
+    let pathname = url.pathname || ''
+    pathname = pathname.replace(/\/+$/, '')
+    const normalized = `${url.protocol}//${url.host}${pathname}${url.search ? url.search : ''}`
+    return normalized.toLowerCase()
+  } catch {
+    return working.toLowerCase()
+  }
+}
+
+function normalizeListingIdentifier(value?: string | null) {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (isProbablyUrl(trimmed)) {
+    return normalizeUrl(trimmed)
+  }
+  return trimmed
+}
+
+function generateIdentifierCandidates(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return []
+
+  const candidates: string[] = []
+  const seen = new Set<string>()
+
+  const addCandidate = (candidate: string) => {
+    if (candidate && !seen.has(candidate)) {
+      seen.add(candidate)
+      candidates.push(candidate)
+    }
+  }
+
+  if (isProbablyUrl(trimmed)) {
+    const normalized = normalizeUrl(trimmed)
+    addCandidate(normalized)
+
+    const noQuery = normalized.split('?')[0]
+    addCandidate(noQuery)
+
+    const noTrailingSlash = noQuery.replace(/\/+$/, '')
+    addCandidate(noTrailingSlash)
+
+    const httpsVersion = normalized.replace(/^http:\/\//, 'https://')
+    addCandidate(httpsVersion)
+  } else {
+    addCandidate(trimmed)
+    const compressed = trimmed.replace(/\s+/g, '')
+    addCandidate(compressed)
+  }
+
+  return candidates
+}
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -59,11 +137,21 @@ export async function GET(
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
     if (authError || !user) {
+      console.error('❌ Authentication failed:', {
+        authError: authError?.message,
+        authErrorCode: authError?.status,
+        hasUser: !!user,
+        cookieCount: cookieStore.getAll().length,
+        listId,
+        cookies: cookieStore.getAll().map(c => ({ name: c.name, hasValue: !!c.value }))
+      })
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized', details: authError?.message || 'User not authenticated' },
         { status: 401 }
       )
     }
+    
+    console.log('✅ User authenticated:', { userId: user.id, email: user.email, listId })
 
     // Create service role client for server-side queries
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -197,29 +285,98 @@ export async function GET(
         console.log('🔍 Apollo Step 3: Batch fetching listings with item_ids:', listingItemIds.slice(0, 5))
         console.log('📋 Total item_ids to fetch:', listingItemIds.length)
 
-        // Apollo Pattern: Query listings table using item_id values
-        // Try listing_id first (most common case)
-        const { data: listingsA, error: errA } = await supabase
-          .from('listings')
-          .select('*')
-          .in('listing_id', listingItemIds)
+        // Apollo Pattern: Use flexible matching to handle normalized vs non-normalized IDs
+        // Strategy: Try exact match first, then case-insensitive match for URLs
+        
+        // Build candidate sets for flexible matching
+        const exactListingIds = new Set<string>()
+        const exactPropertyUrls = new Set<string>()
+        const normalizedListingIds = new Set<string>()
+        const normalizedPropertyUrls = new Set<string>()
+        
+        listingItemIds.forEach(itemId => {
+          // Add exact match candidates
+          exactListingIds.add(itemId)
+          exactPropertyUrls.add(itemId)
+          
+          // Add normalized candidates (for URLs)
+          const normalized = normalizeListingIdentifier(itemId)
+          if (normalized && normalized !== itemId) {
+            normalizedListingIds.add(normalized)
+            normalizedPropertyUrls.add(normalized)
+          }
+          
+          // Add all identifier candidates (for maximum compatibility)
+          const candidates = generateIdentifierCandidates(itemId)
+          candidates.forEach(candidate => {
+            exactListingIds.add(candidate)
+            exactPropertyUrls.add(candidate)
+          })
+        })
+
+        // Query 1: Exact match on listing_id (most common case)
+        const listingIdArray = Array.from(exactListingIds)
+        const { data: listingsA, error: errA } = listingIdArray.length > 0
+          ? await supabase
+              .from('listings')
+              .select('*')
+              .in('listing_id', listingIdArray)
+          : { data: null, error: null }
 
         if (errA) {
           console.error('❌ Error fetching by listing_id:', errA)
         } else if (listingsA) {
-          console.log(`✅ Found ${listingsA.length} listings by listing_id (primary key)`)
+          console.log(`✅ Found ${listingsA.length} listings by listing_id (exact match)`)
         }
 
-        // Apollo Pattern: Also try property_url (for URL-based item_ids)
-        const { data: listingsB, error: errB } = await supabase
-          .from('listings')
-          .select('*')
-          .in('property_url', listingItemIds)
+        // Query 2: Exact match on property_url
+        const propertyUrlArray = Array.from(exactPropertyUrls)
+        let { data: listingsB, error: errB } = propertyUrlArray.length > 0
+          ? await supabase
+              .from('listings')
+              .select('*')
+              .in('property_url', propertyUrlArray)
+          : { data: null, error: null }
 
         if (errB) {
           console.error('❌ Error fetching by property_url:', errB)
         } else if (listingsB) {
-          console.log(`✅ Found ${listingsB.length} listings by property_url (unique key)`)
+          console.log(`✅ Found ${listingsB.length} listings by property_url (exact match)`)
+        }
+
+        // Query 3: Case-insensitive match for URLs (handle normalized vs non-normalized)
+        // This is critical because item_ids might be normalized (lowercase) but DB has original case
+        const urlItemIds = listingItemIds.filter(id => isProbablyUrl(id))
+        if (urlItemIds.length > 0) {
+          // Build case-insensitive OR conditions for URLs
+          // Note: Supabase doesn't support .in() with .ilike(), so we need to build OR conditions
+          const urlConditions: string[] = []
+          urlItemIds.slice(0, 50).forEach(urlId => { // Limit to prevent query size
+            const normalized = normalizeListingIdentifier(urlId) || urlId
+            urlConditions.push(`listing_id.ilike.${normalized}`)
+            urlConditions.push(`property_url.ilike.${normalized}`)
+          })
+          
+          if (urlConditions.length > 0) {
+            const { data: listingsC, error: errC } = await supabase
+              .from('listings')
+              .select('*')
+              .or(urlConditions.join(','))
+              .limit(1000)
+
+            if (errC) {
+              console.error('❌ Error fetching by case-insensitive URL match:', errC)
+            } else if (listingsC && listingsC.length > 0) {
+              console.log(`✅ Found ${listingsC.length} listings by case-insensitive URL match`)
+              
+              // Merge with existing results
+              if (listingsB && listingsB.length > 0) {
+                listingsB = [...listingsB, ...listingsC]
+              } else {
+                listingsB = listingsC
+              }
+            }
+          }
         }
 
         // Apollo Pattern Step 4: Reconstruct final rows (merge and deduplicate)
@@ -252,41 +409,50 @@ export async function GET(
         // Debug: Show which item_ids were NOT found
         if (listings.length < listingItemIds.length) {
           const foundIds = new Set(listings.map(l => String(l.listing_id)))
-          const foundUrls = new Set(listings.map(l => String(l.property_url || '')))
-          const missingIds = listingItemIds.filter(id => 
-            !foundIds.has(id) && !foundUrls.has(id)
-          )
-          console.warn(`⚠️ WARNING: ${missingIds.length} item_ids from memberships were NOT found in listings table`)
-          console.warn('Missing item_ids (first 5):', missingIds.slice(0, 5))
-          console.warn('This means item_id values in list_memberships do not match listing_id or property_url in listings table')
+          const foundUrls = new Set(listings.map(l => String(l.property_url || '').toLowerCase()))
+          const missingIds = listingItemIds.filter(id => {
+            const normalizedId = normalizeListingIdentifier(id) || id
+            return !foundIds.has(id) && 
+                   !foundIds.has(normalizedId) &&
+                   !foundUrls.has(id.toLowerCase()) &&
+                   !foundUrls.has(normalizedId.toLowerCase())
+          })
           
-          // Diagnostic: Try to find what these IDs might be
-          if (missingIds.length > 0 && missingIds.length <= 10) {
-            console.log('🔍 DIAGNOSTIC: Checking why item_ids are not matching...')
-            for (const missingId of missingIds.slice(0, 5)) {
-              // Try exact match first
-              const { data: exactMatch } = await supabase
-                .from('listings')
-                .select('listing_id, property_url')
-                .or(`listing_id.eq.${missingId},property_url.eq.${missingId}`)
-                .limit(1)
-              
-              if (exactMatch && exactMatch.length > 0) {
-                console.log(`  ✅ Found exact match for "${missingId}":`, exactMatch[0])
-              } else {
-                // Try case-insensitive and partial matches
-                const { data: partialMatch } = await supabase
+          if (missingIds.length > 0) {
+            console.warn(`⚠️ WARNING: ${missingIds.length} item_ids from memberships were NOT found in listings table`)
+            console.warn('Missing item_ids (first 5):', missingIds.slice(0, 5))
+            console.warn('This means item_id values in list_memberships do not match listing_id or property_url in listings table')
+            
+            // Diagnostic: Try to find what these IDs might be
+            if (missingIds.length > 0 && missingIds.length <= 10) {
+              console.log('🔍 DIAGNOSTIC: Checking why item_ids are not matching...')
+              for (const missingId of missingIds.slice(0, 5)) {
+                const normalized = normalizeListingIdentifier(missingId) || missingId
+                
+                // Try exact match first
+                const { data: exactMatch } = await supabase
                   .from('listings')
                   .select('listing_id, property_url')
-                  .or(`listing_id.ilike.%${missingId}%,property_url.ilike.%${missingId}%`)
-                  .limit(3)
+                  .or(`listing_id.eq.${missingId},property_url.eq.${missingId},listing_id.eq.${normalized},property_url.eq.${normalized}`)
+                  .limit(1)
                 
-                if (partialMatch && partialMatch.length > 0) {
-                  console.log(`  ⚠️ Found partial matches for "${missingId}":`, partialMatch)
-                  console.log(`  💡 SUGGESTION: item_id "${missingId}" should be stored as "${partialMatch[0].listing_id}" or "${partialMatch[0].property_url}"`)
+                if (exactMatch && exactMatch.length > 0) {
+                  console.log(`  ✅ Found exact match for "${missingId}":`, exactMatch[0])
                 } else {
-                  console.log(`  ❌ No match found for "${missingId}" - this item_id does not exist in listings table`)
-                  console.log(`  💡 This listing may have been deleted or the item_id was stored incorrectly`)
+                  // Try case-insensitive match
+                  const { data: caseInsensitiveMatch } = await supabase
+                    .from('listings')
+                    .select('listing_id, property_url')
+                    .or(`listing_id.ilike.${normalized},property_url.ilike.${normalized}`)
+                    .limit(3)
+                  
+                  if (caseInsensitiveMatch && caseInsensitiveMatch.length > 0) {
+                    console.log(`  ⚠️ Found case-insensitive matches for "${missingId}":`, caseInsensitiveMatch)
+                    console.log(`  💡 SUGGESTION: item_id "${missingId}" should be stored as "${caseInsensitiveMatch[0].listing_id}" or "${caseInsensitiveMatch[0].property_url}"`)
+                  } else {
+                    console.log(`  ❌ No match found for "${missingId}" - this item_id does not exist in listings table`)
+                    console.log(`  💡 This listing may have been deleted or the item_id was stored incorrectly`)
+                  }
                 }
               }
             }

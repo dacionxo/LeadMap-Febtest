@@ -19,7 +19,9 @@ import {
   UserCircle,
   Calendar,
   BarChart3,
-  CheckCircle2
+  CheckCircle2,
+  Megaphone,
+  MessageCircle
 } from 'lucide-react'
 import { useApp } from '@/app/providers'
 import { useSidebar } from './SidebarContext'
@@ -69,11 +71,15 @@ const navSections: NavSection[] = [
   },
   {
     title: 'MARKETING',
-    items: []
+    items: [
+      { label: 'Social Planner', icon: Megaphone, href: '/dashboard/marketing' }
+    ]
   },
   {
     title: 'CONVERSATIONS',
-    items: []
+    items: [
+      { label: 'Conversations', icon: MessageCircle, href: '/dashboard/conversations' }
+    ]
   },
   {
     title: 'TOOLS & AUTOMATION',

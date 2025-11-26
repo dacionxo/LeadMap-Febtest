@@ -53,10 +53,46 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
   // Listen for settings updates
   useEffect(() => {
     const handleSettingsUpdate = (event: CustomEvent) => {
-      setSettings(event.detail)
+      const newSettings = event.detail
+      setSettings(newSettings)
       // Refetch events when timezone changes to update display
-      if (event.detail?.default_timezone) {
-        fetchEvents()
+      if (newSettings?.default_timezone && calendarRef.current) {
+        // Trigger event refetch by calling fetchEvents after a short delay
+        setTimeout(() => {
+          const calendar = calendarRef.current?.getApi()
+          if (calendar) {
+            const view = calendar.view
+            const start = view.activeStart.toISOString()
+            const end = view.activeEnd.toISOString()
+            fetch(`/api/calendar/events?start=${start}&end=${end}`, {
+              credentials: 'include',
+            }).then(res => res.json()).then(data => {
+              // Re-format and set events
+              const formattedEvents: EventInput[] = (data.events || []).map((event: any) => {
+                let eventColor = event.color || getEventColor(event.event_type)
+                return {
+                  id: event.id,
+                  title: event.title,
+                  start: event.start_time,
+                  end: event.end_time,
+                  allDay: event.all_day,
+                  backgroundColor: eventColor,
+                  borderColor: eventColor,
+                  extendedProps: {
+                    eventType: event.event_type,
+                    location: event.location,
+                    description: event.description,
+                    relatedType: event.related_type,
+                    relatedId: event.related_id,
+                    status: event.status || 'confirmed',
+                  },
+                }
+              })
+              setAllEvents(formattedEvents)
+              setEvents(formattedEvents)
+            })
+          }
+        }, 100)
       }
     }
 
@@ -64,7 +100,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
     return () => {
       window.removeEventListener('calendarSettingsUpdated', handleSettingsUpdate as EventListener)
     }
-  }, [fetchEvents])
+  }, [])
 
   // Apply default view from settings on initial load
   useEffect(() => {

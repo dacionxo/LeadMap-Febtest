@@ -210,6 +210,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Create reminders if specified
+    if (reminderMinutes && Array.isArray(reminderMinutes) && reminderMinutes.length > 0) {
+      const reminders = reminderMinutes.map((minutes: number) => {
+        const reminderTime = new Date(startTime)
+        reminderTime.setMinutes(reminderTime.getMinutes() - minutes)
+        
+        return {
+          event_id: event.id,
+          user_id: user.id,
+          reminder_minutes: minutes,
+          reminder_time: reminderTime.toISOString(),
+          status: 'pending',
+        }
+      })
+
+      await supabase
+        .from('calendar_reminders')
+        .insert(reminders)
+    }
+
     // TODO: Sync to external calendars if connected
     // This will be implemented in a separate sync service
 

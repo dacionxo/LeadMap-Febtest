@@ -1,8 +1,12 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "outputDirectory": ".next"
+  "crons": [
+    {
+      "path": "/api/calendar/reminders/process",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/calendar/followups/process",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
-

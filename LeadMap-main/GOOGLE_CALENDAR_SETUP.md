@@ -34,12 +34,19 @@ NEXT_PUBLIC_APP_URL=https://your-domain.com  # or http://localhost:3000 for loca
 ### 3. Configure OAuth Consent Screen
 
 1. Go to **"APIs & Services"** > **"OAuth consent screen"**
-2. Select **"External"** (unless you have a Google Workspace account, then use "Internal")
+2. **IMPORTANT**: Select **"External"** (NOT "Internal")
+   - "Internal" only works for users in your Google Workspace organization
+   - "External" allows any Google user to sign in
 3. Click **"Create"**
 4. Fill in the required information:
-   - **App name**: LeadMap (or your app name)
+   - **App name**: NextDeal (or your app name)
    - **User support email**: Your email address
    - **Developer contact information**: Your email address
+   - **App logo**: (Optional) Upload your app logo
+   - **Application home page**: `https://www.growyourdigitalleverage.com`
+   - **Application privacy policy link**: `https://www.growyourdigitalleverage.com/privacy`
+   - **Application terms of service link**: `https://www.growyourdigitalleverage.com/terms`
+   - **Authorized domains**: Add `growyourdigitalleverage.com`
 5. Click **"Save and Continue"**
 6. On the **"Scopes"** page, click **"Add or Remove Scopes"**
 7. Add the following scopes:
@@ -47,9 +54,19 @@ NEXT_PUBLIC_APP_URL=https://your-domain.com  # or http://localhost:3000 for loca
    - `https://www.googleapis.com/auth/calendar.events`
    - `https://www.googleapis.com/auth/userinfo.email`
 8. Click **"Update"** then **"Save and Continue"**
-9. On the **"Test users"** page (if in testing mode), add your email address
+9. On the **"Test users"** page:
+   - **If your app is in "Testing" mode**: Add all email addresses that need to test the app
+   - **To publish your app** (recommended for production):
+     - Click **"PUBLISH APP"** button at the top
+     - Confirm the publishing
+     - This allows any Google user to sign in (no test user list needed)
 10. Click **"Save and Continue"**
 11. Review and click **"Back to Dashboard"**
+
+> **⚠️ Important**: If you see "This app can only be used within this organization", it means:
+> - The OAuth consent screen is set to "Internal" instead of "External", OR
+> - The app is in "Testing" mode and your email isn't in the test users list
+> - **Solution**: Change to "External" and either add test users or publish the app
 
 ### 4. Create OAuth 2.0 Credentials
 
@@ -168,11 +185,25 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
   - Make sure there are no extra spaces or quotes in your environment variables
   - For Vercel, ensure you've redeployed after adding the variables
 
+### Error: "This app can only be used within this organization" or "NextDeal can only be used within this organization"
+- **Solution**: 
+  1. Go to Google Cloud Console > APIs & Services > OAuth consent screen
+  2. Check the **User Type**:
+     - If it says **"Internal"**: Click **"EDIT APP"** and change it to **"External"**
+     - Save the changes
+  3. Check the **Publishing status**:
+     - If it says **"Testing"**: You have two options:
+       - **Option A (Recommended for production)**: Click **"PUBLISH APP"** button to allow all Google users
+       - **Option B (For testing)**: Add your email address to the **"Test users"** list
+  4. After making changes, wait 5-10 minutes for changes to propagate
+  5. Try the OAuth flow again
+
 ### OAuth Consent Screen Shows "Unverified App"
 - **Solution**: 
-  - This is normal for apps in testing mode
-  - You can publish your app in Google Cloud Console to remove the warning
-  - Or add test users in the OAuth consent screen settings
+  - This is normal for apps in testing mode or newly published apps
+  - You can publish your app in Google Cloud Console to remove the warning (but it will still show "Unverified" until you complete verification)
+  - For production use, you may want to complete Google's verification process (takes several days)
+  - Or add test users in the OAuth consent screen settings if staying in testing mode
 
 ### Token Refresh Issues
 - **Solution**: 

@@ -391,46 +391,6 @@ function ProspectEnrichInner() {
     }
   }
 
-  const handleBulkAddToList = async (listId: string) => {
-    if (selectedIds.size === 0 || !profile?.id) return
-    
-    try {
-      const selectedListings = listings.filter(l => selectedIds.has(l.listing_id))
-      let successCount = 0
-      
-      for (const listing of selectedListings) {
-        // Use listing_id as primary identifier, fallback to property_url
-        const listingId = listing.listing_id || listing.property_url
-        if (!listingId) {
-          console.warn('Skipping listing with no listing_id or property_url:', listing)
-          continue
-        }
-        
-        try {
-          // Get the current category from selected filters
-          const currentCategory = getPrimaryCategory(selectedFilters)
-          console.log('Adding listing to list:', { listId, listingId, listing_id: listing.listing_id, property_url: listing.property_url, category: currentCategory })
-          await add_to_list(supabase, profile.id, listingId, listing, listId, currentCategory)
-          successCount++
-          // Add to listItemIds immediately to update Net New count
-          setListItemIds(prev => {
-            const newSet = new Set(Array.from(prev))
-            newSet.add(listingId)
-            return newSet
-          })
-        } catch (error) {
-          console.error('Error adding listing to list:', error, listing)
-        }
-      }
-      
-      setSelectedIds(new Set())
-      setShowAddToListModal(false)
-      alert(`Added ${successCount} prospect${successCount > 1 ? 's' : ''} to list`)
-    } catch (error) {
-      console.error('Bulk add to list error:', error)
-      alert('Failed to add prospects to list')
-    }
-  }
 
   // No scroll sync needed - header is inside scroll container and scrolls naturally with data
 

@@ -52,7 +52,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
 
   // Listen for settings updates
   useEffect(() => {
-    const handleSettingsUpdate = (event: CustomEvent) => {
+    const handleSettingsUpdate = async (event: CustomEvent) => {
       const newSettings = event.detail
       const oldTimezone = settings?.default_timezone
       const newTimezone = newSettings?.default_timezone
@@ -68,7 +68,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         
         // Re-fetch events to ensure they're properly formatted and displayed in new timezone
         // This forces a complete re-render of all events with the new timezone conversion
-        fetchEvents()
+        await fetchEvents()
       }
     }
 
@@ -76,7 +76,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
     return () => {
       window.removeEventListener('calendarSettingsUpdated', handleSettingsUpdate as EventListener)
     }
-  }, [settings?.default_timezone])
+  }, [settings?.default_timezone, fetchEvents])
 
   // Apply default view from settings on initial load
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useApp } from '@/app/providers'
 import { useEffect, useState } from 'react'
 import { useTheme } from '@/components/ThemeProvider'
 import { Moon, Sun, Monitor } from 'lucide-react'
+import CalendarSettings from './components/CalendarSettings'
 
 export default function SettingsPage() {
   const { profile } = useApp()
@@ -87,6 +88,11 @@ export default function SettingsPage() {
               </p>
             )}
           </div>
+        </div>
+
+        {/* Calendar Settings */}
+        <div className="bg-neutral-light dark:bg-neutral-dark rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <CalendarSettings />
         </div>
       </div>
     </DashboardLayout>

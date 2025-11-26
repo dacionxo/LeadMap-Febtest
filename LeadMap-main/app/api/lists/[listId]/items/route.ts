@@ -272,7 +272,13 @@ export async function GET(
           .select('*')
           .in('id', contactIds)
 
-      if (!contactsError && contactsData) {
+        if (contactsError) {
+          console.error('❌ Error fetching contacts by id:', contactsError)
+        } else if (contactsData) {
+          console.log(`✅ Found ${contactsData.length} contacts by id (UUID primary key)`)
+        }
+
+        if (!contactsError && contactsData) {
         // Convert contacts to listing-like format for consistent display
         const contactListings = contactsData.map(contact => ({
           listing_id: contact.id || `contact-${contact.id}`,

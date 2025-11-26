@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
     // Create reminders if specified
     if (reminderMinutes && Array.isArray(reminderMinutes) && reminderMinutes.length > 0) {
       const reminders = reminderMinutes.map((minutes: number) => {
-        const reminderTime = new Date(startTime)
+        const reminderTime = new Date(startUtc!)
         reminderTime.setMinutes(reminderTime.getMinutes() - minutes)
         
         return {

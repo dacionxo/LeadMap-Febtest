@@ -172,45 +172,118 @@ export async function GET(
 
     const fetchedListings: any[] = []
 
-    // Fetch listings
+    // Fetch listings - Apollo-grade multi-format ID matching
     if (listingItems.length > 0) {
-      const listingIds = listingItems
+      // Get all item_id values from memberships (as TEXT)
+      const membershipListingIds = listingItems
         .map(item => item.item_id)
         .filter(Boolean)
         .slice(0, 1000) // Limit to prevent query size issues
 
-      // Try to fetch by listing_id first
-      const { data: listingsById, error: listingsByIdError } = await supabase
-        .from('listings')
-        .select('*')
-        .in('listing_id', listingIds)
+      console.log('🔍 Fetching listings with item_ids:', membershipListingIds.slice(0, 5))
 
-      if (!listingsByIdError && listingsById) {
-        fetchedListings.push(...listingsById)
-      }
+      // Separate by format type
+      const urlListingIds = membershipListingIds.filter(id => id && (id.startsWith('http') || id.startsWith('https')))
+      const numericListingIds = membershipListingIds
+        .map(id => {
+          // Try to parse as number
+          const num = Number(id)
+          return isNaN(num) ? null : num
+        })
+        .filter((id): id is number => id !== null)
+      const textListingIds = membershipListingIds.filter(id => id && !id.startsWith('http') && isNaN(Number(id)))
 
-      // Also try by property_url for items that might be URLs
-      const urlItems = listingItems
-        .filter(item => item.item_id && item.item_id.includes('http'))
-        .map(item => item.item_id)
-        .slice(0, 1000)
+      // Track all fetched listings to avoid duplicates
+      const fetchedListingIds = new Set<string>()
 
-      if (urlItems.length > 0) {
-        const { data: listingsByUrl, error: urlError } = await supabase
+      // 1. Try by listing_id (TEXT match - most common)
+      if (membershipListingIds.length > 0) {
+        const { data: listingsById, error: listingsByIdError } = await supabase
           .from('listings')
           .select('*')
-          .in('property_url', urlItems)
+          .in('listing_id', membershipListingIds)
 
-        if (!urlError && listingsByUrl) {
-          // Avoid duplicates
-          const existingIds = new Set(fetchedListings.map(l => l.listing_id))
-          listingsByUrl.forEach(listing => {
-            if (!existingIds.has(listing.listing_id)) {
+        if (!listingsByIdError && listingsById) {
+          listingsById.forEach(listing => {
+            const id = listing.listing_id
+            if (id && !fetchedListingIds.has(id)) {
+              fetchedListingIds.add(id)
               fetchedListings.push(listing)
             }
           })
+          console.log(`✅ Found ${listingsById.length} listings by listing_id`)
+        } else if (listingsByIdError) {
+          console.error('❌ Error fetching by listing_id:', listingsByIdError)
         }
       }
+
+      // 2. Try by id (UUID match - if item_id was stored as UUID)
+      if (textListingIds.length > 0) {
+        // Filter out URLs and try as UUIDs
+        const uuidIds = textListingIds.filter(id => {
+          // UUID format: 8-4-4-4-12 hex characters
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          return uuidRegex.test(id)
+        })
+
+        if (uuidIds.length > 0) {
+          const { data: listingsByUuid, error: uuidError } = await supabase
+            .from('listings')
+            .select('*')
+            .in('id', uuidIds)
+
+          if (!uuidError && listingsByUuid) {
+            listingsByUuid.forEach(listing => {
+              const id = listing.listing_id || listing.id
+              if (id && !fetchedListingIds.has(String(id))) {
+                fetchedListingIds.add(String(id))
+                fetchedListings.push(listing)
+              }
+            })
+            console.log(`✅ Found ${listingsByUuid.length} listings by id (UUID)`)
+          }
+        }
+      }
+
+      // 3. Try by numeric id (if item_id is numeric string)
+      if (numericListingIds.length > 0) {
+        const { data: listingsByNumeric, error: numericError } = await supabase
+          .from('listings')
+          .select('*')
+          .in('id', numericListingIds)
+
+        if (!numericError && listingsByNumeric) {
+          listingsByNumeric.forEach(listing => {
+            const id = listing.listing_id || String(listing.id)
+            if (id && !fetchedListingIds.has(String(id))) {
+              fetchedListingIds.add(String(id))
+              fetchedListings.push(listing)
+            }
+          })
+          console.log(`✅ Found ${listingsByNumeric.length} listings by numeric id`)
+        }
+      }
+
+      // 4. Try by property_url (for URL-based IDs)
+      if (urlListingIds.length > 0) {
+        const { data: listingsByUrl, error: urlError } = await supabase
+          .from('listings')
+          .select('*')
+          .in('property_url', urlListingIds)
+
+        if (!urlError && listingsByUrl) {
+          listingsByUrl.forEach(listing => {
+            const id = listing.listing_id || listing.property_url
+            if (id && !fetchedListingIds.has(String(id))) {
+              fetchedListingIds.add(String(id))
+              fetchedListings.push(listing)
+            }
+          })
+          console.log(`✅ Found ${listingsByUrl.length} listings by property_url`)
+        }
+      }
+
+      console.log(`📊 Total listings fetched: ${fetchedListings.length} out of ${membershipListingIds.length} memberships`)
     }
 
     // Fetch contacts

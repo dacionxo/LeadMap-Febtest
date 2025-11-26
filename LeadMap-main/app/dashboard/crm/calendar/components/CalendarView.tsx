@@ -81,6 +81,26 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
     }
   }
 
+  // Normalize incoming DB time strings into proper UTC ISO strings
+  const normalizeToISOString = (timeStr?: string | null): string | null => {
+    if (!timeStr) return null
+    
+    // If string already contains Z or a timezone offset (+/-HH:mm or +/-HHmm), let Date parse it
+    const tzMarker = /[Zz]|[+\-]\d{2}:\d{2}$|[+\-]\d{4}$/
+    
+    try {
+      if (tzMarker.test(timeStr)) {
+        return new Date(timeStr).toISOString()
+      } else {
+        // Assume stored-as-UTC without zone (e.g. "2025-05-12T15:00") — append 'Z'
+        return new Date(timeStr + 'Z').toISOString()
+      }
+    } catch (err) {
+      console.warn('Failed to normalize time string', timeStr, err)
+      return timeStr
+    }
+  }
+
   // Fetch events
   const fetchEvents = useCallback(async () => {
     try {
@@ -124,29 +144,16 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
         }
         
         // Events are stored in UTC (TIMESTAMPTZ) in the database
-        // Ensure they're properly formatted as UTC ISO strings for FullCalendar
+        // Normalize to proper UTC ISO strings for FullCalendar
         // FullCalendar will automatically convert them to the timezone specified in timeZone prop
-        let startTime = event.start_time
-        let endTime = event.end_time
-        
-        // Ensure times are in ISO format with UTC indicator
-        // If the time doesn't have timezone info, assume it's UTC and add 'Z'
-        if (startTime && typeof startTime === 'string') {
-          if (!startTime.endsWith('Z') && !startTime.includes('+') && !startTime.includes('-', 10)) {
-            startTime = startTime + 'Z'
-          }
-        }
-        if (endTime && typeof endTime === 'string') {
-          if (!endTime.endsWith('Z') && !endTime.includes('+') && !endTime.includes('-', 10)) {
-            endTime = endTime + 'Z'
-          }
-        }
+        const startISO = normalizeToISOString(event.start_time)
+        const endISO = normalizeToISOString(event.end_time)
         
         return {
           id: event.id,
           title: event.title,
-          start: startTime,
-          end: endTime,
+          start: startISO,
+          end: endISO,
           allDay: event.all_day,
           backgroundColor: eventColor,
           borderColor: eventColor,
@@ -215,18 +222,23 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
       const oldTimezone = settings?.default_timezone
       const newTimezone = newSettings?.default_timezone
       
+      // Always update settings state
       setSettings(newSettings)
       
-      // If timezone changed, update FullCalendar and re-fetch events
-      if (newTimezone && newTimezone !== oldTimezone && calendarRef.current) {
-        const calendar = calendarRef.current.getApi()
+      if (newTimezone && newTimezone !== oldTimezone) {
+        // Update FullCalendar option
+        const calendar = calendarRef.current?.getApi()
+        if (calendar) {
+          calendar.setOption('timeZone', newTimezone)
+        }
         
-        // Update FullCalendar's timezone
-        calendar.setOption('timeZone', newTimezone)
-        
-        // Re-fetch events to ensure they're properly formatted and displayed in new timezone
-        // This forces a complete re-render of all events with the new timezone conversion
-        fetchEvents()
+        // Force React -> FullCalendar to re-read our canonical events by
+        // refreshing the events prop reference from allEvents (which are UTC ISO)
+        // This triggers FullCalendar to redraw events in the new timezone.
+        setEvents((prev) => {
+          // re-create object references so FullCalendar sees a new event source
+          return allEvents.map((e) => ({ ...e }))
+        })
       }
     }
 
@@ -234,7 +246,7 @@ export default function CalendarView({ onEventClick, onDateSelect }: CalendarVie
     return () => {
       window.removeEventListener('calendarSettingsUpdated', handleSettingsUpdate)
     }
-  }, [settings?.default_timezone, fetchEvents])
+  }, [settings?.default_timezone, allEvents])
 
   // Refetch events when view changes
   useEffect(() => {

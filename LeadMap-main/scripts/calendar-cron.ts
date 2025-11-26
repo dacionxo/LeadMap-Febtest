@@ -5,10 +5,9 @@
  * 1. Process and send calendar reminders
  * 2. Trigger follow-up workflows for completed events
  * 
- * Usage:
- * - Run via cron: every 5 minutes (e.g., "*/5 * * * *" in cron syntax)
- * - Or use Vercel Cron Jobs (configured in vercel.json)
- * - Or use a service like GitHub Actions, etc.
+ * Note: For Vercel deployments, cron jobs are configured in vercel.json
+ * and automatically call the API routes directly. This script is only
+ * needed for local development or non-Vercel deployments.
  */
 
 const CALENDAR_SERVICE_KEY = process.env.CALENDAR_SERVICE_KEY || 'your-service-key'

@@ -52,7 +52,7 @@ export default function DealsKanban({
   const [draggedDeal, setDraggedDeal] = useState<Deal | null>(null)
   const [editingField, setEditingField] = useState<{ dealId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState<string>('')
-  const editInputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLInputElement | HTMLSelectElement>(null)
 
   // Format date - show date format for future dates, relative time for past dates
   const formatDate = (dateString: string | null | undefined): string => {

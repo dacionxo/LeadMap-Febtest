@@ -50,10 +50,10 @@ const navSections: NavSection[] = [
     items: [
       { label: 'All Prospects', icon: Users, href: '/dashboard/prospect-enrich' },
       { label: 'Expired Listings', icon: Clock, href: '/dashboard/prospect-enrich?filter=expired' },
-      { label: 'Probate Leads', icon: FileText, href: '/dashboard/prospect-enrich?filter=probate' },
-      { label: 'FSBO', icon: Building2, href: '/dashboard/prospect-enrich?filter=fsbo' },
-      { label: 'FRBO', icon: Building2, href: '/dashboard/prospect-enrich?filter=frbo' },
-      { label: 'Foreclosure listings', icon: Building2, href: '/dashboard/prospect-enrich?filter=foreclosure' },
+      { label: 'Probate', icon: FileText, href: '/dashboard/prospect-enrich?filter=probate' },
+      { label: 'For Sale', icon: Building2, href: '/dashboard/prospect-enrich?filter=fsbo' },
+      { label: 'For Rent', icon: Building2, href: '/dashboard/prospect-enrich?filter=frbo' },
+      { label: 'Foreclosures', icon: Building2, href: '/dashboard/prospect-enrich?filter=foreclosure' },
       { label: 'Imports', icon: FileText, href: '/dashboard/prospect-enrich?filter=imports' },
       { label: 'Trash', icon: FileText, href: '/dashboard/prospect-enrich?filter=trash' }
     ]

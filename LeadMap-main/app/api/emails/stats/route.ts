@@ -45,11 +45,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate statistics
-    const sentEmails = emails?.filter(e => e.status === 'sent') || []
+    const sentEmails = emails?.filter((e: any) => e.status === 'sent') || []
     const delivered = sentEmails.length
-    const opened = sentEmails.filter(e => e.opened_at).length
-    const clicked = sentEmails.filter(e => e.clicked_at).length
-    const failed = emails?.filter(e => e.status === 'failed').length || 0
+    const opened = sentEmails.filter((e: any) => e.opened_at).length
+    const clicked = sentEmails.filter((e: any) => e.clicked_at).length
+    const failed = emails?.filter((e: any) => e.status === 'failed').length || 0
 
     // For now, we don't track orders, bounces, unsubscribes, or spam complaints
     // These would need to be added to the emails table or tracked separately

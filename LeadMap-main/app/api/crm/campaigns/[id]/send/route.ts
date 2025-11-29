@@ -70,7 +70,7 @@ export async function POST(
     }
 
     // Send emails to all recipients
-    const emailPromises = contacts.map(async (contact) => {
+    const emailPromises = contacts.map(async (contact: { id: string; email: string }) => {
       // Import send functions from emails/send route
       const sendResult = await sendEmailViaMailbox(
         mailbox,

@@ -63,9 +63,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Lists', icon: UserCircle, href: '/dashboard/lists' },
       { label: 'Deals', icon: Briefcase, href: '/dashboard/crm/deals' },
-      { label: 'Calendar', icon: Calendar, href: '/dashboard/crm/calendar' },
-      { label: 'Forms', icon: FileText, href: '/dashboard/crm/forms' },
-      { label: 'Analytics', icon: BarChart3, href: '/dashboard/crm/analytics' }
+      { label: 'Calendar', icon: Calendar, href: '/dashboard/crm/calendar' }
     ]
   },
   {
@@ -80,7 +78,8 @@ const navSections: NavSection[] = [
     title: 'TOOLS & AUTOMATION',
     items: [
       { label: 'Workflows', icon: Zap, href: '/dashboard/tools' },
-      { label: 'Tasks', icon: CheckCircle2, href: '/dashboard/tasks' }
+      { label: 'Tasks', icon: CheckCircle2, href: '/dashboard/tasks' },
+      { label: 'Analytics', icon: BarChart3, href: '/dashboard/crm/analytics' }
     ]
   }
 ]

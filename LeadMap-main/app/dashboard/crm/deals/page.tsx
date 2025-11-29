@@ -315,8 +315,6 @@ export default function DealsPage() {
     setShowOnboarding(false)
   }
 
-  const showEmptyState = !showOnboarding && showOnboarding !== null && deals.length === 0 && !loading
-
   const filterOptions = [
     { label: 'Company', icon: Building2 },
     { label: 'Owner', icon: User },
@@ -339,44 +337,17 @@ export default function DealsPage() {
 
   return (
     <DashboardLayout>
-      {showEmptyState ? (
-        // Empty State - After onboarding popup
-        <div className="flex flex-col h-[calc(100vh-2rem)] bg-white relative">
-          <div className="flex-1 flex flex-col items-center justify-center px-4">
-            {/* Trophy Icon with Dollar Sign */}
-            <div className="relative mb-10">
-              <div className="relative inline-block">
-                <Trophy className="w-36 h-36" style={{ color: '#FCD34D', fill: '#FCD34D' }} strokeWidth={1.5} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <DollarSign className="w-14 h-14 text-black" strokeWidth={3} fill="black" />
-                </div>
-              </div>
-            </div>
-
-            {/* Heading */}
-            <h1 className="text-3xl font-semibold text-black mb-4 text-center">
-              Let's start winning more deals
-            </h1>
-
-            {/* Description */}
-            <p className="text-base text-gray-700 mb-10 text-center max-w-lg">
-              Create your first deal to start tracking activities, contacts, and conversations in one spot.
-            </p>
-
-            {/* Create Deal Button */}
-            <button
-              onClick={() => setShowDealForm(true)}
-              className="px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg transition-colors"
-            >
-              Create deal
-            </button>
+      {showOnboarding === null ? (
+        // Loading state while checking onboarding
+        <div className="flex items-center justify-center h-[calc(100vh-2rem)]">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-gray-500">Loading...</span>
           </div>
-
-          {/* Bottom Right Chevron Button */}
-          <button className="absolute bottom-6 right-6 w-10 h-10 bg-black hover:bg-gray-900 rounded-full flex items-center justify-center transition-colors">
-            <ChevronDown className="w-5 h-5 text-white" />
-          </button>
         </div>
+      ) : showOnboarding === true ? (
+        // Onboarding modal will be shown
+        null
       ) : (
         <div className="flex flex-col h-[calc(100vh-2rem)]">
           {/* Header */}

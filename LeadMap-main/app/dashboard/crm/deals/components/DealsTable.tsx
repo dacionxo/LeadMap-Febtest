@@ -49,7 +49,7 @@ export default function DealsTable({
 }: DealsTableProps) {
   const [showMenu, setShowMenu] = useState<string | null>(null)
 
-  const formatCurrency = (value: number | null) => {
+  const formatCurrency = (value: number | null | undefined) => {
     if (!value) return 'N/A'
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

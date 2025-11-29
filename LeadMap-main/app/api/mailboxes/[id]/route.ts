@@ -8,7 +8,7 @@ import { cookies } from 'next/headers'
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createRouteHandlerClient({ cookies: async () => await cookies() })
@@ -18,7 +18,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const mailboxId = params.id
+    const { id: mailboxId } = await params
 
     // Verify the mailbox belongs to the user
     const { data: mailbox, error: fetchError } = await supabase

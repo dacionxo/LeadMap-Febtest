@@ -13,10 +13,10 @@ export const runtime = 'nodejs'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { viewId: string } }
+  { params }: { params: Promise<{ viewId: string }> }
 ) {
   try {
-    const { viewId } = params
+    const { viewId } = await params
 
     // Authenticate user
     const cookieStore = await cookies()
@@ -101,10 +101,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { viewId: string } }
+  { params }: { params: Promise<{ viewId: string }> }
 ) {
   try {
-    const { viewId } = params
+    const { viewId } = await params
 
     // Authenticate user
     const cookieStore = await cookies()
@@ -217,10 +217,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { viewId: string } }
+  { params }: { params: Promise<{ viewId: string }> }
 ) {
   try {
-    const { viewId } = params
+    const { viewId } = await params
 
     // Authenticate user
     const cookieStore = await cookies()

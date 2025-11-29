@@ -2,7 +2,34 @@
 
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
-import { Plus, Search, Filter, LayoutGrid, Layers3, Save, Calendar, Settings, X, Trophy, DollarSign, ChevronDown, Table2, Kanban } from 'lucide-react'
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  LayoutGrid, 
+  Layers3, 
+  Save, 
+  Calendar, 
+  Settings, 
+  X, 
+  Trophy, 
+  DollarSign, 
+  ChevronDown,
+  Table2,
+  Kanban,
+  Building2,
+  User,
+  Gauge,
+  FileText,
+  MapPin,
+  Users,
+  Briefcase,
+  Eye,
+  Lightbulb,
+  FileSpreadsheet,
+  Zap,
+  ChevronRight
+} from 'lucide-react'
 import DealsOnboardingModal from './components/DealsOnboardingModal'
 import DealsKanban from './components/DealsKanban'
 import DealsTable from './components/DealsTable'
@@ -23,7 +50,7 @@ interface Deal {
   notes?: string
   tags?: string[]
   contact?: {
-    id: string
+    id?: string
     first_name?: string
     last_name?: string
     email?: string
@@ -63,6 +90,7 @@ export default function DealsPage() {
   const [selectedStage, setSelectedStage] = useState<string>('')
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [showFilters, setShowFilters] = useState(true)
 
   useEffect(() => {
     // Check if user has completed deals onboarding
@@ -130,7 +158,6 @@ export default function DealsPage() {
 
   const fetchContacts = async () => {
     try {
-      // Fetch contacts - you may need to create this API endpoint
       const response = await fetch('/api/crm/contacts', { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
@@ -172,7 +199,6 @@ export default function DealsPage() {
       if (response.ok) {
         await fetchDeals()
         if (selectedDeal?.id === dealId) {
-          // Refresh selected deal
           const dealResponse = await fetch(`/api/crm/deals/${dealId}`, { credentials: 'include' })
           if (dealResponse.ok) {
             const dealData = await dealResponse.json()
@@ -218,7 +244,6 @@ export default function DealsPage() {
         body: JSON.stringify(activity),
       })
       if (response.ok) {
-        // Refresh deal details
         const dealResponse = await fetch(`/api/crm/deals/${dealId}`, { credentials: 'include' })
         if (dealResponse.ok) {
           const dealData = await dealResponse.json()
@@ -245,7 +270,6 @@ export default function DealsPage() {
         }),
       })
       if (response.ok) {
-        // Refresh deal details
         const dealResponse = await fetch(`/api/crm/deals/${dealId}`, { credentials: 'include' })
         if (dealResponse.ok) {
           const dealData = await dealResponse.json()
@@ -291,8 +315,27 @@ export default function DealsPage() {
     setShowOnboarding(false)
   }
 
-  // Show empty state after onboarding is complete
-  const showEmptyState = !showOnboarding && showOnboarding !== null
+  const showEmptyState = !showOnboarding && showOnboarding !== null && deals.length === 0 && !loading
+
+  const filterOptions = [
+    { label: 'Company', icon: Building2 },
+    { label: 'Owner', icon: User },
+    { label: 'Stage', icon: Gauge },
+    { label: 'Closed Date', icon: Calendar },
+    { label: 'Created Date', icon: Calendar },
+    { label: 'Stage Updated At', icon: Calendar },
+    { label: 'Next Step Updated At', icon: Calendar },
+    { label: 'Amount', icon: DollarSign },
+    { label: 'Custom Fields', icon: FileText },
+    { label: 'Account Lists', icon: FileText },
+    { label: 'Location', icon: MapPin },
+    { label: '# Employees', icon: Users },
+    { label: 'Industry & Keywords', icon: Briefcase },
+    { label: 'Funding', icon: Eye },
+    { label: 'Technologies', icon: Lightbulb },
+    { label: 'Deal CSV Import', icon: FileSpreadsheet },
+    { label: 'Workflows', icon: Zap },
+  ]
 
   return (
     <DashboardLayout>
@@ -385,62 +428,105 @@ export default function DealsPage() {
             </div>
           </div>
 
-          {/* Toolbar/Filter Bar */}
-          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3">
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Left Side Controls */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <select
-                    value={selectedPipeline}
-                    onChange={(e) => setSelectedPipeline(e.target.value)}
-                    className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          {/* Main Content Area with Sidebar */}
+          <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900">
+            {/* Left Sidebar - Filters */}
+            {showFilters && (
+              <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+                <div className="p-4 space-y-3">
+                  {/* Top Controls */}
+                  <div className="relative">
+                    <select
+                      value={selectedPipeline}
+                      onChange={(e) => setSelectedPipeline(e.target.value)}
+                      className="w-full appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All Pipelines</option>
+                      {pipelines.map((pipeline) => (
+                        <option key={pipeline.id} value={pipeline.id}>
+                          {pipeline.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Layers3 className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+
+                  <div className="relative">
+                    <select
+                      value={selectedStage}
+                      onChange={(e) => setSelectedStage(e.target.value)}
+                      className="w-full appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All deals</option>
+                      {getDefaultStages().map((stage) => (
+                        <option key={stage} value={stage}>
+                          {stage}
+                        </option>
+                      ))}
+                    </select>
+                    <LayoutGrid className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
                   >
-                    <option value="">All Pipelines</option>
-                    {pipelines.map((pipeline) => (
-                      <option key={pipeline.id} value={pipeline.id}>
-                        {pipeline.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Layers3 className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
+                    <Filter className="w-4 h-4" />
+                    Hide Filters
+                  </button>
 
-                <div className="relative">
-                  <select
-                    value={selectedStage}
-                    onChange={(e) => setSelectedStage(e.target.value)}
-                    className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Stages</option>
-                    {getDefaultStages().map((stage) => (
-                      <option key={stage} value={stage}>
-                        {stage}
-                      </option>
-                    ))}
-                  </select>
-                  <LayoutGrid className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search deals"
+                      className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
 
-                <button className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Show Filters
-                </button>
+                  {/* Filter Options List */}
+                  <div className="space-y-1 pt-2">
+                    {filterOptions.map((option) => {
+                      const Icon = option.icon
+                      return (
+                        <button
+                          key={option.label}
+                          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            <span>{option.label}</span>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        </button>
+                      )
+                    })}
+                  </div>
 
-                <div className="relative flex-1 min-w-[200px] max-w-md">
-                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search deals"
-                    className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  {/* Clear Filters */}
+                  <button className="w-full mt-4 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                    Clear filters
+                  </button>
                 </div>
               </div>
+            )}
 
-              {/* Right Side Controls */}
-              <div className="flex items-center gap-2 ml-auto">
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Right Side Actions Bar */}
+              <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-end gap-3">
+                {!showFilters && (
+                  <button
+                    onClick={() => setShowFilters(true)}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
+                  >
+                    <Filter className="w-4 h-4" />
+                    Show Filters
+                  </button>
+                )}
                 <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('kanban')}
@@ -457,7 +543,10 @@ export default function DealsPage() {
                     <Table2 className="w-4 h-4" />
                   </button>
                 </div>
-
+                <button className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                  <Save className="w-4 h-4" />
+                  Save as new view
+                </button>
                 <div className="relative">
                   <select
                     value={sortBy}
@@ -472,58 +561,78 @@ export default function DealsPage() {
                   </select>
                   <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
-
                 <button className="p-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                   <Settings className="w-4 h-4" />
                 </button>
               </div>
-            </div>
-          </div>
 
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 p-6">
-            {showOnboarding === null || loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-gray-500">Loading...</span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {viewMode === 'kanban' ? (
-                  <DealsKanban
-                    deals={deals}
-                    stages={getDefaultStages()}
-                    onDealClick={(deal) => {
-                      // Fetch full deal details
-                      fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
-                        .then((res) => res.json())
-                        .then((data) => setSelectedDeal(data.data))
-                        .catch(console.error)
-                    }}
-                    onDealUpdate={handleUpdateDeal}
-                    onDealDelete={handleDeleteDeal}
-                  />
+              {/* Content Area */}
+              <div className="flex-1 overflow-auto p-6">
+                {loading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                  </div>
+                ) : deals.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="relative mb-10">
+                      <div className="relative inline-block">
+                        <Trophy className="w-36 h-36" style={{ color: '#FCD34D', fill: '#FCD34D' }} strokeWidth={1.5} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <DollarSign className="w-14 h-14 text-black" strokeWidth={3} fill="black" />
+                        </div>
+                      </div>
+                    </div>
+                    <h1 className="text-3xl font-semibold text-gray-900 dark:text-white mb-4 text-center">
+                      Let's start winning more deals
+                    </h1>
+                    <p className="text-base text-gray-600 dark:text-gray-400 mb-10 text-center max-w-lg">
+                      Create your first deal to start tracking activities, contacts, and conversations in one spot.
+                    </p>
+                    <button
+                      onClick={() => setShowDealForm(true)}
+                      className="px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg transition-colors"
+                    >
+                      Create deal
+                    </button>
+                  </div>
                 ) : (
-                  <DealsTable
-                    deals={deals}
-                    onDealClick={(deal) => {
-                      // Fetch full deal details
-                      fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
-                        .then((res) => res.json())
-                        .then((data) => setSelectedDeal(data.data))
-                        .catch(console.error)
-                    }}
-                    onDealUpdate={handleUpdateDeal}
-                    onDealDelete={handleDeleteDeal}
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onSort={handleSort}
-                  />
+                  <div className="space-y-4">
+                    {viewMode === 'kanban' ? (
+                      <DealsKanban
+                        deals={deals}
+                        stages={getDefaultStages()}
+                        onDealClick={(deal) => {
+                          fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
+                            .then((res) => res.json())
+                            .then((data) => setSelectedDeal(data.data))
+                            .catch(console.error)
+                        }}
+                        onDealUpdate={handleUpdateDeal}
+                        onDealDelete={handleDeleteDeal}
+                      />
+                    ) : (
+                      <DealsTable
+                        deals={deals}
+                        onDealClick={(deal) => {
+                          fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
+                            .then((res) => res.json())
+                            .then((data) => setSelectedDeal(data.data))
+                            .catch(console.error)
+                        }}
+                        onDealUpdate={handleUpdateDeal}
+                        onDealDelete={handleDeleteDeal}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={handleSort}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

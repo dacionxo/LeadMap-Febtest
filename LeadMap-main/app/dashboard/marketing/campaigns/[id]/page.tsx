@@ -87,6 +87,7 @@ function CampaignBuilderContent() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set())
   const [showContactSelector, setShowContactSelector] = useState(false)
+  const [contactSearchQuery, setContactSearchQuery] = useState('')
   const [showAdditionalSettings, setShowAdditionalSettings] = useState(true)
   const [spamScore, setSpamScore] = useState(2) // 0-10 scale, lower is better
   const [requiredFields, setRequiredFields] = useState<string[]>([])

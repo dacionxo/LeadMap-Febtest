@@ -26,12 +26,21 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '20')))
     const search = searchParams.get('search') || ''
-    const stage = searchParams.get('stage') || null
-    const pipelineId = searchParams.get('pipeline') || null
+    const stage = searchParams.getAll('stage') // Support multiple stages
+    const pipelineId = searchParams.getAll('pipeline') // Support multiple pipelines
     const ownerId = searchParams.get('owner') || null
     const assignedTo = searchParams.get('assignedTo') || null
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
+    
+    // New filters
+    const source = searchParams.getAll('source') // Support multiple sources
+    const tags = searchParams.get('tags') || null // Text search in tags array
+    const minProbability = searchParams.get('minProbability')
+    const maxProbability = searchParams.get('maxProbability')
+    const contactCompany = searchParams.get('contactCompany') || null
+    const minValue = searchParams.get('minValue')
+    const maxValue = searchParams.get('maxValue')
 
     // Authenticate user
     const cookieStore = await cookies()
@@ -71,24 +80,69 @@ export async function GET(request: NextRequest) {
       .from('deals')
       .select(`
         *,
-        contact:contacts(id, first_name, last_name, email, phone),
+        contact:contacts(id, first_name, last_name, email, phone, company),
         owner:owner_id(id, email),
         assigned_user:assigned_to(id, email)
       `, { count: 'exact' })
       .eq('user_id', user.id)
 
     // Apply filters
-    if (stage) {
-      query = query.eq('stage', stage)
+    if (stage && stage.length > 0) {
+      query = query.in('stage', stage)
     }
-    if (pipelineId) {
-      query = query.eq('pipeline_id', pipelineId)
+    if (pipelineId && pipelineId.length > 0) {
+      query = query.in('pipeline_id', pipelineId)
     }
     if (ownerId) {
       query = query.eq('owner_id', ownerId)
     }
     if (assignedTo) {
       query = query.eq('assigned_to', assignedTo)
+    }
+    
+    // Apply new filters
+    if (source && source.length > 0) {
+      query = query.in('source', source)
+    }
+    if (tags) {
+      // Search for tags that contain the search string (PostgreSQL array contains)
+      query = query.contains('tags', [tags])
+    }
+    if (minProbability) {
+      query = query.gte('probability', parseInt(minProbability))
+    }
+    if (maxProbability) {
+      query = query.lte('probability', parseInt(maxProbability))
+    }
+    if (minValue) {
+      query = query.gte('value', parseFloat(minValue))
+    }
+    if (maxValue) {
+      query = query.lte('value', parseFloat(maxValue))
+    }
+    
+    // Filter by contact company - first get contact IDs with matching company
+    if (contactCompany) {
+      const { data: matchingContacts } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('company', `%${contactCompany}%`)
+      const contactIds = matchingContacts?.map(c => c.id) || []
+      if (contactIds.length > 0) {
+        query = query.in('contact_id', contactIds)
+      } else {
+        // No matching contacts, return empty result by using impossible filter
+        return NextResponse.json({
+          data: [],
+          pagination: {
+            page,
+            pageSize,
+            total: 0,
+            totalPages: 0,
+          },
+        })
+      }
     }
 
     // Apply search
@@ -172,6 +226,7 @@ export async function POST(request: NextRequest) {
       stage = 'new',
       probability = 0,
       expected_close_date,
+      closed_date,
       contact_id,
       listing_id,
       pipeline_id,
@@ -182,6 +237,9 @@ export async function POST(request: NextRequest) {
       notes,
       tags = [],
       contact_ids = [], // Array of contact IDs for deal_contacts
+      closed_won_reason,
+      closed_lost_reason,
+      contact_company,
     } = body
 
     if (!title) {
@@ -189,6 +247,23 @@ export async function POST(request: NextRequest) {
         { error: 'Title is required' },
         { status: 400 }
       )
+    }
+
+    // Handle contact_company - find or create contact by company
+    let finalContactId = contact_id
+    if (contact_company && !contact_id) {
+      // Try to find existing contact by company
+      const { data: existingContact } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('company', contact_company.trim())
+        .limit(1)
+        .single()
+      
+      if (existingContact) {
+        finalContactId = existingContact.id
+      }
     }
 
     // Create the deal
@@ -202,7 +277,8 @@ export async function POST(request: NextRequest) {
         stage,
         probability: probability ? parseInt(probability) : 0,
         expected_close_date: expected_close_date || null,
-        contact_id: contact_id || null,
+        closed_date: closed_date || null,
+        contact_id: finalContactId || null,
         listing_id: listing_id || null,
         pipeline_id: pipeline_id || null,
         owner_id: owner_id || user.id, // Default to current user
@@ -211,6 +287,8 @@ export async function POST(request: NextRequest) {
         source_id: source_id || null,
         notes: notes || null,
         tags: tags || [],
+        closed_won_reason: closed_won_reason || null,
+        closed_lost_reason: closed_lost_reason || null,
       }])
       .select()
       .single()

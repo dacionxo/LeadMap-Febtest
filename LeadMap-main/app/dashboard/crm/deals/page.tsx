@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { 
   Plus, 
@@ -36,6 +36,7 @@ import DealsTable from './components/DealsTable'
 import DealFormModal from './components/DealFormModal'
 import DealDetailView from './components/DealDetailView'
 import DealsFilterSidebar from './components/DealsFilterSidebar'
+import ViewOptionsModal from './components/ViewOptionsModal'
 
 interface Deal {
   id: string
@@ -56,6 +57,7 @@ interface Deal {
     last_name?: string
     email?: string
     phone?: string
+    company?: string
   }
   created_at: string
 }
@@ -81,7 +83,8 @@ export default function DealsPage() {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [deals, setDeals] = useState<Deal[]>([])
   const [pipelines, setPipelines] = useState<Pipeline[]>([])
-  const [contacts, setContacts] = useState<Contact[]>([])
+  const [properties, setProperties] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showDealForm, setShowDealForm] = useState(false)
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
@@ -93,6 +96,22 @@ export default function DealsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showFilters, setShowFilters] = useState(true)
   const [apolloFilters, setApolloFilters] = useState<Record<string, any>>({})
+  const [showViewOptions, setShowViewOptions] = useState(false)
+  const [groupBy, setGroupBy] = useState<string | null>(null)
+  const [visibleTableFields, setVisibleTableFields] = useState<string[]>(['title', 'value', 'stage', 'probability', 'expected_close_date', 'contact', 'owner', 'pipeline'])
+
+  // Calculate applied filters count
+  const appliedFiltersCount = useMemo(() => {
+    let count = 0
+    if (apolloFilters.pipeline && Array.isArray(apolloFilters.pipeline) && apolloFilters.pipeline.length > 0) count++
+    if (apolloFilters.stage && Array.isArray(apolloFilters.stage) && apolloFilters.stage.length > 0) count++
+    if (apolloFilters.value && (apolloFilters.value.min || apolloFilters.value.max)) count++
+    if (apolloFilters.source && Array.isArray(apolloFilters.source) && apolloFilters.source.length > 0) count++
+    if (apolloFilters.tags) count++
+    if (apolloFilters.probability && (apolloFilters.probability.min || apolloFilters.probability.max)) count++
+    if (apolloFilters.contact_company) count++
+    return count
+  }, [apolloFilters])
 
   useEffect(() => {
     // Check if user has completed deals onboarding
@@ -116,7 +135,8 @@ export default function DealsPage() {
   useEffect(() => {
     if (showOnboarding === false) {
       fetchPipelines()
-      fetchContacts()
+      fetchProperties()
+      fetchUsers()
       fetchDeals()
     }
   }, [showOnboarding, searchQuery, selectedPipeline, selectedStage, sortBy, sortOrder, apolloFilters])
@@ -145,6 +165,21 @@ export default function DealsPage() {
         if (apolloFilters.value.min) params.append('minValue', apolloFilters.value.min.toString())
         if (apolloFilters.value.max) params.append('maxValue', apolloFilters.value.max.toString())
       }
+      
+      // Add new filters
+      if (apolloFilters.source && Array.isArray(apolloFilters.source)) {
+        apolloFilters.source.forEach((source: string) => params.append('source', source))
+      }
+      if (apolloFilters.tags) {
+        params.append('tags', apolloFilters.tags)
+      }
+      if (apolloFilters.probability) {
+        if (apolloFilters.probability.min) params.append('minProbability', apolloFilters.probability.min.toString())
+        if (apolloFilters.probability.max) params.append('maxProbability', apolloFilters.probability.max.toString())
+      }
+      if (apolloFilters.contact_company) {
+        params.append('contactCompany', apolloFilters.contact_company)
+      }
 
       const response = await fetch(`/api/crm/deals?${params}`, { credentials: 'include' })
       if (response.ok) {
@@ -170,15 +205,29 @@ export default function DealsPage() {
     }
   }
 
-  const fetchContacts = async () => {
+  const fetchProperties = async () => {
     try {
-      const response = await fetch('/api/crm/contacts', { credentials: 'include' })
+      const response = await fetch('/api/crm/deals/properties', { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
-        setContacts(data.data || [])
+        setProperties(data.data || [])
       }
     } catch (error) {
-      console.error('Error fetching contacts:', error)
+      console.error('Error fetching properties:', error)
+    }
+  }
+
+  const fetchUsers = async () => {
+    try {
+      // Fetch users from users table - for now just get current user
+      // In a multi-user system, this would fetch all team members
+      const response = await fetch('/api/crm/deals/users', { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
     }
   }
 
@@ -402,12 +451,6 @@ export default function DealsPage() {
                 filters={apolloFilters}
                 onFiltersChange={setApolloFilters}
                 totalCount={deals.length}
-                netNewCount={deals.filter(d => {
-                  const thirtyDaysAgo = new Date()
-                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-                  return new Date(d.created_at) >= thirtyDaysAgo
-                }).length}
-                savedCount={deals.filter(d => d.tags && d.tags.length > 0).length}
                 isCollapsed={false}
                 onToggleCollapse={() => setShowFilters(false)}
                 deals={deals}
@@ -417,7 +460,7 @@ export default function DealsPage() {
             )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className={`flex flex-col overflow-hidden ${showDealForm ? 'flex-[2]' : 'flex-1'}`}>
               {/* Right Side Actions Bar */}
               <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between">
                 {/* Left: Show Filters Button */}
@@ -474,7 +517,11 @@ export default function DealsPage() {
                   </select>
                   <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
-                <button className="p-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                <button 
+                  onClick={() => setShowViewOptions(true)}
+                  className="p-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  title="View options"
+                >
                   <Settings className="w-4 h-4" />
                 </button>
                 </div>
@@ -547,6 +594,24 @@ export default function DealsPage() {
                 )}
               </div>
             </div>
+
+            {/* Right Sidebar - Deal Form */}
+            {showDealForm && (
+              <div className="flex-[1] border-l border-gray-200 dark:border-gray-700">
+                <DealFormModal
+                  isOpen={showDealForm}
+                  onClose={() => {
+                    setShowDealForm(false)
+                    setEditingDeal(null)
+                  }}
+                  onSave={editingDeal ? (data) => handleUpdateDeal(editingDeal.id, data) : handleCreateDeal}
+                  deal={editingDeal}
+                  properties={properties}
+                  pipelines={pipelines}
+                  users={users}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -561,21 +626,6 @@ export default function DealsPage() {
         />
       )}
 
-      {/* Deal Form Modal */}
-      {showDealForm && (
-        <DealFormModal
-          isOpen={showDealForm}
-          onClose={() => {
-            setShowDealForm(false)
-            setEditingDeal(null)
-          }}
-          onSave={editingDeal ? (data) => handleUpdateDeal(editingDeal.id, data) : handleCreateDeal}
-          deal={editingDeal}
-          contacts={contacts}
-          pipelines={pipelines}
-        />
-      )}
-
       {/* Deal Detail View */}
       {selectedDeal && (
         <DealDetailView
@@ -586,6 +636,23 @@ export default function DealsPage() {
           onAddTask={handleAddTask}
         />
       )}
+
+      {/* View Options Modal */}
+      <ViewOptionsModal
+        isOpen={showViewOptions}
+        onClose={() => setShowViewOptions(false)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        groupBy={groupBy}
+        onGroupByChange={setGroupBy}
+        visibleFields={visibleTableFields}
+        onFieldsChange={setVisibleTableFields}
+        appliedFiltersCount={appliedFiltersCount}
+        onFiltersClick={() => {
+          setShowFilters(true)
+          setShowViewOptions(false)
+        }}
+      />
     </DashboardLayout>
   )
 }

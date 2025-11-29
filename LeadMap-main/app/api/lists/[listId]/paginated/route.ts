@@ -3,6 +3,9 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // Helper functions for identifier normalization (Apollo pattern)
 function isProbablyUrl(value: string) {
   const lower = value.toLowerCase()
@@ -49,46 +52,32 @@ function normalizeListingIdentifier(value?: string | null) {
 function generateIdentifierCandidates(value: string) {
   const trimmed = value.trim()
   if (!trimmed) return []
-
-  const candidates: string[] = []
-  const seen = new Set<string>()
-
-  const addCandidate = (candidate: string) => {
-    if (candidate && !seen.has(candidate)) {
-      seen.add(candidate)
-      candidates.push(candidate)
-    }
-  }
-
+  
+  const candidates = new Set<string>([trimmed])
+  
+  // If it's a URL, add normalized versions
   if (isProbablyUrl(trimmed)) {
     const normalized = normalizeUrl(trimmed)
-    addCandidate(normalized)
-
-    const noQuery = normalized.split('?')[0]
-    addCandidate(noQuery)
-
-    const noTrailingSlash = noQuery.replace(/\/+$/, '')
-    addCandidate(noTrailingSlash)
-
-    const httpsVersion = normalized.replace(/^http:\/\//, 'https://')
-    addCandidate(httpsVersion)
-  } else {
-    addCandidate(trimmed)
-    const compressed = trimmed.replace(/\s+/g, '')
-    addCandidate(compressed)
+    if (normalized) candidates.add(normalized)
+    
+    // Add version without trailing slash
+    const noTrailing = normalized.replace(/\/+$/, '')
+    if (noTrailing) candidates.add(noTrailing)
+    
+    // Add version with trailing slash
+    const withTrailing = normalized.endsWith('/') ? normalized : `${normalized}/`
+    candidates.add(withTrailing)
   }
-
-  return candidates
+  
+  return Array.from(candidates)
 }
 
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
-
 /**
- * GET /api/lists/:listId/items
+ * GET /api/lists/:listId/paginated
  * 
- * Fetches paginated list items with full listing/contact data.
- * Matches Apollo.io and DealMachine performance benchmarks.
+ * Paginated API for fetching list items from list_memberships.
+ * This endpoint solves the issue where /api/listings/paginated only queries
+ * base tables and doesn't read from list_memberships where saved items live.
  * 
  * Query parameters:
  * - page: Page number (default: 1)
@@ -97,6 +86,9 @@ export const runtime = 'nodejs'
  * - sortOrder: 'asc' or 'desc' (default: 'desc')
  * - search: Search query for filtering
  * - itemType: Filter by item_type ('listing', 'contact', 'company')
+ * - table: Optional source table filter for listings ('listings', 'expired_listings', etc.)
+ * 
+ * Returns paginated list items with full listing/contact data joined from source tables.
  */
 export async function GET(
   request: NextRequest,
@@ -113,9 +105,10 @@ export async function GET(
     const sortOrder = searchParams.get('sortOrder') || 'desc'
     const search = searchParams.get('search') || ''
     const itemType = searchParams.get('itemType') || null
+    const sourceTable = searchParams.get('table') || null // Optional: filter by source table for listings
     
     // Validate sortBy - only allow valid columns
-    const validSortColumns = ['created_at', 'item_id']
+    const validSortColumns = ['created_at', 'item_id', 'list_price', 'city', 'state', 'agent_name']
     const sortBy = validSortColumns.includes(sortByParam) ? sortByParam : 'created_at'
 
     // Calculate pagination
@@ -133,7 +126,7 @@ export async function GET(
       )
     }
 
-    // Verify user authentication first - await cookies first, then pass sync function
+    // Verify user authentication first
     const cookieStore = await cookies()
     const supabaseAuth = createRouteHandlerClient({ 
       cookies: () => cookieStore
@@ -141,21 +134,11 @@ export async function GET(
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
     if (authError || !user) {
-      console.error('❌ Authentication failed:', {
-        authError: authError?.message,
-        authErrorCode: authError?.status,
-        hasUser: !!user,
-        cookieCount: cookieStore.getAll().length,
-        listId,
-        cookies: cookieStore.getAll().map(c => ({ name: c.name, hasValue: !!c.value }))
-      })
       return NextResponse.json(
         { error: 'Unauthorized', details: authError?.message || 'User not authenticated' },
         { status: 401 }
       )
     }
-    
-    console.log('✅ User authenticated:', { userId: user.id, email: user.email, listId })
 
     // Create service role client for server-side queries
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -166,9 +149,6 @@ export async function GET(
     })
 
     // Verify list exists and belongs to the authenticated user
-    console.log('🔍 Looking for list:', { listId, userId: user.id })
-    
-    // First check if list exists at all (without user filter for debugging)
     const { data: listExists, error: existsError } = await supabase
       .from('lists')
       .select('id, user_id, name, type')
@@ -176,7 +156,6 @@ export async function GET(
       .single()
 
     if (existsError || !listExists) {
-      console.error('❌ List not found in database:', { listId, error: existsError })
       return NextResponse.json(
         { error: 'List not found', details: existsError?.message },
         { status: 404 }
@@ -185,22 +164,17 @@ export async function GET(
 
     // Check if list belongs to user
     if (listExists.user_id !== user.id) {
-      console.error('❌ List belongs to different user:', { 
-        listId, 
-        listUserId: listExists.user_id, 
-        currentUserId: user.id 
-      })
       return NextResponse.json(
         { error: 'List not found', details: 'List does not belong to current user' },
         { status: 404 }
       )
     }
 
-    const listData = listExists
-    console.log('✅ List found and verified:', { listId, listName: listData.name })
-
-    // Build query for list_memberships (Apollo-grade table)
-    // First, get total count with filters
+    // ============================================================================
+    // STEP 1: Get paginated list_memberships
+    // ============================================================================
+    
+    // Build count query
     let countQuery = supabase
       .from('list_memberships')
       .select('*', { count: 'exact', head: true })
@@ -229,7 +203,7 @@ export async function GET(
     const safePage = totalPages > 0 ? Math.min(page, totalPages) : 1
     const safeOffset = (safePage - 1) * pageSize
 
-    // Now build the data query with pagination
+    // Build data query with pagination
     let listItemsQuery = supabase
       .from('list_memberships')
       .select('id, item_type, item_id, created_at')
@@ -242,9 +216,9 @@ export async function GET(
 
     // Apply sorting
     const ascending = sortOrder === 'asc'
-    listItemsQuery = listItemsQuery.order(sortBy, { ascending })
+    listItemsQuery = listItemsQuery.order(sortBy === 'created_at' ? 'created_at' : 'item_id', { ascending })
 
-    // Apply pagination with clamped offset
+    // Apply pagination
     const { data: listItems, error: itemsError } = await listItemsQuery
       .range(safeOffset, safeOffset + pageSize - 1)
 
@@ -257,52 +231,45 @@ export async function GET(
     }
 
     if (!listItems || listItems.length === 0) {
-      console.log('⚠️ No list_memberships found for list:', listId)
       return NextResponse.json({
-        listings: [],
-        totalCount: safeTotalCount,
-        currentPage: safePage,
+        data: [],
+        count: safeTotalCount,
+        page: safePage,
         pageSize,
         totalPages,
+        hasNextPage: safePage < totalPages,
+        hasPreviousPage: safePage > 1,
         list: {
-          id: listData.id,
-          name: listData.name,
-          type: listData.type
+          id: listExists.id,
+          name: listExists.name,
+          type: listExists.type
         }
       })
     }
 
-    console.log(`✅ Found ${listItems.length} list_memberships for list ${listId}`)
-    console.log('📋 Sample memberships:', listItems.slice(0, 3).map((m: any) => ({ 
-      item_type: m.item_type, 
-      item_id: m.item_id,
-      item_id_type: typeof m.item_id 
-    })))
-
-    // Separate items by type - only process listing items
+    // ============================================================================
+    // STEP 2: Fetch full listing/contact data from source tables
+    // ============================================================================
+    
+    // Separate items by type
     const listingItems = listItems.filter(item => item.item_type === 'listing')
+    const contactItems = listItems.filter(item => item.item_type === 'contact')
+    const companyItems = listItems.filter(item => item.item_type === 'company')
 
-    const fetchedListings: any[] = []
+    const fetchedItems: any[] = []
 
-    // Fetch listings - Apollo Pattern Step 3: Batch fetch real items
-    // Apollo Pattern: Group by item_type, then batch fetch using item_id values
-    // NOTE: listings table has NO 'id' column - only listing_id (TEXT PRIMARY KEY) and property_url (TEXT UNIQUE)
+    // Fetch listings from various source tables
     if (listingItems.length > 0) {
-      // Extract all item_id values from memberships (as TEXT) - Apollo Step 3
       const listingItemIds = listingItems
         .map(item => String(item.item_id).trim())
         .filter(Boolean)
         .slice(0, 1000) // Limit to prevent query size issues
 
-      if (listingItemIds.length === 0) {
-        console.warn('⚠️ No valid listing item_ids found after filtering')
-      } else {
-        console.log('🔍 Apollo Step 3: Batch fetching listings with item_ids:', listingItemIds.slice(0, 5))
+      if (listingItemIds.length > 0) {
+        console.log('🔍 Fetching listings with item_ids:', listingItemIds.slice(0, 5))
         console.log('📋 Total item_ids to fetch:', listingItemIds.length)
 
         // Apollo Pattern: Use flexible matching to handle normalized vs non-normalized IDs
-        // Strategy: Try exact match first, then case-insensitive match for URLs
-        
         // Build candidate sets for flexible matching
         const exactListingIds = new Set<string>()
         const exactPropertyUrls = new Set<string>()
@@ -329,23 +296,31 @@ export async function GET(
           })
         })
 
-        // Define source tables to search - query ALL category tables where listings might be stored
-        const sourceTables = [
+        // Define source tables to search (if table param provided, use only that)
+        // Include all category tables where listings might be stored
+        const sourceTables = sourceTable 
+          ? [sourceTable]
+          : ['listings', 'expired_listings', 'fsbo_leads', 'frbo_leads', 'imports', 'foreclosure_listings', 'probate_leads']
+
+        // Validate source tables
+        const validTables = [
           'listings',
           'expired_listings',
           'fsbo_leads',
           'frbo_leads',
           'imports',
+          'trash',
           'foreclosure_listings',
           'probate_leads'
         ]
+        const safeSourceTables = sourceTables.filter(t => validTables.includes(t))
 
-        // Fetch from each source table in parallel
-        const listingPromises = sourceTables.map(async (table) => {
+        // Fetch from each source table in parallel with flexible matching
+        const listingPromises = safeSourceTables.map(async (table) => {
           try {
             const allListings: any[] = []
             
-            // Handle probate_leads specially - it has different schema
+            // Handle probate_leads specially - it has different schema (id is UUID, not listing_id)
             if (table === 'probate_leads') {
               // For probate_leads, match by id (UUID) or case_number
               const probateIdArray = Array.from(exactListingIds).slice(0, 100)
@@ -359,7 +334,9 @@ export async function GET(
                     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
                   }))
 
-                if (!errById && probateById) {
+                if (errById) {
+                  console.warn(`Error fetching from ${table} by id:`, errById)
+                } else if (probateById) {
                   // Transform probate_leads to match listing schema
                   const transformed = probateById.map(probate => ({
                     ...probate,
@@ -374,6 +351,7 @@ export async function GET(
                     source_category: 'probate_leads'
                   }))
                   allListings.push(...transformed)
+                  console.log(`✅ Found ${probateById.length} probate leads from ${table} by id`)
                 }
 
                 // Try matching by case_number
@@ -382,7 +360,9 @@ export async function GET(
                   .select('*')
                   .in('case_number', probateIdArray)
 
-                if (!errByCase && probateByCase) {
+                if (errByCase) {
+                  console.warn(`Error fetching from ${table} by case_number:`, errByCase)
+                } else if (probateByCase) {
                   // Transform probate_leads to match listing schema
                   const transformed = probateByCase.map(probate => ({
                     ...probate,
@@ -397,20 +377,23 @@ export async function GET(
                     source_category: 'probate_leads'
                   }))
                   allListings.push(...transformed)
+                  console.log(`✅ Found ${probateByCase.length} probate leads from ${table} by case_number`)
                 }
               }
             } else {
               // Standard listing tables (listings, expired_listings, fsbo_leads, etc.)
               
-              // Query 1: Exact match on listing_id
-              const listingIdArray = Array.from(exactListingIds).slice(0, 100)
+              // Query 1: Exact match on listing_id (most common case)
+              const listingIdArray = Array.from(exactListingIds).slice(0, 100) // Supabase .in() has limits
               if (listingIdArray.length > 0) {
                 const { data: listingsA, error: errA } = await supabase
                   .from(table)
                   .select('*')
                   .in('listing_id', listingIdArray)
 
-                if (!errA && listingsA) {
+                if (errA) {
+                  console.warn(`Error fetching from ${table} by listing_id:`, errA)
+                } else if (listingsA) {
                   allListings.push(...listingsA)
                   console.log(`✅ Found ${listingsA.length} listings from ${table} by listing_id`)
                 }
@@ -424,17 +407,20 @@ export async function GET(
                   .select('*')
                   .in('property_url', propertyUrlArray)
 
-                if (!errB && listingsB) {
+                if (errB) {
+                  console.warn(`Error fetching from ${table} by property_url:`, errB)
+                } else if (listingsB) {
                   allListings.push(...listingsB)
                   console.log(`✅ Found ${listingsB.length} listings from ${table} by property_url`)
                 }
               }
 
-              // Query 3: Case-insensitive match for URLs
+              // Query 3: Case-insensitive match for URLs (handle normalized vs non-normalized)
               const urlItemIds = listingItemIds.filter(id => isProbablyUrl(id))
               if (urlItemIds.length > 0) {
+                // Build case-insensitive OR conditions for URLs
                 const urlConditions: string[] = []
-                urlItemIds.slice(0, 50).forEach(urlId => {
+                urlItemIds.slice(0, 50).forEach(urlId => { // Limit to prevent query size
                   const normalized = normalizeListingIdentifier(urlId) || urlId
                   urlConditions.push(`listing_id.ilike.%${normalized}%`)
                   urlConditions.push(`property_url.ilike.%${normalized}%`)
@@ -447,7 +433,9 @@ export async function GET(
                     .or(urlConditions.join(','))
                     .limit(1000)
 
-                  if (!errC && listingsC && listingsC.length > 0) {
+                  if (errC) {
+                    console.warn(`Error fetching from ${table} by case-insensitive URL match:`, errC)
+                  } else if (listingsC && listingsC.length > 0) {
                     allListings.push(...listingsC)
                     console.log(`✅ Found ${listingsC.length} listings from ${table} by case-insensitive URL match`)
                   }
@@ -455,11 +443,12 @@ export async function GET(
               }
             }
 
-            // Deduplicate by listing_id
+            // Deduplicate by listing_id or property_url (fallback key)
             const uniqueListings = new Map<string, any>()
             allListings.forEach(listing => {
-              if (listing.listing_id && !uniqueListings.has(String(listing.listing_id))) {
-                uniqueListings.set(String(listing.listing_id), listing)
+              const key = String(listing.listing_id || listing.property_url || '').trim()
+              if (key && !uniqueListings.has(key)) {
+                uniqueListings.set(key, listing)
               }
             })
 
@@ -471,24 +460,15 @@ export async function GET(
         })
 
         const listingResults = await Promise.allSettled(listingPromises)
-        const allListingsFromTables: any[] = []
+        const allListings: any[] = []
         
         listingResults.forEach((result) => {
           if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-            allListingsFromTables.push(...result.value)
+            allListings.push(...result.value)
           }
         })
 
-        // Deduplicate across all tables by listing_id
-        const allListingsMap = new Map<string, any>()
-        allListingsFromTables.forEach(listing => {
-          if (listing.listing_id && !allListingsMap.has(String(listing.listing_id))) {
-            allListingsMap.set(String(listing.listing_id), listing)
-          }
-        })
-
-        const allListings = Array.from(allListingsMap.values())
-        console.log(`✅ Found ${allListings.length} total unique listings across all source tables`)
+        console.log(`📊 Total listings fetched: ${allListings.length} out of ${listingItemIds.length} item_ids`)
 
         // Apollo Pattern Step 4: Reconstruct final rows (merge and deduplicate)
         // Fix 1: Accept rows without listing_id (fallback to property_url)
@@ -540,12 +520,14 @@ export async function GET(
           if (hit) {
             orderedListings.push({
               ...hit,
-              _membership_created_at: membership.created_at
+              _membership_id: membership.id,
+              _membership_created_at: membership.created_at,
+              _item_type: 'listing'
             })
           }
         }
 
-        fetchedListings.push(...orderedListings)
+        fetchedItems.push(...orderedListings)
 
         console.log(`📊 Apollo Step 4: Total listings in order: ${orderedListings.length} out of ${listingItems.length} memberships`)
         
@@ -562,139 +544,134 @@ export async function GET(
           })
           
           if (missingIds.length > 0) {
-            console.warn(`⚠️ WARNING: ${missingIds.length} item_ids from memberships were NOT found in listings table`)
+            console.warn(`⚠️ WARNING: ${missingIds.length} item_ids from memberships were NOT found in any listings tables`)
             console.warn('Missing item_ids (first 5):', missingIds.slice(0, 5))
-            console.warn('This means item_id values in list_memberships do not match listing_id or property_url in listings table')
-            
-            // Diagnostic: Try to find what these IDs might be (search across all tables)
-            if (missingIds.length > 0 && missingIds.length <= 10) {
-              console.log('🔍 DIAGNOSTIC: Checking why item_ids are not matching...')
-              const diagnosticTables = ['listings', 'expired_listings', 'fsbo_leads', 'frbo_leads', 'imports', 'foreclosure_listings']
-              
-              for (const missingId of missingIds.slice(0, 5)) {
-                const normalized = normalizeListingIdentifier(missingId) || missingId
-                let found = false
-                
-                // Search across all tables
-                for (const table of diagnosticTables) {
-                  // Try exact match
-                  const { data: exactMatch } = await supabase
-                    .from(table)
-                    .select('listing_id, property_url')
-                    .or(`listing_id.eq.${missingId},property_url.eq.${missingId},listing_id.eq.${normalized},property_url.eq.${normalized}`)
-                    .limit(1)
-                  
-                  if (exactMatch && exactMatch.length > 0) {
-                    console.log(`  ✅ Found exact match for "${missingId}" in ${table}:`, exactMatch[0])
-                    found = true
-                    break
-                  }
-                  
-                  // Try case-insensitive match
-                  const { data: caseInsensitiveMatch } = await supabase
-                    .from(table)
-                    .select('listing_id, property_url')
-                    .or(`listing_id.ilike.%${normalized}%,property_url.ilike.%${normalized}%`)
-                    .limit(1)
-                  
-                  if (caseInsensitiveMatch && caseInsensitiveMatch.length > 0) {
-                    console.log(`  ⚠️ Found case-insensitive match for "${missingId}" in ${table}:`, caseInsensitiveMatch[0])
-                    console.log(`  💡 SUGGESTION: item_id "${missingId}" should be stored as "${caseInsensitiveMatch[0].listing_id}" or "${caseInsensitiveMatch[0].property_url}"`)
-                    found = true
-                    break
-                  }
-                }
-                
-                if (!found) {
-                  console.log(`  ❌ No match found for "${missingId}" in any source table`)
-                  console.log(`  💡 This listing may have been deleted or the item_id was stored incorrectly`)
-                }
-              }
-            }
+            console.warn('This means item_id values in list_memberships do not match listing_id, property_url, or id in any source tables')
+            console.warn('Searched tables:', safeSourceTables.join(', '))
           }
+        }
+        
+        console.log(`📊 Apollo Step 4: Total unique listings reconstructed: ${orderedListings.length} out of ${listingItemIds.length} memberships`)
+      }
+    }
+
+    // Fetch contacts
+    if (contactItems.length > 0) {
+      const contactIds = contactItems
+        .map(item => String(item.item_id).trim())
+        .filter(Boolean)
+        .slice(0, 1000)
+
+      if (contactIds.length > 0) {
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('contacts')
+          .select('*')
+          .in('id', contactIds)
+
+        if (!contactsError && contactsData) {
+          const contactsMap = new Map(contactsData.map(c => [c.id, c]))
+          
+          contactItems.forEach(membership => {
+            const contact = contactsMap.get(membership.item_id)
+            if (contact) {
+              // Convert contact to listing-like format for consistent display
+              fetchedItems.push({
+                listing_id: contact.id || `contact-${contact.id}`,
+                street: contact.address || null,
+                city: contact.city || null,
+                state: contact.state || null,
+                zip_code: contact.zip_code || null,
+                agent_name: contact.first_name && contact.last_name
+                  ? `${contact.first_name} ${contact.last_name}`
+                  : contact.first_name || contact.last_name || null,
+                first_name: contact.first_name || null,
+                last_name: contact.last_name || null,
+                agent_email: contact.email || null,
+                email: contact.email || null,
+                agent_phone: contact.phone || null,
+                phone: contact.phone || null,
+                company: contact.company || null,
+                created_at: contact.created_at,
+                _membership_id: membership.id,
+                _membership_created_at: membership.created_at,
+                _item_type: 'contact',
+                contact_id: contact.id
+              })
+            }
+          })
         }
       }
     }
 
-
-    // Apply search filter if provided
-    let filteredListings = fetchedListings
+    // ============================================================================
+    // STEP 3: Apply search filter if provided
+    // ============================================================================
+    
+    let filteredItems = fetchedItems
     if (search) {
       const searchLower = search.toLowerCase()
-      filteredListings = fetchedListings.filter(listing => {
+      filteredItems = fetchedItems.filter(item => {
         return (
-          listing.street?.toLowerCase().includes(searchLower) ||
-          listing.city?.toLowerCase().includes(searchLower) ||
-          listing.state?.toLowerCase().includes(searchLower) ||
-          listing.zip_code?.toLowerCase().includes(searchLower) ||
-          listing.agent_name?.toLowerCase().includes(searchLower) ||
-          listing.agent_email?.toLowerCase().includes(searchLower) ||
-          listing.agent_phone?.toLowerCase().includes(searchLower) ||
-          listing.listing_id?.toLowerCase().includes(searchLower) ||
-          listing.property_url?.toLowerCase().includes(searchLower)
+          item.street?.toLowerCase().includes(searchLower) ||
+          item.city?.toLowerCase().includes(searchLower) ||
+          item.state?.toLowerCase().includes(searchLower) ||
+          item.zip_code?.toLowerCase().includes(searchLower) ||
+          item.listing_id?.toLowerCase().includes(searchLower) ||
+          item.agent_name?.toLowerCase().includes(searchLower) ||
+          item.agent_email?.toLowerCase().includes(searchLower) ||
+          item.first_name?.toLowerCase().includes(searchLower) ||
+          item.last_name?.toLowerCase().includes(searchLower) ||
+          item.company?.toLowerCase().includes(searchLower)
         )
       })
     }
 
-    // Remove duplicates based on listing_id
-    type ListingItem = {
-      listing_id?: string | null
-      contact_id?: string | null
-      [key: string]: any
-    }
-    const uniqueListings = filteredListings.reduce((acc: ListingItem[], listing: ListingItem) => {
-      const id = listing.listing_id || listing.contact_id
-      if (!id) return acc
-      
-      const exists = acc.find((l: ListingItem) => 
-        (l.listing_id || l.contact_id) === id
-      )
-      if (!exists) {
-        acc.push(listing)
-      }
-      return acc
-    }, [] as ListingItem[])
-
-    // Apply client-side sorting if needed (for fields not in list_items)
+    // ============================================================================
+    // STEP 4: Apply sorting (if sortBy is not created_at, which was already sorted)
+    // ============================================================================
+    
     if (sortBy !== 'created_at') {
-      uniqueListings.sort((a: ListingItem, b: ListingItem) => {
+      filteredItems.sort((a, b) => {
         const aVal = a[sortBy]
         const bVal = b[sortBy]
         
         if (aVal === null || aVal === undefined) return 1
         if (bVal === null || bVal === undefined) return -1
         
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-          return ascending ? aVal - bVal : bVal - aVal
-        }
-        
-        const aStr = String(aVal).toLowerCase()
-        const bStr = String(bVal).toLowerCase()
-        return ascending
-          ? aStr.localeCompare(bStr)
-          : bStr.localeCompare(aStr)
+        const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+        return sortOrder === 'asc' ? comparison : -comparison
       })
+    } else if (sortOrder === 'asc') {
+      // Reverse if ascending (memberships were sorted DESC)
+      filteredItems.reverse()
     }
 
-    // Return response with clamped page
+    // ============================================================================
+    // STEP 5: Return paginated response
+    // ============================================================================
+    
     return NextResponse.json({
-      listings: uniqueListings,
-      totalCount: safeTotalCount,
-      currentPage: safePage,
+      data: filteredItems,
+      count: safeTotalCount,
+      page: safePage,
       pageSize,
       totalPages,
       hasNextPage: safePage < totalPages,
       hasPreviousPage: safePage > 1,
       list: {
-        id: listData.id,
-        name: listData.name,
-        type: listData.type
+        id: listExists.id,
+        name: listExists.name,
+        type: listExists.type
       }
     })
+
   } catch (error: any) {
-    console.error('API Error fetching list items:', error)
+    console.error('Error in list pagination API:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { 
+        error: 'Internal server error', 
+        details: error.message || 'Unknown error' 
+      },
       { status: 500 }
     )
   }

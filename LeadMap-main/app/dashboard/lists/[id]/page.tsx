@@ -51,11 +51,12 @@ interface Listing {
 interface ListItemsResponse {
   listings: Listing[]
   totalCount: number
-  page: number
+  page?: number // Legacy - use currentPage instead
+  currentPage?: number
   pageSize: number
   totalPages: number
-  hasNextPage: boolean
-  hasPreviousPage: boolean
+  hasNextPage?: boolean
+  hasPreviousPage?: boolean
   list: {
     id: string
     name: string
@@ -94,9 +95,15 @@ export default function ListDetailPage() {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(20) // Match Apollo.io default
+  const [pageSize, setPageSize] = useState(20) // Match Apollo.io default
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  
+  // Handler for page size changes
+  const handlePageSizeChange = useCallback((size: number) => {
+    setPageSize(size)
+    setCurrentPage(1) // Reset to first page when page size changes
+  }, [])
   
   const [supabase, setSupabase] = useState<ReturnType<typeof createClientComponentClient> | null>(null)
   const dataScrollContainerRef = useRef<HTMLDivElement>(null)
@@ -192,7 +199,10 @@ export default function ListDetailPage() {
         console.log('✅ List data fetched:', { 
           listId, 
           listName: data.list?.name, 
-          itemCount: data.totalCount 
+          itemCount: data.totalCount,
+          totalPages: data.totalPages,
+          currentPage: data.currentPage || currentPage,
+          listingsReceived: data.listings?.length || 0
         })
       }
       
@@ -201,9 +211,40 @@ export default function ListDetailPage() {
         name: data.list.name,
         type: data.list.type as 'people' | 'properties'
       })
-      setListings(data.listings)
+      
+      // Update pagination metadata
       setTotalCount(data.totalCount)
       setTotalPages(data.totalPages)
+      
+      // Use server-provided currentPage (it's already clamped), fallback to legacy 'page' field
+      const serverPage = data.currentPage || data.page || currentPage
+      
+      // Clamp current page if it's out of range (e.g., items were deleted)
+      if (data.totalPages > 0 && serverPage > data.totalPages) {
+        const clampedPage = data.totalPages
+        console.warn(`⚠️ Current page ${serverPage} exceeds total pages ${data.totalPages}. Clamping to page ${clampedPage}`)
+        setCurrentPage(clampedPage)
+        // Don't set listings here - let the refetch handle it
+        return // Exit early, useEffect will trigger refetch with new currentPage
+      }
+      
+      // Use server-provided page if it differs from current (server has clamped it)
+      if (serverPage !== currentPage) {
+        setCurrentPage(serverPage)
+        return // Exit early, useEffect will trigger refetch with corrected currentPage
+      }
+      
+      // Set listings - handle empty page gracefully
+      if (data.listings && data.listings.length > 0) {
+        setListings(data.listings)
+      } else if (data.totalCount > 0) {
+        // Empty page but items exist - this shouldn't happen, but handle gracefully
+        console.warn('⚠️ Empty listings array but totalCount > 0. This may indicate a pagination issue.')
+        setListings([])
+      } else {
+        // Truly empty list
+        setListings([])
+      }
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error fetching list data:', err)
@@ -774,6 +815,11 @@ export default function ListDetailPage() {
               />
             </div>
             <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                fetchListData()
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -788,10 +834,68 @@ export default function ListDetailPage() {
                 color: '#374151',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}
+              title="Refresh list"
+            >
+              <RefreshCw size={14} />
+              Refresh
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleExportCSV()
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 400,
+                color: '#374151',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+              title="Export to CSV"
+            >
+              <Download size={14} />
+              Export
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                // TODO: Implement import functionality
+                alert('Import functionality coming soon')
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 400,
+                color: '#374151',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+              title="Import records"
             >
               Import
             </button>
             <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                // TODO: Implement add records functionality
+                alert('Add records functionality coming soon')
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -806,6 +910,7 @@ export default function ListDetailPage() {
                 color: '#ffffff',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}
+              title="Add records to list"
             >
               <Plus size={14} />
               Add records to list
@@ -1266,64 +1371,120 @@ export default function ListDetailPage() {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '12px'
                   }}>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      style={{
-                        padding: '6px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        backgroundColor: '#ffffff',
-                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentPage === 1 ? 0.5 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#6b7280',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}>
+                      {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount}
+                    </div>
                     <select
-                      value={currentPage}
-                      onChange={(e) => setCurrentPage(Number(e.target.value))}
+                      value={pageSize}
+                      onChange={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const newPageSize = Number(e.target.value)
+                        if (newPageSize > 0 && newPageSize <= 100) {
+                          handlePageSizeChange(newPageSize)
+                        }
+                      }}
                       style={{
                         padding: '6px 8px',
                         border: '1px solid #d1d5db',
                         borderRadius: '6px',
                         fontSize: '14px',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        cursor: 'pointer',
+                        backgroundColor: '#ffffff'
                       }}
+                      aria-label="Items per page"
+                    >
+                      <option value={10}>10 per page</option>
+                      <option value={20}>20 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                    </select>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (currentPage > 1) {
+                          setCurrentPage(prev => Math.max(1, prev - 1))
+                        }
+                      }}
+                      style={{
+                        padding: '6px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        backgroundColor: currentPage === 1 ? '#f3f4f6' : '#ffffff',
+                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentPage === 1 ? 0.5 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: currentPage === 1 ? 'none' : 'auto'
+                      }}
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <select
+                      value={currentPage}
+                      onChange={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const newPage = Number(e.target.value)
+                        if (newPage >= 1 && newPage <= totalPages) {
+                          setCurrentPage(newPage)
+                        }
+                      }}
+                      style={{
+                        padding: '6px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        cursor: 'pointer',
+                        backgroundColor: '#ffffff'
+                      }}
+                      aria-label="Select page"
                     >
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                         <option key={page} value={page}>{page}</option>
                       ))}
                     </select>
                     <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (currentPage < totalPages) {
+                          setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                        }
+                      }}
                       style={{
                         padding: '6px',
                         border: '1px solid #d1d5db',
                         borderRadius: '6px',
-                        backgroundColor: '#ffffff',
+                        backgroundColor: currentPage === totalPages ? '#f3f4f6' : '#ffffff',
                         cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                         opacity: currentPage === totalPages ? 0.5 : 1,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        pointerEvents: currentPage === totalPages ? 'none' : 'auto'
                       }}
+                      aria-label="Next page"
                     >
                       <ChevronRight size={16} />
                     </button>
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: '#6b7280',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                  }}>
-                    {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount}
                   </div>
                 </div>
               )}
@@ -1558,16 +1719,53 @@ export default function ListDetailPage() {
                   background: 'rgba(248, 250, 252, 0.5)'
                 }}>
                   <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                }}>
+                  <div style={{
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     fontSize: '14px',
                     color: '#64748b'
                   }}>
                     Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} items
+                    </div>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const newPageSize = Number(e.target.value)
+                        if (newPageSize > 0 && newPageSize <= 100) {
+                          handlePageSizeChange(newPageSize)
+                        }
+                      }}
+                      style={{
+                        padding: '6px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        cursor: 'pointer',
+                        backgroundColor: '#ffffff'
+                      }}
+                      aria-label="Items per page"
+                    >
+                      <option value={10}>10 per page</option>
+                      <option value={20}>20 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                    </select>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (currentPage > 1) {
+                          setCurrentPage(prev => Math.max(1, prev - 1))
+                        }
+                      }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1582,8 +1780,10 @@ export default function ListDetailPage() {
                         fontSize: '13px',
                         fontWeight: 600,
                         transition: 'all 0.2s',
-                        opacity: currentPage === 1 ? 0.5 : 1
+                        opacity: currentPage === 1 ? 0.5 : 1,
+                        pointerEvents: currentPage === 1 ? 'none' : 'auto'
                       }}
+                      aria-label="Previous page"
                     >
                       <ChevronLeft size={16} />
                       Previous
@@ -1598,8 +1798,13 @@ export default function ListDetailPage() {
                       Page {currentPage} of {totalPages}
                     </div>
                     <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (currentPage < totalPages) {
+                          setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                        }
+                      }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1614,8 +1819,10 @@ export default function ListDetailPage() {
                         fontSize: '13px',
                         fontWeight: 600,
                         transition: 'all 0.2s',
-                        opacity: currentPage === totalPages ? 0.5 : 1
+                        opacity: currentPage === totalPages ? 0.5 : 1,
+                        pointerEvents: currentPage === totalPages ? 'none' : 'auto'
                       }}
+                      aria-label="Next page"
                     >
                       Next
                       <ChevronRight size={16} />

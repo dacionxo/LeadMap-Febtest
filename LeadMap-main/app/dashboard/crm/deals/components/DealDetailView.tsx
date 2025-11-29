@@ -16,21 +16,23 @@ interface Deal {
   notes?: string
   tags?: string[]
   contact?: {
-    id: string
+    id?: string
     first_name?: string
     last_name?: string
     email?: string
     phone?: string
+    company?: string
   }
   deal_contacts?: Array<{
     id: string
     role?: string
     contact: {
-      id: string
+      id?: string
       first_name?: string
       last_name?: string
       email?: string
       phone?: string
+      company?: string
     }
   }>
   activities?: Array<{

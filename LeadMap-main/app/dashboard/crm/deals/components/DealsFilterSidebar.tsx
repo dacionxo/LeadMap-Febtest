@@ -110,28 +110,28 @@ const FILTER_GROUPS: FilterGroup[] = [
     category: 'property'
   },
   {
-    id: 'employees',
-    title: '# Employees',
+    id: 'contact_company',
+    title: 'Contact Company',
+    type: 'text',
+    category: 'contact'
+  },
+  {
+    id: 'source',
+    title: 'Source',
+    type: 'multi-select',
+    category: 'deal'
+  },
+  {
+    id: 'tags',
+    title: 'Tags',
+    type: 'text',
+    category: 'deal'
+  },
+  {
+    id: 'probability',
+    title: 'Probability',
     type: 'range',
-    category: 'contact'
-  },
-  {
-    id: 'industry_keywords',
-    title: 'Industry & Keywords',
-    type: 'text',
-    category: 'contact'
-  },
-  {
-    id: 'funding',
-    title: 'Funding',
-    type: 'text',
-    category: 'contact'
-  },
-  {
-    id: 'technologies',
-    title: 'Technologies',
-    type: 'text',
-    category: 'contact'
+    category: 'deal'
   },
   {
     id: 'csv_import',
@@ -201,6 +201,21 @@ export default function DealsFilterSidebar({
       count: deals.filter(d => d.pipeline_id === pipeline.id).length
     }))
   }, [pipelines, deals])
+
+  // Get source options from deals
+  const sourceOptions = useMemo(() => {
+    const sources = new Set<string>()
+    deals.forEach(deal => {
+      if (deal.source) {
+        sources.add(deal.source)
+      }
+    })
+    return Array.from(sources).map(source => ({
+      label: source,
+      value: source,
+      count: deals.filter(d => d.source === source).length
+    })).sort((a, b) => b.count - a.count) // Sort by count descending
+  }, [deals])
 
   const visibleFilters = useMemo(() => {
     let filtered = FILTER_GROUPS.filter(fg => {
@@ -443,6 +458,33 @@ export default function DealsFilterSidebar({
                                   ? [...current, option.value]
                                   : current.filter((v: string) => v !== option.value)
                                 updateFilter('pipeline', newValue.length > 0 ? newValue : undefined)
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                              {option.label}
+                            </span>
+                            {option.count !== undefined && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {option.count}
+                              </span>
+                            )}
+                          </label>
+                        ))}
+                        {filterGroup.id === 'source' && sourceOptions.map((option) => (
+                          <label
+                            key={option.value}
+                            className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={(filters.source || []).includes(option.value)}
+                              onChange={(e) => {
+                                const current = filters.source || []
+                                const newValue = e.target.checked
+                                  ? [...current, option.value]
+                                  : current.filter((v: string) => v !== option.value)
+                                updateFilter('source', newValue.length > 0 ? newValue : undefined)
                               }}
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />

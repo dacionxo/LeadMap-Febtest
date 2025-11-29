@@ -1,48 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Bright yellow background -->
-  <rect width="64" height="64" fill="#FFD700"/>
+  <!-- White background -->
+  <rect width="64" height="64" fill="#FFFFFF"/>
   
-  <!-- Black gear (cogwheel) with 12 teeth - centered at 32,32 -->
-  <g transform="translate(32, 32)">
-    <!-- Gear outer circle -->
-    <circle cx="0" cy="0" r="20" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round"/>
-    
-    <!-- 12 gear teeth - black outline only -->
-    <g fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-      <!-- Top -->
-      <path d="M -3,-20 L 3,-20 L 4,-24 L -4,-24 Z"/>
-      <!-- Bottom -->
-      <path d="M -3,20 L 3,20 L 4,24 L -4,24 Z"/>
-      <!-- Left -->
-      <path d="M -20,-3 L -20,3 L -24,4 L -24,-4 Z"/>
-      <!-- Right -->
-      <path d="M 20,-3 L 20,3 L 24,4 L 24,-4 Z"/>
-      <!-- Top-right diagonal -->
-      <path d="M 14.14,-14.14 L 15.56,-15.56 L 18.38,-12.73 L 12.73,-18.38 Z"/>
-      <!-- Bottom-left diagonal -->
-      <path d="M -14.14,14.14 L -15.56,15.56 L -18.38,12.73 L -12.73,18.38 Z"/>
-      <!-- Top-left diagonal -->
-      <path d="M -14.14,-14.14 L -15.56,-15.56 L -18.38,-12.73 L -12.73,-18.38 Z"/>
-      <!-- Bottom-right diagonal -->
-      <path d="M 14.14,14.14 L 15.56,15.56 L 18.38,12.73 L 12.73,18.38 Z"/>
-      <!-- Additional 4 teeth for 12 total -->
-      <path d="M 14.14,-14.14 L 15.56,-15.56 L 12.73,-18.38 L 18.38,-12.73 Z"/>
-      <path d="M -14.14,14.14 L -15.56,15.56 L -12.73,18.38 L -18.38,12.73 Z"/>
-      <path d="M 14.14,14.14 L 15.56,15.56 L 12.73,18.38 L 18.38,12.73 Z"/>
-      <path d="M -14.14,-14.14 L -15.56,-15.56 L -12.73,-18.38 L -18.38,-12.73 Z"/>
-    </g>
-    
-    <!-- Gear inner circle -->
-    <circle cx="0" cy="0" r="10" fill="none" stroke="#000000" stroke-width="4"/>
-    
-    <!-- House icon inside gear - black outline only, transparent interior -->
-    <g transform="translate(0, -1)">
-      <!-- House roof (triangle) - outline only -->
-      <path d="M -7,-5 L 0,-11 L 7,-5 Z" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- House body (square) - outline only -->
-      <rect x="-7" y="-5" width="14" height="10" fill="none" stroke="#000000" stroke-width="4"/>
-      <!-- House door (rectangle) - outline only -->
-      <rect x="-2.5" y="1" width="5" height="4" fill="none" stroke="#000000" stroke-width="3"/>
-    </g>
-  </g>
+  <!-- House main body (blue rectangle) -->
+  <rect x="18" y="32" width="28" height="24" fill="#0066CC"/>
+  
+  <!-- House roof (blue triangle) -->
+  <path d="M 12 32 L 32 12 L 52 32 Z" fill="#0066CC"/>
+  
+  <!-- Inner white line on roof (double-lined effect) -->
+  <path d="M 16 32 L 32 18 L 48 32" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Chimney (blue rectangle on left side of roof) -->
+  <rect x="14" y="8" width="6" height="12" fill="#0066CC"/>
+  
+  <!-- Door (white rectangular cutout at bottom center) -->
+  <rect x="28" y="44" width="8" height="12" fill="#FFFFFF"/>
 </svg>

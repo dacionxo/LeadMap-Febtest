@@ -187,6 +187,7 @@ export async function PUT(
       stage,
       probability,
       expected_close_date,
+      closed_date,
       contact_id,
       listing_id,
       pipeline_id,
@@ -194,7 +195,27 @@ export async function PUT(
       assigned_to,
       notes,
       tags,
+      closed_won_reason,
+      closed_lost_reason,
+      contact_company,
     } = body
+
+    // Handle contact_company - find contact by company if contact_id not provided
+    let finalContactId = contact_id
+    if (contact_company && contact_id === undefined) {
+      // Try to find existing contact by company
+      const { data: existingContact } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('company', contact_company.trim())
+        .limit(1)
+        .single()
+      
+      if (existingContact) {
+        finalContactId = existingContact.id
+      }
+    }
 
     // Build update object
     const updates: any = {}
@@ -204,13 +225,16 @@ export async function PUT(
     if (stage !== undefined) updates.stage = stage
     if (probability !== undefined) updates.probability = probability ? parseInt(probability) : 0
     if (expected_close_date !== undefined) updates.expected_close_date = expected_close_date || null
-    if (contact_id !== undefined) updates.contact_id = contact_id || null
+    if (closed_date !== undefined) updates.closed_date = closed_date || null
+    if (finalContactId !== undefined) updates.contact_id = finalContactId || null
     if (listing_id !== undefined) updates.listing_id = listing_id || null
     if (pipeline_id !== undefined) updates.pipeline_id = pipeline_id || null
     if (owner_id !== undefined) updates.owner_id = owner_id || null
     if (assigned_to !== undefined) updates.assigned_to = assigned_to || null
     if (notes !== undefined) updates.notes = notes
     if (tags !== undefined) updates.tags = tags
+    if (closed_won_reason !== undefined) updates.closed_won_reason = closed_won_reason || null
+    if (closed_lost_reason !== undefined) updates.closed_lost_reason = closed_lost_reason || null
 
     // Create activity log entry for stage changes
     if (stage && stage !== existingDeal.stage) {

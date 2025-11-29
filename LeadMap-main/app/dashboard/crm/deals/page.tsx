@@ -575,7 +575,7 @@ export default function DealsPage() {
                       <span className="text-sm text-gray-500">Loading...</span>
                     </div>
                   </div>
-                ) : deals.length === 0 ? (
+                ) : showFullEmptyState ? (
                   <div className="flex flex-col items-center justify-center h-full">
                     <div className="relative mb-10">
                       <div className="relative inline-block">

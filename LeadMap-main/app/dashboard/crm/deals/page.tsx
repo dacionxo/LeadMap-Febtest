@@ -2,12 +2,67 @@
 
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
-import { Plus, Search, Filter, LayoutGrid, Layers3, Save, Calendar, Settings, X, Trophy, DollarSign, ChevronDown } from 'lucide-react'
+import { Plus, Search, Filter, LayoutGrid, Layers3, Save, Calendar, Settings, X, Trophy, DollarSign, ChevronDown, Table2, Kanban } from 'lucide-react'
 import DealsOnboardingModal from './components/DealsOnboardingModal'
+import DealsKanban from './components/DealsKanban'
+import DealsTable from './components/DealsTable'
+import DealFormModal from './components/DealFormModal'
+import DealDetailView from './components/DealDetailView'
+
+interface Deal {
+  id: string
+  title: string
+  description?: string
+  value?: number | null
+  stage: string
+  probability?: number
+  expected_close_date?: string | null
+  contact_id?: string | null
+  listing_id?: string | null
+  pipeline_id?: string | null
+  notes?: string
+  tags?: string[]
+  contact?: {
+    id: string
+    first_name?: string
+    last_name?: string
+    email?: string
+    phone?: string
+  }
+  created_at: string
+}
+
+interface Pipeline {
+  id: string
+  name: string
+  stages: string[]
+  is_default: boolean
+}
+
+interface Contact {
+  id: string
+  first_name?: string
+  last_name: string
+  email?: string
+  phone?: string
+}
 
 export default function DealsPage() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview')
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
+  const [deals, setDeals] = useState<Deal[]>([])
+  const [pipelines, setPipelines] = useState<Pipeline[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showDealForm, setShowDealForm] = useState(false)
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPipeline, setSelectedPipeline] = useState<string>('')
+  const [selectedStage, setSelectedStage] = useState<string>('')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     // Check if user has completed deals onboarding
@@ -27,6 +82,195 @@ export default function DealsPage() {
     }
     checkOnboardingStatus()
   }, [])
+
+  useEffect(() => {
+    if (showOnboarding === false) {
+      fetchPipelines()
+      fetchContacts()
+      fetchDeals()
+    }
+  }, [showOnboarding, searchQuery, selectedPipeline, selectedStage, sortBy, sortOrder])
+
+  const fetchDeals = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: '100',
+        sortBy,
+        sortOrder,
+      })
+      if (searchQuery) params.append('search', searchQuery)
+      if (selectedPipeline) params.append('pipeline', selectedPipeline)
+      if (selectedStage) params.append('stage', selectedStage)
+
+      const response = await fetch(`/api/crm/deals?${params}`, { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setDeals(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching deals:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchPipelines = async () => {
+    try {
+      const response = await fetch('/api/crm/deals/pipelines', { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setPipelines(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching pipelines:', error)
+    }
+  }
+
+  const fetchContacts = async () => {
+    try {
+      // Fetch contacts - you may need to create this API endpoint
+      const response = await fetch('/api/crm/contacts', { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setContacts(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+    }
+  }
+
+  const handleCreateDeal = async (dealData: Partial<Deal>) => {
+    try {
+      const response = await fetch('/api/crm/deals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(dealData),
+      })
+      if (response.ok) {
+        await fetchDeals()
+        setShowDealForm(false)
+      } else {
+        throw new Error('Failed to create deal')
+      }
+    } catch (error) {
+      console.error('Error creating deal:', error)
+      throw error
+    }
+  }
+
+  const handleUpdateDeal = async (dealId: string, updates: Partial<Deal>) => {
+    try {
+      const response = await fetch(`/api/crm/deals/${dealId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      })
+      if (response.ok) {
+        await fetchDeals()
+        if (selectedDeal?.id === dealId) {
+          // Refresh selected deal
+          const dealResponse = await fetch(`/api/crm/deals/${dealId}`, { credentials: 'include' })
+          if (dealResponse.ok) {
+            const dealData = await dealResponse.json()
+            setSelectedDeal(dealData.data)
+          }
+        }
+        setEditingDeal(null)
+      } else {
+        throw new Error('Failed to update deal')
+      }
+    } catch (error) {
+      console.error('Error updating deal:', error)
+      throw error
+    }
+  }
+
+  const handleDeleteDeal = async (dealId: string) => {
+    try {
+      const response = await fetch(`/api/crm/deals/${dealId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        await fetchDeals()
+        if (selectedDeal?.id === dealId) {
+          setSelectedDeal(null)
+        }
+      } else {
+        throw new Error('Failed to delete deal')
+      }
+    } catch (error) {
+      console.error('Error deleting deal:', error)
+      throw error
+    }
+  }
+
+  const handleAddActivity = async (dealId: string, activity: { activity_type: string; title: string; description?: string }) => {
+    try {
+      const response = await fetch(`/api/crm/deals/${dealId}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(activity),
+      })
+      if (response.ok) {
+        // Refresh deal details
+        const dealResponse = await fetch(`/api/crm/deals/${dealId}`, { credentials: 'include' })
+        if (dealResponse.ok) {
+          const dealData = await dealResponse.json()
+          setSelectedDeal(dealData.data)
+        }
+        await fetchDeals()
+      }
+    } catch (error) {
+      console.error('Error adding activity:', error)
+    }
+  }
+
+  const handleAddTask = async (dealId: string, task: { title: string; due_date?: string; priority: string }) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...task,
+          related_type: 'deal',
+          related_id: dealId,
+          status: 'pending',
+        }),
+      })
+      if (response.ok) {
+        // Refresh deal details
+        const dealResponse = await fetch(`/api/crm/deals/${dealId}`, { credentials: 'include' })
+        if (dealResponse.ok) {
+          const dealData = await dealResponse.json()
+          setSelectedDeal(dealData.data)
+        }
+        await fetchDeals()
+      }
+    } catch (error) {
+      console.error('Error adding task:', error)
+    }
+  }
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('desc')
+    }
+  }
+
+  const getDefaultStages = () => {
+    const defaultPipeline = pipelines.find((p) => p.is_default)
+    return defaultPipeline?.stages || ['New Lead', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Under Contract', 'Closed Won', 'Closed Lost']
+  }
 
   const handleBeginSetup = async () => {
     try {
@@ -77,7 +321,10 @@ export default function DealsPage() {
             </p>
 
             {/* Create Deal Button */}
-            <button className="px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg transition-colors">
+            <button
+              onClick={() => setShowDealForm(true)}
+              className="px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg transition-colors"
+            >
               Create deal
             </button>
           </div>
@@ -100,7 +347,10 @@ export default function DealsPage() {
                 <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                   Import CSV
                 </button>
-                <button className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2">
+                <button
+                  onClick={() => setShowDealForm(true)}
+                  className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2"
+                >
                   <Plus className="w-4 h-4" />
                   Create deal
                 </button>
@@ -141,15 +391,33 @@ export default function DealsPage() {
               {/* Left Side Controls */}
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <select className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option>All Pipelines</option>
+                  <select
+                    value={selectedPipeline}
+                    onChange={(e) => setSelectedPipeline(e.target.value)}
+                    className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Pipelines</option>
+                    {pipelines.map((pipeline) => (
+                      <option key={pipeline.id} value={pipeline.id}>
+                        {pipeline.name}
+                      </option>
+                    ))}
                   </select>
                   <Layers3 className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
 
                 <div className="relative">
-                  <select className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option>All deals</option>
+                  <select
+                    value={selectedStage}
+                    onChange={(e) => setSelectedStage(e.target.value)}
+                    className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Stages</option>
+                    {getDefaultStages().map((stage) => (
+                      <option key={stage} value={stage}>
+                        {stage}
+                      </option>
+                    ))}
                   </select>
                   <LayoutGrid className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -163,6 +431,8 @@ export default function DealsPage() {
                   <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search deals"
                     className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -171,14 +441,34 @@ export default function DealsPage() {
 
               {/* Right Side Controls */}
               <div className="flex items-center gap-2 ml-auto">
-                <button className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                  <Save className="w-4 h-4" />
-                  Save as new view
-                </button>
+                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={`p-2 rounded ${viewMode === 'kanban' ? 'bg-white dark:bg-gray-600 shadow' : ''}`}
+                    title="Kanban View"
+                  >
+                    <Kanban className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-2 rounded ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow' : ''}`}
+                    title="Table View"
+                  >
+                    <Table2 className="w-4 h-4" />
+                  </button>
+                </div>
 
                 <div className="relative">
-                  <select className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option>Created date</option>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="created_at">Created date</option>
+                    <option value="title">Name</option>
+                    <option value="value">Value</option>
+                    <option value="stage">Stage</option>
+                    <option value="expected_close_date">Close date</option>
                   </select>
                   <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -192,7 +482,7 @@ export default function DealsPage() {
 
           {/* Main Content Area */}
           <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 p-6">
-            {showOnboarding === null ? (
+            {showOnboarding === null || loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -201,8 +491,37 @@ export default function DealsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Deals content will go here */}
-                <p className="text-gray-600 dark:text-gray-400">Deals management coming soon...</p>
+                {viewMode === 'kanban' ? (
+                  <DealsKanban
+                    deals={deals}
+                    stages={getDefaultStages()}
+                    onDealClick={(deal) => {
+                      // Fetch full deal details
+                      fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
+                        .then((res) => res.json())
+                        .then((data) => setSelectedDeal(data.data))
+                        .catch(console.error)
+                    }}
+                    onDealUpdate={handleUpdateDeal}
+                    onDealDelete={handleDeleteDeal}
+                  />
+                ) : (
+                  <DealsTable
+                    deals={deals}
+                    onDealClick={(deal) => {
+                      // Fetch full deal details
+                      fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
+                        .then((res) => res.json())
+                        .then((data) => setSelectedDeal(data.data))
+                        .catch(console.error)
+                    }}
+                    onDealUpdate={handleUpdateDeal}
+                    onDealDelete={handleDeleteDeal}
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -216,6 +535,32 @@ export default function DealsPage() {
           onClose={handleMaybeLater}
           onBeginSetup={handleBeginSetup}
           onMaybeLater={handleMaybeLater}
+        />
+      )}
+
+      {/* Deal Form Modal */}
+      {showDealForm && (
+        <DealFormModal
+          isOpen={showDealForm}
+          onClose={() => {
+            setShowDealForm(false)
+            setEditingDeal(null)
+          }}
+          onSave={editingDeal ? (data) => handleUpdateDeal(editingDeal.id, data) : handleCreateDeal}
+          deal={editingDeal}
+          contacts={contacts}
+          pipelines={pipelines}
+        />
+      )}
+
+      {/* Deal Detail View */}
+      {selectedDeal && (
+        <DealDetailView
+          deal={selectedDeal}
+          onClose={() => setSelectedDeal(null)}
+          onUpdate={handleUpdateDeal}
+          onAddActivity={handleAddActivity}
+          onAddTask={handleAddTask}
         />
       )}
     </DashboardLayout>

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import DashboardLayout from '../components/DashboardLayout'
-import { Plus, Search, Users, Building2, Filter, Settings, Download, Play, MoreVertical, Info } from 'lucide-react'
+import { Plus, Search, Users, Building2, Filter, Settings, Download, MoreVertical, Info, Trash2, Edit, X, Upload } from 'lucide-react'
 
 interface List {
   id: string
@@ -25,10 +25,32 @@ export default function ListsPage() {
   const [sortBy, setSortBy] = useState<'lastModified' | 'name' | 'created'>('lastModified')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newListType, setNewListType] = useState<'people' | 'properties'>('properties')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [deletingListId, setDeletingListId] = useState<string | null>(null)
+  const [editingList, setEditingList] = useState<List | null>(null)
+  const [editListName, setEditListName] = useState('')
+  const [editListType, setEditListType] = useState<'people' | 'properties'>('properties')
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     fetchLists()
   }, [])
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId) {
+        setOpenMenuId(null)
+      }
+    }
+
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside)
+      return () => {
+        document.removeEventListener('click', handleClickOutside)
+      }
+    }
+  }, [openMenuId])
 
   async function fetchLists() {
     try {
@@ -147,6 +169,180 @@ export default function ListsPage() {
     
     return filtered
   }, [propertiesLists, searchQuery, sortBy])
+
+  const handleEditList = (list: List) => {
+    setEditingList(list)
+    setEditListName(list.name)
+    setEditListType(list.type)
+    setOpenMenuId(null)
+  }
+
+  const handleUpdateList = async () => {
+    if (!editingList || !editListName.trim()) return
+
+    try {
+      setUpdating(true)
+      const response = await fetch(`/api/lists/${editingList.id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: editListName.trim(),
+          type: editListType,
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        await fetchLists()
+        setEditingList(null)
+        setEditListName('')
+      } else {
+        alert(data.error || 'Failed to update list')
+      }
+    } catch (error) {
+      console.error('Error updating list:', error)
+      alert('Failed to update list')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleDeleteList = async (listId: string, listName: string) => {
+    if (!confirm(`Are you sure you want to delete "${listName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setDeletingListId(listId)
+      const response = await fetch(`/api/lists/${listId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Remove the list from state
+        setLists(prevLists => prevLists.filter(list => list.id !== listId))
+      } else {
+        alert(data.error || 'Failed to delete list')
+      }
+    } catch (error) {
+      console.error('Error deleting list:', error)
+      alert('Failed to delete list')
+    } finally {
+      setDeletingListId(null)
+      setOpenMenuId(null)
+    }
+  }
+
+  const handleExportListCSV = async (listId: string, listName: string) => {
+    try {
+      // Fetch all list items (we'll get all pages)
+      const response = await fetch(`/api/lists/${listId}/paginated?page=1&pageSize=1000`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!response.ok) {
+        alert('Failed to fetch list items for export')
+        return
+      }
+
+      const data = await response.json()
+      const items = data.data || []
+
+      if (items.length === 0) {
+        alert('No items to export')
+        return
+      }
+
+      // Determine headers based on list type
+      const list = lists.find(l => l.id === listId)
+      const isPropertiesList = list?.type === 'properties'
+
+      let headers: string[]
+      let rows: string[][]
+
+      if (isPropertiesList) {
+        // Properties list - export listing data
+        headers = [
+          'Listing ID', 'Address', 'City', 'State', 'Zip Code', 'Price', 
+          'Beds', 'Baths', 'Sqft', 'Status', 'Agent Name', 'Agent Email', 
+          'Agent Phone', 'Score', 'Year Built', 'Last Sale Price', 'Last Sale Date', 'Property URL'
+        ]
+        
+        rows = items.map((item: any) => [
+          item.listing_id || '',
+          item.street || '',
+          item.city || '',
+          item.state || '',
+          item.zip_code || '',
+          item.list_price?.toString() || '',
+          item.beds?.toString() || '',
+          item.full_baths?.toString() || '',
+          item.sqft?.toString() || '',
+          item.status || '',
+          item.agent_name || '',
+          item.agent_email || '',
+          item.agent_phone || '',
+          item.ai_investment_score?.toString() || '',
+          item.year_built?.toString() || '',
+          item.last_sale_price?.toString() || '',
+          item.last_sale_date || '',
+          item.property_url || ''
+        ])
+      } else {
+        // People list - export contact data
+        headers = [
+          'Name', 'Email', 'Phone', 'Company', 'Job Title', 
+          'Address', 'City', 'State', 'Zip Code', 'Source'
+        ]
+        
+        rows = items.map((item: any) => [
+          `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.agent_name || '',
+          item.email || item.agent_email || '',
+          item.phone || item.agent_phone || '',
+          item.company || '',
+          item.job_title || '',
+          item.address || item.street || '',
+          item.city || '',
+          item.state || '',
+          item.zip_code || '',
+          item.source || ''
+        ])
+      }
+
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${listName.replace(/[^a-z0-9]/gi, '_')}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error exporting CSV:', err)
+      alert('Failed to export list')
+    }
+  }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Never'
@@ -658,8 +854,9 @@ export default function ListsPage() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    // Handle download
+                                    handleExportListCSV(list.id, list.name)
                                   }}
+                                  title="Download CSV"
                                   style={{
                                     padding: '6px',
                                     border: 'none',
@@ -676,48 +873,80 @@ export default function ListsPage() {
                                 >
                                   <Download size={16} color="#6b7280" />
                                 </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    // Handle send/play
-                                  }}
-                                  style={{
-                                    padding: '6px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent'
-                                  }}
-                                >
-                                  <Play size={16} color="#6b7280" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    // Handle more options
-                                  }}
-                                  style={{
-                                    padding: '6px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent'
-                                  }}
-                                >
-                                  <MoreVertical size={16} color="#6b7280" />
-                                </button>
+                                <div style={{ position: 'relative' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setOpenMenuId(openMenuId === list.id ? null : list.id)
+                                    }}
+                                    style={{
+                                      padding: '6px',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      cursor: 'pointer',
+                                      borderRadius: '4px'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#f3f4f6'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent'
+                                    }}
+                                  >
+                                    <MoreVertical size={16} color="#6b7280" />
+                                  </button>
+                                  {openMenuId === list.id && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: '100%',
+                                        marginTop: '4px',
+                                        backgroundColor: '#ffffff',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '6px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                        zIndex: 1000,
+                                        minWidth: '160px',
+                                        padding: '4px'
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDeleteList(list.id, list.name)
+                                        }}
+                                        disabled={deletingListId === list.id}
+                                        style={{
+                                          width: '100%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px',
+                                          padding: '8px 12px',
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: deletingListId === list.id ? 'not-allowed' : 'pointer',
+                                          fontSize: '14px',
+                                          color: deletingListId === list.id ? '#9ca3af' : '#dc2626',
+                                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                          textAlign: 'left'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          if (deletingListId !== list.id) {
+                                            e.currentTarget.style.backgroundColor = '#fef2f2'
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = 'transparent'
+                                        }}
+                                      >
+                                        <Trash2 size={16} />
+                                        {deletingListId === list.id ? 'Deleting...' : 'Delete'}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -930,7 +1159,7 @@ export default function ListsPage() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    // Handle download
+                                    handleExportListCSV(list.id, list.name)
                                   }}
                                   style={{
                                     padding: '6px',
@@ -945,51 +1174,113 @@ export default function ListsPage() {
                                   onMouseLeave={(e) => {
                                     e.currentTarget.style.backgroundColor = 'transparent'
                                   }}
+                                  title="Download CSV"
                                 >
                                   <Download size={16} color="#6b7280" />
                                 </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    // Handle send/play
-                                  }}
-                                  style={{
-                                    padding: '6px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent'
-                                  }}
-                                >
-                                  <Play size={16} color="#6b7280" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    // Handle more options
-                                  }}
-                                  style={{
-                                    padding: '6px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent'
-                                  }}
-                                >
-                                  <MoreVertical size={16} color="#6b7280" />
-                                </button>
+                                <div style={{ position: 'relative' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setOpenMenuId(openMenuId === list.id ? null : list.id)
+                                    }}
+                                    style={{
+                                      padding: '6px',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      cursor: 'pointer',
+                                      borderRadius: '4px'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#f3f4f6'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent'
+                                    }}
+                                  >
+                                    <MoreVertical size={16} color="#6b7280" />
+                                  </button>
+                                  {openMenuId === list.id && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: '100%',
+                                        marginTop: '4px',
+                                        backgroundColor: '#ffffff',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '6px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                        zIndex: 1000,
+                                        minWidth: '160px',
+                                        padding: '4px'
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleEditList(list)
+                                        }}
+                                        style={{
+                                          width: '100%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px',
+                                          padding: '8px 12px',
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: 'pointer',
+                                          fontSize: '14px',
+                                          color: '#374151',
+                                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                          textAlign: 'left'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.backgroundColor = '#f9fafb'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = 'transparent'
+                                        }}
+                                      >
+                                        <Edit size={16} />
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDeleteList(list.id, list.name)
+                                        }}
+                                        disabled={deletingListId === list.id}
+                                        style={{
+                                          width: '100%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px',
+                                          padding: '8px 12px',
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: deletingListId === list.id ? 'not-allowed' : 'pointer',
+                                          fontSize: '14px',
+                                          color: deletingListId === list.id ? '#9ca3af' : '#dc2626',
+                                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                          textAlign: 'left'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          if (deletingListId !== list.id) {
+                                            e.currentTarget.style.backgroundColor = '#fef2f2'
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = 'transparent'
+                                        }}
+                                      >
+                                        <Trash2 size={16} />
+                                        {deletingListId === list.id ? 'Deleting...' : 'Delete'}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -1002,6 +1293,358 @@ export default function ListsPage() {
             </>
           )}
         </div>
+
+        {/* List Settings Modal */}
+        {editingList && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => {
+            if (!updating) {
+              setEditingList(null)
+              setEditListName('')
+            }
+          }}
+          >
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                width: '90%',
+                maxWidth: '500px',
+                maxHeight: '90vh',
+                overflow: 'auto',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '24px',
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: '#111827',
+                  margin: 0,
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                }}>
+                  List Settings
+                </h2>
+                <button
+                  onClick={() => {
+                    if (!updating) {
+                      setEditingList(null)
+                      setEditListName('')
+                    }
+                  }}
+                  disabled={updating}
+                  style={{
+                    padding: '4px',
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: updating ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '4px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!updating) {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }}
+                >
+                  <X size={20} color="#6b7280" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div style={{
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px'
+              }}>
+                {/* List Name */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#374151',
+                    marginBottom: '8px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}>
+                    List Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editListName}
+                    onChange={(e) => setEditListName(e.target.value)}
+                    placeholder="Enter list name"
+                    disabled={updating}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      outline: 'none',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#6366f1'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)'
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '#d1d5db'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  />
+                </div>
+
+                {/* List Target */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#374151',
+                    marginBottom: '8px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}>
+                    List target
+                  </label>
+                  <select
+                    value={editListType}
+                    onChange={(e) => setEditListType(e.target.value as 'people' | 'properties')}
+                    disabled={updating}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      backgroundColor: '#ffffff',
+                      cursor: updating ? 'not-allowed' : 'pointer',
+                      outline: 'none',
+                      appearance: 'none',
+                      backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%236b7280\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E")',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                      paddingRight: '36px'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#6366f1'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)'
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '#d1d5db'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  >
+                    <option value="people">People</option>
+                    <option value="properties">Properties</option>
+                  </select>
+                </div>
+
+                {/* Add record from */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#374151',
+                    marginBottom: '16px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}>
+                    Add record from
+                  </label>
+                  
+                  {/* Filters */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '13px',
+                      fontWeight: 400,
+                      color: '#6b7280',
+                      marginBottom: '8px',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}>
+                      Filters
+                    </label>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement filter selection
+                        alert('Filter selection coming soon')
+                      }}
+                      disabled={updating}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        backgroundColor: '#ffffff',
+                        cursor: updating ? 'not-allowed' : 'pointer',
+                        fontSize: '14px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        color: '#374151',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!updating) {
+                          e.currentTarget.style.borderColor = '#6366f1'
+                          e.currentTarget.style.backgroundColor = '#f9fafb'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#d1d5db'
+                        e.currentTarget.style.backgroundColor = '#ffffff'
+                      }}
+                    >
+                      <Filter size={16} />
+                      Select filters
+                    </button>
+                  </div>
+
+                  {/* CSV */}
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '13px',
+                      fontWeight: 400,
+                      color: '#6b7280',
+                      marginBottom: '8px',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}>
+                      CSV
+                    </label>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement CSV upload
+                        alert('CSV upload coming soon')
+                      }}
+                      disabled={updating}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        backgroundColor: '#ffffff',
+                        cursor: updating ? 'not-allowed' : 'pointer',
+                        fontSize: '14px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        color: '#374151',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!updating) {
+                          e.currentTarget.style.borderColor = '#6366f1'
+                          e.currentTarget.style.backgroundColor = '#f9fafb'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#d1d5db'
+                        e.currentTarget.style.backgroundColor = '#ffffff'
+                      }}
+                    >
+                      <Upload size={16} />
+                      Upload CSV
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{
+                padding: '24px',
+                borderTop: '1px solid #e5e7eb',
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end'
+              }}>
+                <button
+                  onClick={() => {
+                    if (!updating) {
+                      setEditingList(null)
+                      setEditListName('')
+                    }
+                  }}
+                  disabled={updating}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: '#ffffff',
+                    cursor: updating ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    color: '#374151'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateList}
+                  disabled={!editListName.trim() || updating}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: (!editListName.trim() || updating) ? '#9ca3af' : '#6366f1',
+                    cursor: (!editListName.trim() || updating) ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    color: '#ffffff',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (editListName.trim() && !updating) {
+                      e.currentTarget.style.backgroundColor = '#4f46e5'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (editListName.trim() && !updating) {
+                      e.currentTarget.style.backgroundColor = '#6366f1'
+                    }
+                  }}
+                >
+                  {updating ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Create List Modal */}
         {showCreateModal && (

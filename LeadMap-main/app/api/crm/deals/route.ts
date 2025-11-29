@@ -6,6 +6,70 @@ import { createClient } from '@supabase/supabase-js'
 export const runtime = 'nodejs'
 
 /**
+ * Valid stages according to database constraint
+ */
+const VALID_STAGES = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost'] as const
+
+/**
+ * Normalize a stage name to match database constraint
+ * Maps common pipeline stage names to valid database stages
+ */
+function normalizeStage(stage: string | null | undefined): string {
+  if (!stage) return 'new'
+  
+  const normalized = stage.toLowerCase().trim()
+  
+  // Direct match
+  if (VALID_STAGES.includes(normalized as any)) {
+    return normalized
+  }
+  
+  // Map common variations to valid stages
+  const stageMap: Record<string, string> = {
+    'new lead': 'new',
+    'new leads': 'new',
+    'lead': 'new',
+    'leads': 'new',
+    'contact': 'contacted',
+    'initial contact': 'contacted',
+    'qualify': 'qualified',
+    'qualified lead': 'qualified',
+    'proposal sent': 'proposal',
+    'in negotiation': 'negotiation',
+    'negotiating': 'negotiation',
+    'under contract': 'negotiation',
+    'closed': 'closed_won',
+    'won': 'closed_won',
+    'closed won': 'closed_won',
+    'closed-won': 'closed_won',
+    'lost': 'closed_lost',
+    'closed lost': 'closed_lost',
+    'closed-lost': 'closed_lost',
+  }
+  
+  // Check for partial matches (e.g., "New Lead" -> "new lead")
+  const mapped = stageMap[normalized]
+  if (mapped) {
+    return mapped
+  }
+  
+  // Check if it contains any valid stage keywords
+  if (normalized.includes('closed') && normalized.includes('won')) return 'closed_won'
+  if (normalized.includes('closed') && normalized.includes('lost')) return 'closed_lost'
+  if (normalized.includes('won') && !normalized.includes('lost')) return 'closed_won'
+  if (normalized.includes('lost')) return 'closed_lost'
+  if (normalized.includes('negotiat')) return 'negotiation'
+  if (normalized.includes('proposal')) return 'proposal'
+  if (normalized.includes('qualif')) return 'qualified'
+  if (normalized.includes('contact')) return 'contacted'
+  if (normalized.includes('new')) return 'new'
+  
+  // Default to 'new' if no match found
+  console.warn(`Unknown stage "${stage}", defaulting to "new"`)
+  return 'new'
+}
+
+/**
  * GET /api/crm/deals
  * Fetch deals with filtering, sorting, and pagination
  * 
@@ -75,20 +139,21 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * pageSize
     const limit = pageSize
 
-    // Build query with joins for contact and owner info
+    // Build query with joins for contact info
+    // Note: owner_id and assigned_to are columns that reference auth.users,
+    // but we can't easily join auth.users from public schema, so we return the IDs
     let query = supabase
       .from('deals')
       .select(`
         *,
-        contact:contacts(id, first_name, last_name, email, phone, company),
-        owner:owner_id(id, email),
-        assigned_user:assigned_to(id, email)
+        contact:contacts(id, first_name, last_name, email, phone, company)
       `, { count: 'exact' })
       .eq('user_id', user.id)
 
-    // Apply filters
+    // Apply filters - normalize stage names to match database constraint
     if (stage && stage.length > 0) {
-      query = query.in('stage', stage)
+      const normalizedStages = stage.map(s => normalizeStage(s))
+      query = query.in('stage', normalizedStages)
     }
     if (pipelineId && pipelineId.length > 0) {
       query = query.in('pipeline_id', pipelineId)
@@ -167,8 +232,87 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Fetch property addresses for deals with listing_id (batch fetch for better performance)
+    const dealsWithListingIds = (deals || []).filter((deal: any) => deal.listing_id)
+    const uniqueListingIds = [...new Set(dealsWithListingIds.map((deal: any) => deal.listing_id))]
+    
+    // Build a map of listing_id -> property_address
+    const propertyAddressMap = new Map<string, string | null>()
+    
+    if (uniqueListingIds.length > 0) {
+      const tableNames = ['listings', 'expired_listings', 'fsbo_leads', 'frbo_leads', 'imports', 'foreclosure_listings']
+      
+      // Helper function to build address from property data
+      const buildAddress = (listing: any): string | null => {
+        const addressParts = []
+        if (listing.street) addressParts.push(listing.street)
+        if (listing.city || listing.state || listing.zip_code) {
+          const cityStateZip = [
+            listing.city,
+            listing.state,
+            listing.zip_code
+          ].filter(Boolean).join(', ')
+          if (cityStateZip) addressParts.push(cityStateZip)
+        }
+        return addressParts.length > 0 ? addressParts.join(', ') : null
+      }
+
+      // Fetch from all tables in parallel
+      for (const tableName of tableNames) {
+        try {
+          // Query by listing_id
+          const { data: listings } = await supabase
+            .from(tableName)
+            .select('listing_id, street, city, state, zip_code, property_url')
+            .in('listing_id', uniqueListingIds)
+            .limit(1000)
+
+          if (listings && listings.length > 0) {
+            listings.forEach((listing: any) => {
+              if (listing.listing_id && !propertyAddressMap.has(listing.listing_id)) {
+                propertyAddressMap.set(listing.listing_id, buildAddress(listing))
+              }
+            })
+          }
+
+          // Also try by property_url for any listing_ids that look like URLs
+          const urlListingIds = uniqueListingIds.filter((id: string) => id && id.startsWith('http'))
+          if (urlListingIds.length > 0) {
+            const { data: listingsByUrl } = await supabase
+              .from(tableName)
+              .select('listing_id, property_url, street, city, state, zip_code')
+              .in('property_url', urlListingIds)
+              .limit(1000)
+
+            if (listingsByUrl && listingsByUrl.length > 0) {
+              listingsByUrl.forEach((listing: any) => {
+                // Map by property_url since that's what we searched for
+                if (listing.property_url && !propertyAddressMap.has(listing.property_url)) {
+                  propertyAddressMap.set(listing.property_url, buildAddress(listing))
+                }
+              })
+            }
+          }
+        } catch (err: any) {
+          // Table might not exist, continue to next table
+          if (err.code !== 'PGRST116' && !err.message?.includes('does not exist')) {
+            console.warn(`Error querying ${tableName}:`, err.message)
+          }
+        }
+      }
+    }
+
+    // Map property addresses back to deals
+    const dealsWithProperties = (deals || []).map((deal: any) => {
+      if (!deal.listing_id) {
+        return { ...deal, property_address: null }
+      }
+      const address = propertyAddressMap.get(deal.listing_id) || null
+      return { ...deal, property_address: address }
+    })
+
     return NextResponse.json({
-      data: deals || [],
+      data: dealsWithProperties || [],
       pagination: {
         page,
         pageSize,
@@ -266,6 +410,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Normalize the stage to match database constraint
+    const normalizedStage = normalizeStage(stage)
+    
     // Create the deal
     const { data: deal, error: dealError } = await supabase
       .from('deals')
@@ -274,7 +421,7 @@ export async function POST(request: NextRequest) {
         title,
         description,
         value: value ? parseFloat(value) : null,
-        stage,
+        stage: normalizedStage,
         probability: probability ? parseInt(probability) : 0,
         expected_close_date: expected_close_date || null,
         closed_date: closed_date || null,

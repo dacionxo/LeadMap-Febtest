@@ -7,7 +7,34 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import DashboardLayout from '../../components/DashboardLayout'
 import VirtualizedListingsTable from '../../prospect-enrich/components/VirtualizedListingsTable'
 import BulkActions from '../components/BulkActions'
-import { ArrowLeft, Download, Search, RefreshCw, ChevronLeft, ChevronRight, Users, Building2, Filter, Settings, Plus, MoreVertical, CheckCircle, Phone, Link2, MapPin } from 'lucide-react'
+import ApolloPagination from '../../prospect-enrich/components/ApolloPagination'
+import { ArrowLeft, Download, Search, RefreshCw, ChevronLeft, ChevronRight, Users, Building2, Filter, Settings, Plus, MoreVertical, CheckCircle, Phone, Link2, MapPin, Sparkles, ChevronDown, Zap, Workflow } from 'lucide-react'
+
+// ============================================================================
+// Stable Column Configuration (Apollo-style)
+// ============================================================================
+// Define columns outside component to ensure stability across pagination
+// These match the column names that ApolloContactCard expects
+const DEFAULT_PROPERTY_COLUMNS = [
+  'address',
+  'price', 
+  'status',
+  'score',
+  'beds',
+  'full_baths',
+  'sqft',
+  'description',
+  'agent_name',
+  'agent_email',
+  'agent_phone',
+  'year_built',
+  'last_sale_price',
+  'last_sale_date',
+  'actions'
+] as const
+
+// Visible columns - static array at module scope (no hooks needed)
+const VISIBLE_COLUMNS = [...DEFAULT_PROPERTY_COLUMNS]
 
 interface List {
   id: string
@@ -57,6 +84,21 @@ interface ListItemsResponse {
   totalPages: number
   hasNextPage?: boolean
   hasPreviousPage?: boolean
+  list: {
+    id: string
+    name: string
+    type: string
+  }
+}
+
+interface ListPaginatedResponse {
+  data: Listing[]
+  count: number
+  page: number
+  pageSize: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
   list: {
     id: string
     name: string
@@ -141,7 +183,8 @@ export default function ListDetailPage() {
         ...(debouncedSearch && { search: debouncedSearch })
       })
 
-      const response = await fetch(`/api/lists/${listId}/items?${params}`, {
+      // Use the new /paginated endpoint which has proper Apollo-style reconstruction
+      const response = await fetch(`/api/lists/${listId}/paginated?${params}`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
@@ -194,15 +237,15 @@ export default function ListDetailPage() {
         return
       }
 
-      const data: ListItemsResponse = await response.json()
+      const data: ListPaginatedResponse = await response.json()
       if (process.env.NODE_ENV !== 'production') {
-        console.log('✅ List data fetched:', { 
+        console.log('✅ List data fetched (paginated):', { 
           listId, 
           listName: data.list?.name, 
-          itemCount: data.totalCount,
+          itemCount: data.count,
           totalPages: data.totalPages,
-          currentPage: data.currentPage || currentPage,
-          listingsReceived: data.listings?.length || 0
+          currentPage: data.page,
+          listingsReceived: data.data?.length || 0
         })
       }
       
@@ -212,12 +255,12 @@ export default function ListDetailPage() {
         type: data.list.type as 'people' | 'properties'
       })
       
-      // Update pagination metadata
-      setTotalCount(data.totalCount)
+      // Update pagination metadata (map from paginated response shape)
+      setTotalCount(data.count)
       setTotalPages(data.totalPages)
       
-      // Use server-provided currentPage (it's already clamped), fallback to legacy 'page' field
-      const serverPage = data.currentPage || data.page || currentPage
+      // Use server-provided page (it's already clamped)
+      const serverPage = data.page || currentPage
       
       // Clamp current page if it's out of range (e.g., items were deleted)
       if (data.totalPages > 0 && serverPage > data.totalPages) {
@@ -234,12 +277,12 @@ export default function ListDetailPage() {
         return // Exit early, useEffect will trigger refetch with corrected currentPage
       }
       
-      // Set listings - handle empty page gracefully
-      if (data.listings && data.listings.length > 0) {
-        setListings(data.listings)
-      } else if (data.totalCount > 0) {
+      // Set listings from data.data (Apollo-style reconstructed rows in membership order)
+      if (data.data && data.data.length > 0) {
+        setListings(data.data)
+      } else if (data.count > 0) {
         // Empty page but items exist - this shouldn't happen, but handle gracefully
-        console.warn('⚠️ Empty listings array but totalCount > 0. This may indicate a pagination issue.')
+        console.warn('⚠️ Empty listings array but count > 0. This may indicate a pagination issue.')
         setListings([])
       } else {
         // Truly empty list
@@ -664,6 +707,13 @@ export default function ListDetailPage() {
   const listTypeIcon = list.type === 'people' ? Users : Building2
   const ListIcon = listTypeIcon
 
+  // Display range helpers for "Showing X–Y of Z" text
+  const startRecord = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const endRecord = totalCount === 0 ? 0 : Math.min(currentPage * pageSize, totalCount)
+
+  // Use static columns configuration from module scope (no hooks needed)
+  const visibleColumns = VISIBLE_COLUMNS
+
   return (
     <DashboardLayout>
       <div style={{
@@ -740,281 +790,308 @@ export default function ListDetailPage() {
             </div>
           </div>
 
-          {/* Action Bar - Apollo Style */}
+          {/* Action Bar - Apollo Style (Reorganized) */}
           <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap'
+            flexDirection: 'column',
+            gap: '12px'
           }}>
-            <button
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-            >
-              Default view
-            </button>
-            <button
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-            >
-              <Filter size={14} />
-              Show Filters
-            </button>
-            <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
-              <Search style={{
-                position: 'absolute',
-                left: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '16px',
-                height: '16px',
-                color: '#9ca3af',
-                pointerEvents: 'none'
-              }} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search"
+            {/* First Row: Left side controls and search */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap'
+            }}>
+              {/* Left side controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 400,
+                    color: '#374151',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  Default view
+                  <ChevronDown size={14} />
+                </button>
+                <button
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 400,
+                    color: '#374151',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  <Filter size={14} />
+                  Show Filters
+                </button>
+              </div>
+              
+              {/* Search bar */}
+              <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
+                <Search style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: '#9ca3af',
+                  pointerEvents: 'none'
+                }} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search"
+                  style={{
+                    width: '100%',
+                    paddingLeft: '36px',
+                    paddingRight: '12px',
+                    paddingTop: '6px',
+                    paddingBottom: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Second Row: Right side action buttons */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-start'
+            }}>
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleExportCSV()
+                }}
                 style={{
-                  width: '100%',
-                  paddingLeft: '36px',
-                  paddingRight: '12px',
-                  paddingTop: '6px',
-                  paddingBottom: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#ffffff',
                   border: '1px solid #d1d5db',
                   borderRadius: '6px',
+                  cursor: 'pointer',
                   fontSize: '14px',
-                  outline: 'none',
+                  fontWeight: 400,
+                  color: '#374151',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}
-              />
+                title="Export to CSV"
+              >
+                <Download size={14} />
+                Export
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  alert('Import functionality coming soon')
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  color: '#374151',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                }}
+                title="Import records"
+              >
+                Import
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  alert('Add records functionality coming soon')
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#fbbf24',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#ffffff',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f59e0b'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#fbbf24'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+                title="Add records to list"
+              >
+                <Plus size={14} />
+                Add records to list
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  alert('Research with AI functionality coming soon')
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#8b5cf6',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#ffffff',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#7c3aed'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#8b5cf6'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+                title="Research with AI"
+              >
+                <Sparkles size={14} />
+                Research with AI
+              </button>
+              <button
+                style={{
+                  padding: '6px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="More options"
+              >
+                <MoreVertical size={16} color="#6b7280" />
+              </button>
+              <button
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  color: '#374151',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                }}
+              >
+                <Zap size={14} />
+                Create workflow
+              </button>
+              <button
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  color: '#374151',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                }}
+              >
+                Save as new view
+              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 400,
+                    color: '#374151',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  ↑↓ {listTypeLabel} Auto-Score
+                  <ChevronDown size={14} />
+                </button>
+              </div>
+              <button
+                style={{
+                  padding: '6px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="View options"
+              >
+                <Settings size={16} color="#6b7280" />
+              </button>
             </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                fetchListData()
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-              title="Refresh list"
-            >
-              <RefreshCw size={14} />
-              Refresh
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleExportCSV()
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-              title="Export to CSV"
-            >
-              <Download size={14} />
-              Export
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                // TODO: Implement import functionality
-                alert('Import functionality coming soon')
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-              title="Import records"
-            >
-              Import
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                // TODO: Implement add records functionality
-                alert('Add records functionality coming soon')
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#fbbf24',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 500,
-                color: '#ffffff',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-              title="Add records to list"
-            >
-              <Plus size={14} />
-              Add records to list
-            </button>
-            <button
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-            >
-              Research with AI
-            </button>
-            <button
-              style={{
-                padding: '6px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <MoreVertical size={16} color="#6b7280" />
-            </button>
-            <button
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-            >
-              Create workflow
-            </button>
-            <button
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-            >
-              Save as new view
-            </button>
-            <button
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 400,
-                color: '#374151',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-            >
-              Sort
-            </button>
-            <button
-              style={{
-                padding: '6px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Settings size={16} color="#6b7280" />
-            </button>
           </div>
         </div>
 
@@ -1490,346 +1567,107 @@ export default function ListDetailPage() {
               )}
             </div>
           ) : (
-            /* Properties Table - Keep existing but update styling */
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              backgroundColor: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              overflow: 'hidden'
-            }}>
-              {/* Table Header */}
-              <div 
-                ref={headerScrollRef}
+            /* Properties Table - Apollo Style with VirtualizedListingsTable */
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '16px 32px 24px',
+                gap: '12px',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Bulk actions + range text (Apollo-style) */}
+              <div
                 style={{
-                  display: 'flex',
-                  width: 'max-content',
-                  minWidth: '100%',
-                  padding: '16px 18px',
-                  borderBottom: '1px solid #e5e7eb',
-                  backgroundColor: '#f9fafb',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 10,
-                  willChange: 'transform'
-                }}
-              >
-                <div style={{ marginRight: '16px', flexShrink: 0, width: '18px', display: 'flex', alignItems: 'center' }} />
-                <div style={{ flex: '0 0 280px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('street')}>
-                    Address {sortBy === 'street' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 130px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('list_price')}>
-                    Price {sortBy === 'list_price' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 120px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('status')}>
-                    Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 100px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('ai_investment_score')}>
-                    AI Score {sortBy === 'ai_investment_score' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 100px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('beds')}>
-                    Beds {sortBy === 'beds' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 110px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('full_baths')}>
-                    Baths {sortBy === 'full_baths' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 140px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('sqft')}>
-                    Sqft {sortBy === 'sqft' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 200px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    Text
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 150px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('agent_name')}>
-                    Agent Name {sortBy === 'agent_name' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 180px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('agent_email')}>
-                    Agent Email {sortBy === 'agent_email' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flex: '0 0 130px', marginRight: '24px', minWidth: 0 }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }} onClick={() => handleSort('agent_phone')}>
-                    Agent Phone {sortBy === 'agent_phone' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </span>
-                </div>
-                <div style={{ flexShrink: 0, width: '120px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <span style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    Actions
-                  </span>
-                </div>
-              </div>
-
-              {/* Virtualized Table */}
-              <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-                <VirtualizedListingsTable
-                  listings={listings}
-                  filters={{ search: debouncedSearch }}
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onListingClick={handleListingClick}
-                  selectedIds={selectedIds}
-                  onSelect={handleSelect}
-                  crmContactIds={crmContactIds}
-                  onSave={handleSave}
-                  onAction={(action, listing) => {
-                    if (action === 'remove_from_list') {
-                      handleRemoveFromList(listing)
-                    }
-                  }}
-                  scrollContainerRef={dataScrollContainerRef}
-                  variant="standalone"
-                  showSummary={true}
-                  showPagination={false}
-                  isDark={false}
-                />
-              </div>
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '16px 24px',
-                  borderTop: '1px solid rgba(99, 102, 241, 0.1)',
-                  background: 'rgba(248, 250, 252, 0.5)'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                }}>
-                  <div style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '14px',
-                    color: '#64748b'
-                  }}>
-                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} items
-                    </div>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        const newPageSize = Number(e.target.value)
-                        if (newPageSize > 0 && newPageSize <= 100) {
-                          handlePageSizeChange(newPageSize)
-                        }
-                      }}
-                      style={{
-                        padding: '6px 8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        cursor: 'pointer',
-                        backgroundColor: '#ffffff'
-                      }}
-                      aria-label="Items per page"
-                    >
-                      <option value={10}>10 per page</option>
-                      <option value={20}>20 per page</option>
-                      <option value={50}>50 per page</option>
-                      <option value={100}>100 per page</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        if (currentPage > 1) {
-                          setCurrentPage(prev => Math.max(1, prev - 1))
-                        }
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 14px',
-                        background: currentPage === 1 ? '#f3f4f6' : '#ffffff',
-                        color: currentPage === 1 ? '#9ca3af' : '#374151',
-                        border: `1px solid ${currentPage === 1 ? '#e5e7eb' : 'rgba(99, 102, 241, 0.2)'}`,
-                        borderRadius: '8px',
-                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        transition: 'all 0.2s',
-                        opacity: currentPage === 1 ? 0.5 : 1,
-                        pointerEvents: currentPage === 1 ? 'none' : 'auto'
-                      }}
-                      aria-label="Previous page"
-                    >
-                      <ChevronLeft size={16} />
-                      Previous
-                    </button>
-                    <div style={{
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      fontSize: '14px',
-                      color: '#374151',
-                      fontWeight: 500,
-                      padding: '0 12px'
-                    }}>
-                      Page {currentPage} of {totalPages}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        if (currentPage < totalPages) {
-                          setCurrentPage(prev => Math.min(totalPages, prev + 1))
-                        }
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 14px',
-                        background: currentPage === totalPages ? '#f3f4f6' : '#ffffff',
-                        color: currentPage === totalPages ? '#9ca3af' : '#374151',
-                        border: `1px solid ${currentPage === totalPages ? '#e5e7eb' : 'rgba(99, 102, 241, 0.2)'}`,
-                        borderRadius: '8px',
-                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        transition: 'all 0.2s',
-                        opacity: currentPage === totalPages ? 0.5 : 1,
-                        pointerEvents: currentPage === totalPages ? 'none' : 'auto'
-                      }}
-                      aria-label="Next page"
-                    >
-                      Next
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
+                  gap: '12px',
+                  marginBottom: '8px',
+                }}
+              >
+                <BulkActions
+                  selectedCount={selectedIds.size}
+                  onEmailOwners={handleEmailOwners}
+                  onExportCSV={handleBulkExportCSV}
+                  onRemoveFromList={handleBulkRemove}
+                />
+
+                <div
+                  style={{
+                    fontSize: '13px',
+                    color: '#6b7280',
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  }}
+                >
+                  {totalCount > 0
+                    ? `Showing ${startRecord.toLocaleString()}–${endRecord.toLocaleString()} of ${totalCount.toLocaleString()} records`
+                    : 'No records to display'}
                 </div>
-              )}
+              </div>
+
+              {/* Scrollable virtualized table */}
+              <div
+                ref={dataScrollContainerRef}
+                style={{
+                  flex: 1,
+                  overflowX: 'auto',
+                  overflowY: 'auto',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#f9fafb',
+                }}
+              >
+                <VirtualizedListingsTable
+                  // **Key part:** this actually displays your reconstructed rows
+                  listings={listings}
+                  columns={visibleColumns}
+                  variant="embedded"
+                  scrollContainerRef={dataScrollContainerRef}
+                  filters={{ search: debouncedSearch }}
+                  selectedIds={selectedIds}
+                  onSelect={handleSelect}
+                  onListingClick={handleListingClick}
+                  crmContactIds={crmContactIds}
+                  onSave={handleSave}
+                  onAction={(action, listing) => {
+                    if (action === 'remove') {
+                      handleRemoveFromList(listing)
+                    } else if (action === 'call') {
+                      const phone =
+                        listing.agent_phone ||
+                        listing.agent_phone_2 ||
+                        listing.listing_agent_phone_2 ||
+                        listing.listing_agent_phone_5
+
+                      if (phone) {
+                        window.location.href = `tel:${phone}`
+                      }
+                    } else if (action === 'email') {
+                      if (listing.agent_email) {
+                        window.location.href = `mailto:${listing.agent_email}`
+                      }
+                    } else if (action === 'open' && listing.property_url) {
+                      window.open(listing.property_url, '_blank')
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Apollo-style pagination footer */}
+              <div style={{ marginTop: '8px' }}>
+                <ApolloPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={totalCount}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              </div>
             </div>
           )}
         </div>

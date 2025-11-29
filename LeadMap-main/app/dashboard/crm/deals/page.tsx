@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useApp } from '@/app/providers'
 import DashboardLayout from '../../components/DashboardLayout'
 import { 
   Plus, 
@@ -59,6 +60,18 @@ interface Deal {
     phone?: string
     company?: string
   }
+  owner?: {
+    id?: string
+    email?: string
+    name?: string
+  }
+  owner_id?: string | null
+  assigned_to?: string | null
+  pipeline?: {
+    id?: string
+    name?: string
+  } | null
+  property_address?: string | null
   created_at: string
 }
 
@@ -78,9 +91,10 @@ interface Contact {
 }
 
 export default function DealsPage() {
+  const { user } = useApp()
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview')
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table')
   const [deals, setDeals] = useState<Deal[]>([])
   const [pipelines, setPipelines] = useState<Pipeline[]>([])
   const [properties, setProperties] = useState<any[]>([])
@@ -89,6 +103,7 @@ export default function DealsPage() {
   const [showDealForm, setShowDealForm] = useState(false)
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null)
+  const [initialStage, setInitialStage] = useState<string | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPipeline, setSelectedPipeline] = useState<string>('')
   const [selectedStage, setSelectedStage] = useState<string>('')
@@ -240,6 +255,7 @@ export default function DealsPage() {
         body: JSON.stringify(dealData),
       })
       if (response.ok) {
+        setViewMode('table') // Switch to table view after creating a deal
         await fetchDeals()
         setShowDealForm(false)
       } else {
@@ -356,7 +372,8 @@ export default function DealsPage() {
 
   const getDefaultStages = () => {
     const defaultPipeline = pipelines.find((p) => p.is_default)
-    return defaultPipeline?.stages || ['New Lead', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Under Contract', 'Closed Won', 'Closed Lost']
+    // Return stages matching the Kanban design: Lead, Sales Qualified, Meeting Booked, Negotiation, Contract Sent, Closed Won
+    return defaultPipeline?.stages || ['Lead', 'Sales Qualified', 'Meeting Booked', 'Negotiation', 'Contract Sent', 'Closed Won']
   }
 
   const handleBeginSetup = async () => {
@@ -406,7 +423,11 @@ export default function DealsPage() {
                   Import CSV
                 </button>
                 <button
-                  onClick={() => setShowDealForm(true)}
+                  onClick={() => {
+                    setInitialStage(undefined)
+                    setEditingDeal(null)
+                    setShowDealForm(true)
+                  }}
                   className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
@@ -419,24 +440,24 @@ export default function DealsPage() {
             <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
                   activeTab === 'overview'
-                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-gray-800 dark:bg-gray-700 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 Overview
               </button>
               <button
                 onClick={() => setActiveTab('analytics')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors relative ${
+                className={`px-4 py-2 text-sm font-medium transition-colors relative rounded-t-lg ${
                   activeTab === 'analytics'
-                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-gray-800 dark:bg-gray-700 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 Analytics
-                <span className="ml-2 px-1.5 py-0.5 text-xs font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+                <span className="ml-2 px-1.5 py-0.5 text-xs font-semibold bg-green-500 text-white rounded">
                   New
                 </span>
               </button>
@@ -461,10 +482,38 @@ export default function DealsPage() {
 
             {/* Main Content */}
             <div className={`flex flex-col overflow-hidden ${showDealForm ? 'flex-[2]' : 'flex-1'}`}>
-              {/* Right Side Actions Bar */}
+              {/* Control Bar */}
               <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between">
-                {/* Left: Show Filters Button */}
-                <div>
+                {/* Left: Pipeline Selector, Deal View Selector, Show Filters, Search */}
+                <div className="flex items-center gap-3">
+                  {/* Pipeline Selector */}
+                  <div className="relative">
+                    <select
+                      value={selectedPipeline || ''}
+                      onChange={(e) => setSelectedPipeline(e.target.value || '')}
+                      className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All Pipelines</option>
+                      {pipelines.map((pipeline) => (
+                        <option key={pipeline.id} value={pipeline.id}>
+                          {pipeline.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Building2 className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+
+                  {/* Deal View Selector */}
+                  <div className="relative">
+                    <select
+                      className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option>All deals</option>
+                    </select>
+                    <LayoutGrid className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+
+                  {/* Show Filters Button */}
                   {!showFilters && (
                     <button
                       onClick={() => setShowFilters(true)}
@@ -479,6 +528,18 @@ export default function DealsPage() {
                       )}
                     </button>
                   )}
+
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search deals"
+                      className="pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48"
+                    />
+                  </div>
                 </div>
                 
                 {/* Right: View Controls */}
@@ -528,7 +589,7 @@ export default function DealsPage() {
               </div>
 
               {/* Content Area */}
-              <div className="flex-1 overflow-auto p-6">
+              <div className={`flex-1 overflow-auto ${viewMode === 'kanban' ? 'p-4' : 'p-6'}`}>
                 {loading ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-2">
@@ -573,6 +634,12 @@ export default function DealsPage() {
                         }}
                         onDealUpdate={handleUpdateDeal}
                         onDealDelete={handleDeleteDeal}
+                        pipelines={pipelines}
+                        onAddDeal={(stage) => {
+                          setInitialStage(stage)
+                          setEditingDeal(null)
+                          setShowDealForm(true)
+                        }}
                       />
                     ) : (
                       <DealsTable
@@ -588,6 +655,7 @@ export default function DealsPage() {
                         sortBy={sortBy}
                         sortOrder={sortOrder}
                         onSort={handleSort}
+                        pipelines={pipelines}
                       />
                     )}
                   </div>
@@ -603,12 +671,14 @@ export default function DealsPage() {
                   onClose={() => {
                     setShowDealForm(false)
                     setEditingDeal(null)
+                    setInitialStage(undefined)
                   }}
                   onSave={editingDeal ? (data) => handleUpdateDeal(editingDeal.id, data) : handleCreateDeal}
                   deal={editingDeal}
                   properties={properties}
                   pipelines={pipelines}
                   users={users}
+                  initialStage={initialStage}
                 />
               </div>
             )}

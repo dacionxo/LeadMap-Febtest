@@ -329,15 +329,16 @@ export async function GET(
           })
         })
 
-        // Define source tables to search - query ALL category tables where listings might be stored
+        // Define source tables to search - query ALL category tables where listings/leads might be stored
+        // This ensures we find listings from all sources, not just the main listings table
         const sourceTables = [
-          'listings',
-          'expired_listings',
-          'fsbo_leads',
-          'frbo_leads',
-          'imports',
-          'foreclosure_listings',
-          'probate_leads'
+          'listings',              // Main listings table
+          'expired_listings',       // Expired property listings
+          'fsbo_leads',           // For Sale By Owner leads
+          'frbo_leads',            // For Rent By Owner leads
+          'imports',               // Imported listings
+          'foreclosure_listings',  // Foreclosure properties
+          'probate_leads'          // Probate property leads
         ]
 
         // Fetch from each source table in parallel
@@ -518,19 +519,40 @@ export async function GET(
 
         for (const membership of listingItems) {
           const rawId = String(membership.item_id).trim()
+          if (!rawId) continue
+
           const normalized = normalizeListingIdentifier(rawId) || rawId
 
-          // Try multiple lookup strategies
-          let hit = listingMap.get(rawId) ||
-                   listingMap.get(normalized) ||
-                   listingMap.get(rawId.toLowerCase()) ||
-                   listingMap.get(normalized.toLowerCase())
+          // 🔑 IMPORTANT:
+          // Use the SAME candidate expansion as Step 3 so URLs with/without
+          // query strings, trailing slashes, etc. still match.
+          const candidateKeysArray = [
+            rawId,
+            normalized,
+            rawId.toLowerCase(),
+            normalized.toLowerCase(),
+            ...generateIdentifierCandidates(rawId),
+          ]
+          // Use Set to deduplicate, then convert back to array for iteration
+          const candidateKeys = Array.from(new Set<string>(candidateKeysArray))
 
-          // If still not found and it's a URL, try case-insensitive search
+          let hit: any | undefined
+
+          // Try each candidate against the listingMap
+          for (const key of candidateKeys) {
+            if (!key) continue
+            const value = listingMap.get(key)
+            if (value) {
+              hit = value
+              break
+            }
+          }
+
+          // Extra safety: fallback case-insensitive URL match
           if (!hit && isProbablyUrl(rawId)) {
+            const rawLower = rawId.toLowerCase()
             for (const [key, value] of Array.from(listingMap.entries())) {
-              if (key.toLowerCase() === rawId.toLowerCase() || 
-                  key.toLowerCase() === normalized.toLowerCase()) {
+              if (key.toLowerCase() === rawLower) {
                 hit = value
                 break
               }

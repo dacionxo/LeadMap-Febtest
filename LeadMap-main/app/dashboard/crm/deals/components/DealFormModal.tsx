@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, ChevronDown, ChevronUp, Settings, Calendar, ChevronRight, MapPin } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, Settings, ChevronRight, MapPin } from 'lucide-react'
 import { useApp } from '@/app/providers'
 import DealFormSettingsModal, { FormField } from './DealFormSettingsModal'
 import PropertySelectorModal from './PropertySelectorModal'
+import DatePicker from './DatePicker'
 
 interface Deal {
   id?: string
@@ -58,6 +59,7 @@ interface DealFormModalProps {
   properties?: Property[]
   pipelines?: Pipeline[]
   users?: User[]
+  initialStage?: string
 }
 
 const DEFAULT_FORM_FIELDS: FormField[] = [
@@ -81,6 +83,7 @@ export default function DealFormModal({
   properties = [],
   pipelines = [],
   users = [],
+  initialStage,
 }: DealFormModalProps) {
   const { profile, user } = useApp()
   const [formData, setFormData] = useState<Partial<Deal>>({
@@ -136,21 +139,22 @@ export default function DealFormModal({
       })
     } else {
       // Set default owner to current user
+      const defaultPipeline = pipelines.find((p) => p.is_default) || pipelines[0]
       setFormData({
         title: '',
         value: null,
-        stage: '',
+        stage: initialStage || '',
         probability: 0,
         expected_close_date: null,
         closed_date: null,
         listing_id: null,
-        pipeline_id: pipelines.find((p) => p.is_default)?.id || pipelines[0]?.id || null,
-        owner_id: user?.id || null,
+        pipeline_id: defaultPipeline?.id || null,
+        owner_id: user?.id || null, // Always default to logged-in user
         closed_won_reason: null,
         closed_lost_reason: null,
       })
     }
-  }, [deal, isOpen, user, pipelines])
+  }, [deal, isOpen, user, pipelines, initialStage])
 
   // Properties are already formatted with display names
 
@@ -351,18 +355,12 @@ export default function DealFormModal({
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                required={field.required}
-                value={formatDateForInput(formData.expected_close_date)}
-                onChange={(e) => handleDateChange('expected_close_date', e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="mm/dd/yyyy"
-                maxLength={10}
-              />
-              <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
+            <DatePicker
+              value={formData.expected_close_date}
+              onChange={(date) => setFormData({ ...formData, expected_close_date: date })}
+              placeholder="mm/dd/yyyy"
+              required={field.required}
+            />
           </div>
         )
       case 'owner':
@@ -510,18 +508,12 @@ export default function DealFormModal({
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                required={field.required}
-                value={formatDateForInput(formData.closed_date)}
-                onChange={(e) => handleDateChange('closed_date', e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="mm/dd/yyyy"
-                maxLength={10}
-              />
-              <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
+            <DatePicker
+              value={formData.closed_date}
+              onChange={(date) => setFormData({ ...formData, closed_date: date })}
+              placeholder="mm/dd/yyyy"
+              required={field.required}
+            />
           </div>
         )
       default:

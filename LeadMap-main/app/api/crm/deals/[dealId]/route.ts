@@ -6,6 +6,70 @@ import { createClient } from '@supabase/supabase-js'
 export const runtime = 'nodejs'
 
 /**
+ * Valid stages according to database constraint
+ */
+const VALID_STAGES = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost'] as const
+
+/**
+ * Normalize a stage name to match database constraint
+ * Maps common pipeline stage names to valid database stages
+ */
+function normalizeStage(stage: string | null | undefined): string {
+  if (!stage) return 'new'
+  
+  const normalized = stage.toLowerCase().trim()
+  
+  // Direct match
+  if (VALID_STAGES.includes(normalized as any)) {
+    return normalized
+  }
+  
+  // Map common variations to valid stages
+  const stageMap: Record<string, string> = {
+    'new lead': 'new',
+    'new leads': 'new',
+    'lead': 'new',
+    'leads': 'new',
+    'contact': 'contacted',
+    'initial contact': 'contacted',
+    'qualify': 'qualified',
+    'qualified lead': 'qualified',
+    'proposal sent': 'proposal',
+    'in negotiation': 'negotiation',
+    'negotiating': 'negotiation',
+    'under contract': 'negotiation',
+    'closed': 'closed_won',
+    'won': 'closed_won',
+    'closed won': 'closed_won',
+    'closed-won': 'closed_won',
+    'lost': 'closed_lost',
+    'closed lost': 'closed_lost',
+    'closed-lost': 'closed_lost',
+  }
+  
+  // Check for partial matches (e.g., "New Lead" -> "new lead")
+  const mapped = stageMap[normalized]
+  if (mapped) {
+    return mapped
+  }
+  
+  // Check if it contains any valid stage keywords
+  if (normalized.includes('closed') && normalized.includes('won')) return 'closed_won'
+  if (normalized.includes('closed') && normalized.includes('lost')) return 'closed_lost'
+  if (normalized.includes('won') && !normalized.includes('lost')) return 'closed_won'
+  if (normalized.includes('lost')) return 'closed_lost'
+  if (normalized.includes('negotiat')) return 'negotiation'
+  if (normalized.includes('proposal')) return 'proposal'
+  if (normalized.includes('qualif')) return 'qualified'
+  if (normalized.includes('contact')) return 'contacted'
+  if (normalized.includes('new')) return 'new'
+  
+  // Default to 'new' if no match found
+  console.warn(`Unknown stage "${stage}", defaulting to "new"`)
+  return 'new'
+}
+
+/**
  * GET /api/crm/deals/:dealId
  * Get a single deal with all related data
  */
@@ -44,13 +108,13 @@ export async function GET(
     })
 
     // Fetch deal with related data
+    // Note: owner_id and assigned_to are columns that reference auth.users,
+    // but we can't easily join auth.users from public schema, so we return the IDs
     const { data: deal, error: dealError } = await supabase
       .from('deals')
       .select(`
         *,
-        contact:contacts(id, first_name, last_name, email, phone, company),
-        owner:owner_id(id, email),
-        assigned_user:assigned_to(id, email)
+        contact:contacts(id, first_name, last_name, email, phone, company)
       `)
       .eq('id', dealId)
       .eq('user_id', user.id)
@@ -222,7 +286,7 @@ export async function PUT(
     if (title !== undefined) updates.title = title
     if (description !== undefined) updates.description = description
     if (value !== undefined) updates.value = value ? parseFloat(value) : null
-    if (stage !== undefined) updates.stage = stage
+    if (stage !== undefined) updates.stage = normalizeStage(stage)
     if (probability !== undefined) updates.probability = probability ? parseInt(probability) : 0
     if (expected_close_date !== undefined) updates.expected_close_date = expected_close_date || null
     if (closed_date !== undefined) updates.closed_date = closed_date || null

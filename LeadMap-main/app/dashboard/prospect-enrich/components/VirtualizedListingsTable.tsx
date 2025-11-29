@@ -90,6 +90,7 @@ interface TableFilters {
 interface VirtualizedListingsTableProps {
   tableName?: string
   listings?: Listing[] // Optional: If provided, use these listings instead of fetching
+  columns?: string[] // Optional: Column configuration for ApolloContactCard
   filters?: TableFilters
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
@@ -117,6 +118,14 @@ const ITEMS_PER_PAGE = 50
 const ROW_HEIGHT_ESTIMATE = 80
 const VIRTUALIZER_OVERSCAN = 5
 
+// Default columns configuration (used when columns prop is not provided)
+const DEFAULT_COLUMNS = [
+  'address', 'price', 'status', 'score', 'beds', 'full_baths', 
+  'sqft', 'description', 'agent_name', 'agent_email', 'agent_phone', 
+  'agent_phone_2', 'listing_agent_phone_2', 'listing_agent_phone_5', 
+  'year_built', 'last_sale_price', 'last_sale_date', 'actions'
+] as const
+
 // Whitelist of valid table names for security
 const VALID_TABLE_NAMES = [
   'listings',
@@ -136,6 +145,7 @@ const VALID_TABLE_NAMES = [
 export default function VirtualizedListingsTable({
   tableName,
   listings: providedListings,
+  columns: providedColumns,
   filters = {},
   sortBy = 'created_at',
   sortOrder = 'desc',
@@ -154,6 +164,8 @@ export default function VirtualizedListingsTable({
   showPagination = true,
   category
 }: VirtualizedListingsTableProps) {
+  // Use provided columns or default - ensure stability
+  const columns = providedColumns || DEFAULT_COLUMNS
   // ==========================================================================
   // State Management
   // ==========================================================================
@@ -633,9 +645,12 @@ export default function VirtualizedListingsTable({
             const listing = listings[virtualRow.index]
             if (!listing) return null
             
+            // Use stable key: prefer _membership_id for Apollo-style reconstruction, fallback to listing_id or property_url
+            const stableKey = (listing as any)._membership_id ?? listing.listing_id ?? listing.property_url ?? virtualRow.key
+            
             return (
               <div
-                key={virtualRow.key}
+                key={stableKey}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -649,12 +664,7 @@ export default function VirtualizedListingsTable({
                   listing={listing}
                   isSelected={selectedIds.has(listing.listing_id)}
                   onSelect={onSelect || (() => {})}
-                  columns={[
-                    'address', 'price', 'status', 'score', 'beds', 'full_baths', 
-                    'sqft', 'description', 'agent_name', 'agent_email', 'agent_phone', 
-                    'agent_phone_2', 'listing_agent_phone_2', 'listing_agent_phone_5', 
-                    'year_built', 'last_sale_price', 'last_sale_date', 'actions'
-                  ]}
+                  columns={columns}
                   onAction={onAction}
                   onClick={() => onListingClick?.(listing)}
                   isSaved={crmContactIds.has(listing.listing_id)}

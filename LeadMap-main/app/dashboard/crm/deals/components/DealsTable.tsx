@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { DollarSign, Calendar, User, MoreVertical, Edit, Trash2, ArrowUpDown } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { DollarSign, Calendar, User, MoreVertical, Edit, Trash2, ArrowUpDown, Plus, Pencil } from 'lucide-react'
 
 interface Deal {
   id: string
@@ -10,22 +10,29 @@ interface Deal {
   stage: string
   probability?: number
   expected_close_date?: string | null
+  created_at: string
   contact?: {
     id?: string
     first_name?: string
     last_name?: string
     email?: string
     phone?: string
+    company?: string
   }
   owner?: {
     id?: string
     email?: string
+    name?: string
   }
-  assigned_user?: {
+  owner_id?: string | null
+  assigned_to?: string | null
+  pipeline?: {
     id?: string
-    email?: string
-  }
-  created_at: string
+    name?: string
+  } | null
+  pipeline_id?: string | null
+  listing_id?: string | null
+  property_address?: string | null
 }
 
 interface DealsTableProps {
@@ -36,6 +43,7 @@ interface DealsTableProps {
   sortBy: string
   sortOrder: 'asc' | 'desc'
   onSort: (field: string) => void
+  pipelines?: Array<{ id: string; name: string; stages: string[] }>
 }
 
 export default function DealsTable({
@@ -46,11 +54,34 @@ export default function DealsTable({
   sortBy,
   sortOrder,
   onSort,
+  pipelines = [],
 }: DealsTableProps) {
   const [showMenu, setShowMenu] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [editingField, setEditingField] = useState<{ dealId: string; field: string } | null>(null)
+  const [editValue, setEditValue] = useState<string>('')
+  const editInputRef = useRef<HTMLInputElement>(null)
+
+  // Format relative time (e.g., "6 seconds ago", "24 hours ago")
+  const formatRelativeTime = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSecs = Math.floor(diffMs / 1000)
+    const diffMins = Math.floor(diffSecs / 60)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffSecs < 60) return `${diffSecs} second${diffSecs !== 1 ? 's' : ''} ago`
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
 
   const formatCurrency = (value: number | null | undefined) => {
-    if (!value) return 'N/A'
+    if (!value && value !== 0) return '—'
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -59,39 +90,63 @@ export default function DealsTable({
     }).format(value)
   }
 
-  const formatDate = (date: string | null | undefined) => {
-    if (!date) return 'N/A'
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
+  // Calculate sum of deal amounts
+  const totalAmount = useMemo(() => {
+    return deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
+  }, [deals])
+
+  // Map database stages to display names
+  const getStageDisplayName = (stage: string): string => {
+    const stageMap: Record<string, string> = {
+      'new': 'Lead',
+      'contacted': 'Contacted',
+      'qualified': 'Qualified',
+      'proposal': 'Proposal',
+      'negotiation': 'Negotiation',
+      'closed_won': 'Closed Won',
+      'closed_lost': 'Closed Lost',
+    }
+    return stageMap[stage.toLowerCase()] || stage
   }
 
   const getStageColor = (stage: string) => {
+    const normalized = stage.toLowerCase()
+    // Light brown/tan color for stages to match the design
     const colors: Record<string, string> = {
-      'New Lead': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      'Contacted': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      'Qualified': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      'Proposal': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-      'Negotiation': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
-      'Under Contract': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      'Closed Won': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-      'Closed Lost': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+      'new': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      'lead': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      'contacted': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      'qualified': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      'proposal': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      'negotiation': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      'closed_won': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+      'closed_lost': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
     }
-    return colors[stage] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+    return colors[normalized] || 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+  }
+
+  const getOwnerDisplayName = (deal: Deal): string => {
+    if (deal.owner?.name) return deal.owner.name
+    if (deal.owner?.email) {
+      // Extract initials from email
+      const parts = deal.owner.email.split('@')[0].split('.')
+      if (parts.length >= 2) {
+        return `${parts[0][0].toUpperCase()}${parts[1][0].toUpperCase()} ${parts[0]} ${parts[1]}`
+      }
+      return deal.owner.email
+    }
+    return 'No owner'
   }
 
   const SortableHeader = ({ field, children }: { field: string; children: React.ReactNode }) => (
     <th
-      className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+      className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap"
       onClick={() => onSort(field)}
     >
       <div className="flex items-center gap-1">
-        {children}
-        <ArrowUpDown className="w-3 h-3" />
+        <span>{children}</span>
         {sortBy === field && (
-          <span className="text-blue-600 dark:text-blue-400">
+          <span className="text-gray-500 dark:text-gray-400 text-xs">
             {sortOrder === 'asc' ? '↑' : '↓'}
           </span>
         )}
@@ -99,130 +154,306 @@ export default function DealsTable({
     </th>
   )
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(deals.map(d => d.id)))
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
+
+  const handleSelectDeal = (dealId: string, checked: boolean) => {
+    const newSet = new Set(selectedIds)
+    if (checked) {
+      newSet.add(dealId)
+    } else {
+      newSet.delete(dealId)
+    }
+    setSelectedIds(newSet)
+  }
+
+  const allSelected = deals.length > 0 && selectedIds.size === deals.length
+
+  // Handle inline editing
+  const startEditing = (dealId: string, field: string, currentValue: any) => {
+    setEditingField({ dealId, field })
+    if (field === 'expected_close_date') {
+      // Format date for date input (YYYY-MM-DD)
+      if (currentValue) {
+        try {
+          const date = new Date(currentValue)
+          if (!isNaN(date.getTime())) {
+            setEditValue(date.toISOString().split('T')[0])
+          } else {
+            setEditValue('')
+          }
+        } catch {
+          setEditValue('')
+        }
+      } else {
+        setEditValue('')
+      }
+    } else if (field === 'value') {
+      setEditValue(currentValue?.toString() || '')
+    } else {
+      setEditValue(currentValue?.toString() || '')
+    }
+  }
+
+  const saveEdit = async (dealId: string, field: string) => {
+    if (!editingField || editingField.dealId !== dealId || editingField.field !== field) return
+
+    let updateValue: any = editValue
+    if (field === 'value') {
+      updateValue = editValue ? parseFloat(editValue) : null
+    } else if (field === 'expected_close_date') {
+      if (editValue) {
+        const date = new Date(editValue + 'T00:00:00') // Add time to avoid timezone issues
+        updateValue = !isNaN(date.getTime()) ? date.toISOString() : null
+      } else {
+        updateValue = null
+      }
+    }
+
+    try {
+      await onDealUpdate(dealId, { [field]: updateValue })
+      setEditingField(null)
+      setEditValue('')
+    } catch (error) {
+      console.error('Error updating deal:', error)
+      setEditingField(null)
+      setEditValue('')
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditingField(null)
+    setEditValue('')
+  }
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingField && editInputRef.current) {
+      editInputRef.current.focus()
+      editInputRef.current.select()
+    }
+  }, [editingField])
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead className="bg-gray-50 dark:bg-gray-900">
           <tr>
-            <SortableHeader field="title">Deal Name</SortableHeader>
-            <SortableHeader field="value">Value</SortableHeader>
-            <SortableHeader field="stage">Stage</SortableHeader>
-            <SortableHeader field="probability">Probability</SortableHeader>
-            <SortableHeader field="expected_close_date">Close Date</SortableHeader>
-            <SortableHeader field="contact">Contact</SortableHeader>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Actions
+            {/* Checkbox Column */}
+            <th className="px-4 py-3 w-12">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+            </th>
+            {/* $ DEAL NAME */}
+            <SortableHeader field="title">$ DEAL NAME</SortableHeader>
+            {/* PROPERTY */}
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+              PROPERTY
+            </th>
+            {/* DEAL AMOUNT */}
+            <SortableHeader field="value">DEAL AMOUNT</SortableHeader>
+            {/* STAGE */}
+            <SortableHeader field="stage">STAGE</SortableHeader>
+            {/* PIPELINE */}
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+              PIPELINE
+            </th>
+            {/* OWNER */}
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+              OWNER
+            </th>
+            {/* ESTIMATED CLOSE DATE */}
+            <SortableHeader field="expected_close_date">ESTIMATED CLOSE DATE</SortableHeader>
+            {/* Add Column Icon */}
+            <th className="px-4 py-3 w-12">
+              <Plus className="w-4 h-4 text-gray-400" />
             </th>
           </tr>
         </thead>
         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           {deals.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+              <td colSpan={9} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                 No deals found
               </td>
             </tr>
           ) : (
-            deals.map((deal) => (
-              <tr
-                key={deal.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                onClick={() => onDealClick(deal)}
-              >
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {deal.title}
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900 dark:text-white flex items-center gap-1">
-                    <DollarSign className="w-3 h-3 text-gray-400" />
-                    {formatCurrency(deal.value)}
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${getStageColor(deal.stage)}`}
-                  >
-                    {deal.stage}
-                  </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: `${deal.probability || 0}%` }}
+            deals.map((deal) => {
+              const isSelected = selectedIds.has(deal.id)
+              
+              return (
+                <tr
+                  key={deal.id}
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                >
+                  {/* Checkbox */}
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => handleSelectDeal(deal.id, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </td>
+                  {/* Deal Name */}
+                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    {editingField?.dealId === deal.id && editingField?.field === 'title' ? (
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => saveEdit(deal.id, 'title')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur()
+                          } else if (e.key === 'Escape') {
+                            cancelEdit()
+                          }
+                        }}
+                        className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
                       />
-                    </div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {deal.probability || 0}%
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatDate(deal.expected_close_date)}
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {deal.contact ? (
-                    <div className="text-sm text-gray-900 dark:text-white flex items-center gap-1">
-                      <User className="w-3 h-3 text-gray-400" />
-                      {deal.contact.first_name} {deal.contact.last_name}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-gray-400">No contact</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowMenu(showMenu === deal.id ? null : deal.id)
-                      }}
-                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
-                    >
-                      <MoreVertical className="w-4 h-4 text-gray-400" />
-                    </button>
-                    {showMenu === deal.id && (
-                      <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDealClick(deal)
-                            setShowMenu(null)
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                        >
-                          <Edit className="w-3 h-3" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation()
-                            if (confirm('Are you sure you want to delete this deal?')) {
-                              await onDealDelete(deal.id)
-                            }
-                            setShowMenu(null)
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Delete
-                        </button>
+                    ) : (
+                      <div
+                        className="text-sm font-medium text-gray-900 dark:text-white cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 px-1 py-0.5 rounded -mx-1 -my-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startEditing(deal.id, 'title', deal.title)
+                        }}
+                      >
+                        {deal.title}
                       </div>
                     )}
-                  </div>
-                </td>
-              </tr>
-            ))
+                  </td>
+                  {/* Property */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 dark:text-white">
+                      {deal.property_address || '—'}
+                    </div>
+                  </td>
+                  {/* Deal Amount */}
+                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    {editingField?.dealId === deal.id && editingField?.field === 'value' ? (
+                      <input
+                        ref={editInputRef}
+                        type="number"
+                        step="0.01"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => saveEdit(deal.id, 'value')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur()
+                          } else if (e.key === 'Escape') {
+                            cancelEdit()
+                          }
+                        }}
+                        className="w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <div
+                        className="text-sm text-gray-900 dark:text-white cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 px-1 py-0.5 rounded -mx-1 -my-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startEditing(deal.id, 'value', deal.value)
+                        }}
+                      >
+                        {formatCurrency(deal.value)}
+                      </div>
+                    )}
+                  </td>
+                  {/* Stage */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStageColor(deal.stage)}`}
+                    >
+                      {getStageDisplayName(deal.stage)}
+                    </span>
+                  </td>
+                  {/* Pipeline */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {(() => {
+                      const pipeline = pipelines.find(p => p.id === deal.pipeline_id)
+                      if (pipeline) {
+                        return (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                            {pipeline.name}
+                          </span>
+                        )
+                      }
+                      return <span className="text-sm text-gray-400">—</span>
+                    })()}
+                  </td>
+                  {/* Owner */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 dark:text-white">
+                      {getOwnerDisplayName(deal)}
+                    </div>
+                  </td>
+                  {/* Estimated Close Date */}
+                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    {editingField?.dealId === deal.id && editingField?.field === 'expected_close_date' ? (
+                      <input
+                        ref={editInputRef}
+                        type="date"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => saveEdit(deal.id, 'expected_close_date')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur()
+                          } else if (e.key === 'Escape') {
+                            cancelEdit()
+                          }
+                        }}
+                        className="px-2 py-1 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <div
+                        className="text-sm text-gray-500 dark:text-gray-400 cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 px-1 py-0.5 rounded -mx-1 -my-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startEditing(deal.id, 'expected_close_date', deal.expected_close_date)
+                        }}
+                      >
+                        {deal.expected_close_date ? formatRelativeTime(deal.expected_close_date) : '—'}
+                      </div>
+                    )}
+                  </td>
+                  {/* Actions Column - Empty for now to match design */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {/* Keep empty to match design - actions can be accessed via row click */}
+                  </td>
+                </tr>
+              )
+            })
+          )}
+          {/* Sum Row */}
+          {deals.length > 0 && (
+            <tr className="bg-gray-50 dark:bg-gray-900 border-t-2 border-gray-200 dark:border-gray-700">
+              <td colSpan={3} className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                Sum
+              </td>
+              <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                {formatCurrency(totalAmount)}
+              </td>
+              <td colSpan={6}></td>
+            </tr>
           )}
         </tbody>
       </table>
     </div>
   )
 }
-

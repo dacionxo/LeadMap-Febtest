@@ -174,6 +174,19 @@ export async function GET(
     // STEP 1: Get paginated list_memberships
     // ============================================================================
     
+    // Automatically filter by item_type based on list type if itemType not explicitly provided
+    // Properties lists should only show listings, People lists should show contacts/companies
+    let effectiveItemType = itemType
+    if (!effectiveItemType) {
+      if (listExists.type === 'properties') {
+        effectiveItemType = 'listing'
+      } else if (listExists.type === 'people') {
+        // For people lists, we'll fetch both contacts and companies
+        // We'll handle this in the query by not filtering, or by using .in()
+        effectiveItemType = null // Don't filter - fetch all item types for people lists
+      }
+    }
+    
     // Build count query
     let countQuery = supabase
       .from('list_memberships')
@@ -181,8 +194,8 @@ export async function GET(
       .eq('list_id', listId)
 
     // Filter by item_type if specified
-    if (itemType) {
-      countQuery = countQuery.eq('item_type', itemType)
+    if (effectiveItemType) {
+      countQuery = countQuery.eq('item_type', effectiveItemType)
     }
 
     // Get total count
@@ -209,9 +222,9 @@ export async function GET(
       .select('id, item_type, item_id, created_at')
       .eq('list_id', listId)
 
-    // Filter by item_type if specified
-    if (itemType) {
-      listItemsQuery = listItemsQuery.eq('item_type', itemType)
+    // Filter by item_type if specified (using effectiveItemType from above)
+    if (effectiveItemType) {
+      listItemsQuery = listItemsQuery.eq('item_type', effectiveItemType)
     }
 
     // Apply sorting
@@ -297,10 +310,19 @@ export async function GET(
         })
 
         // Define source tables to search (if table param provided, use only that)
-        // Include all category tables where listings might be stored
+        // Include ALL category tables where listings/leads might be stored
+        // This ensures we find listings from all sources, not just the main listings table
         const sourceTables = sourceTable 
           ? [sourceTable]
-          : ['listings', 'expired_listings', 'fsbo_leads', 'frbo_leads', 'imports', 'foreclosure_listings', 'probate_leads']
+          : [
+              'listings',              // Main listings table
+              'expired_listings',       // Expired property listings
+              'fsbo_leads',            // For Sale By Owner leads
+              'frbo_leads',            // For Rent By Owner leads
+              'imports',               // Imported listings
+              'foreclosure_listings',  // Foreclosure properties
+              'probate_leads'          // Probate property leads
+            ]
 
         // Validate source tables
         const validTables = [
@@ -498,19 +520,40 @@ export async function GET(
 
         for (const membership of listingItems) {
           const rawId = String(membership.item_id).trim()
+          if (!rawId) continue
+
           const normalized = normalizeListingIdentifier(rawId) || rawId
 
-          // Try multiple lookup strategies
-          let hit = listingMap.get(rawId) ||
-                   listingMap.get(normalized) ||
-                   listingMap.get(rawId.toLowerCase()) ||
-                   listingMap.get(normalized.toLowerCase())
+          // 🔑 IMPORTANT:
+          // Use the SAME candidate expansion as Step 3 so URLs with/without
+          // query strings, trailing slashes, etc. still match.
+          const candidateKeysArray = [
+            rawId,
+            normalized,
+            rawId.toLowerCase(),
+            normalized.toLowerCase(),
+            ...generateIdentifierCandidates(rawId),
+          ]
+          // Use Set to deduplicate, then convert back to array for iteration
+          const candidateKeys = Array.from(new Set<string>(candidateKeysArray))
 
-          // If still not found and it's a URL, try case-insensitive search
+          let hit: any | undefined
+
+          // Try each candidate against the listingMap
+          for (const key of candidateKeys) {
+            if (!key) continue
+            const value = listingMap.get(key)
+            if (value) {
+              hit = value
+              break
+            }
+          }
+
+          // Extra safety: fallback case-insensitive URL match
           if (!hit && isProbablyUrl(rawId)) {
+            const rawLower = rawId.toLowerCase()
             for (const [key, value] of Array.from(listingMap.entries())) {
-              if (key.toLowerCase() === rawId.toLowerCase() || 
-                  key.toLowerCase() === normalized.toLowerCase()) {
+              if (key.toLowerCase() === rawLower) {
                 hit = value
                 break
               }

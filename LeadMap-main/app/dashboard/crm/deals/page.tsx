@@ -402,6 +402,12 @@ export default function DealsPage() {
                 filters={apolloFilters}
                 onFiltersChange={setApolloFilters}
                 totalCount={deals.length}
+                netNewCount={deals.filter(d => {
+                  const thirtyDaysAgo = new Date()
+                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+                  return new Date(d.created_at) >= thirtyDaysAgo
+                }).length}
+                savedCount={deals.filter(d => d.tags && d.tags.length > 0).length}
                 isCollapsed={false}
                 onToggleCollapse={() => setShowFilters(false)}
                 deals={deals}

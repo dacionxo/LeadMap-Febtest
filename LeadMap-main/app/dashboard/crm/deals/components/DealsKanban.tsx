@@ -60,7 +60,7 @@ export default function DealsKanban({
     setDraggedDeal(null)
   }
 
-  const formatCurrency = (value: number | null) => {
+  const formatCurrency = (value: number | null | undefined) => {
     if (!value) return 'N/A'
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -70,7 +70,7 @@ export default function DealsKanban({
     }).format(value)
   }
 
-  const formatDate = (date: string | null) => {
+  const formatDate = (date: string | null | undefined) => {
     if (!date) return null
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',

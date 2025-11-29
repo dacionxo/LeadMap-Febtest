@@ -131,13 +131,13 @@ export default function ListSelectorModal({
       // Refresh lists
       await fetchLists()
       
-      // Select the newly created list
-      const newList = lists.find(l => l.id === listId) || { id: listId, name: newListName.trim() }
-      await handleSelectList(listId, newListName.trim())
+      // Automatically select the newly created list and add items to it
+      await onSelect([listId], [newListName.trim()])
       
       setShowCreateForm(false)
       setNewListName('')
       setNewListType('properties')
+      onClose()
     } catch (err: any) {
       console.error('Error creating list:', err)
       setError(err.message || 'Failed to create list')

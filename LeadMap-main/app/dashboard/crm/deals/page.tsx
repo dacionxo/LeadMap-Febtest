@@ -471,6 +471,7 @@ export default function DealsPage() {
                 <button className="p-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                   <Settings className="w-4 h-4" />
                 </button>
+                </div>
               </div>
 
               {/* Content Area */}

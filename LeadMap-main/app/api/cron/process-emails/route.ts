@@ -477,19 +477,22 @@ async function runCronJob(request: NextRequest) {
               .eq('id', email.id)
 
             // Record 'failed' event in unified email_events table
-            await recordFailedEvent({
-              userId: user.id,
-              emailId: email.id,
-              mailboxId: mailboxId,
-              recipientEmail: email.to_email,
-              errorMessage: sendResult.error || 'Unknown error'
-            }).catch(err => {
-              console.warn('Failed to record failed event:', err)
-            })
+            // Get user_id from email or campaign
+            const userId = email.user_id || email.campaign?.user_id
+            if (userId) {
+              await recordFailedEvent({
+                userId: userId,
+                emailId: email.id,
+                mailboxId: mailboxId,
+                recipientEmail: email.to_email,
+                errorMessage: sendResult.error || 'Unknown error'
+              }).catch(err => {
+                console.warn('Failed to record failed event:', err)
+              })
 
-            // Log failure for alerting
-            await logEmailFailure({
-              userId: user.id,
+              // Log failure for alerting
+              await logEmailFailure({
+                userId: userId,
               mailboxId: mailboxId,
               emailId: email.id,
               failureType: 'send_failed',
@@ -499,9 +502,10 @@ async function runCronJob(request: NextRequest) {
                 campaign_recipient_id: email.campaign_recipient_id,
                 provider: mailbox.provider
               }
-            }).catch(err => {
-              console.warn('Failed to log email failure:', err)
-            })
+              }).catch(err => {
+                console.warn('Failed to log email failure:', err)
+              })
+            }
 
             // Update mailbox last_error
             await supabase
@@ -529,29 +533,33 @@ async function runCronJob(request: NextRequest) {
             .eq('id', email.id)
 
           // Record 'failed' event
-          await recordFailedEvent({
-            userId: user.id,
-            emailId: email.id,
-            mailboxId: mailboxId,
-            recipientEmail: email.to_email,
-            errorMessage: error.message || 'Unknown error',
-            errorCode: error.code
-          }).catch(() => {})
+          // Get user_id from email or campaign
+          const userId = email.user_id || email.campaign?.user_id
+          if (userId) {
+            await recordFailedEvent({
+              userId: userId,
+              emailId: email.id,
+              mailboxId: mailboxId,
+              recipientEmail: email.to_email,
+              errorMessage: error.message || 'Unknown error',
+              errorCode: error.code
+            }).catch(() => {})
 
-          // Log failure for alerting
-          await logEmailFailure({
-            userId: user.id,
-            mailboxId: mailboxId,
-            emailId: email.id,
-            failureType: 'send_failed',
-            errorMessage: error.message || 'Unknown error',
-            errorCode: error.code,
-            errorStack: error.stack,
-            context: {
-              campaign_id: email.campaign_id,
-              campaign_recipient_id: email.campaign_recipient_id
-            }
-          }).catch(() => {})
+            // Log failure for alerting
+            await logEmailFailure({
+              userId: userId,
+              mailboxId: mailboxId,
+              emailId: email.id,
+              failureType: 'send_failed',
+              errorMessage: error.message || 'Unknown error',
+              errorCode: error.code,
+              errorStack: error.stack,
+              context: {
+                campaign_id: email.campaign_id,
+                campaign_recipient_id: email.campaign_recipient_id
+              }
+            }).catch(() => {})
+          }
         }
 
         // Small delay between sends to avoid overwhelming the provider

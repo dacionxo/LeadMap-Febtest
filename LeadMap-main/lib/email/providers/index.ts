@@ -263,7 +263,7 @@ function applySandboxMode(config: ProviderConfig): ProviderConfig {
  * Check environment policy for sending emails
  */
 function checkEnvironmentPolicy(): { allowed: boolean; reason?: string } {
-  const nodeEnv = process.env.NODE_ENV || 'development'
+  const nodeEnv: string = process.env.NODE_ENV || 'development'
   const allowSendInDev = process.env.EMAIL_ALLOW_SEND_IN_DEV === 'true'
   const sandboxMode = process.env.EMAIL_SANDBOX_MODE === 'true'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''

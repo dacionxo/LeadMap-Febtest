@@ -384,17 +384,17 @@ export async function POST(request: NextRequest) {
       .eq('campaign_id', campaign.id)
       .order('step_number', { ascending: true })
 
-    const { data: campaignRecipients } = await supabase
-      .from('campaign_recipients')
-      .select('*')
-      .eq('campaign_id', campaign.id)
-
     return NextResponse.json({
+      success: true,
       campaign: {
         ...campaign,
         steps: campaignSteps || [],
-        recipients: campaignRecipients || []
-      }
+        recipient_count: recipientInserts.length
+      },
+      skipped_recipients: skippedRecipients.length > 0 ? skippedRecipients : undefined,
+      message: skippedRecipients.length > 0 
+        ? `Campaign created with ${recipientInserts.length} recipients. ${skippedRecipients.length} skipped due to duplicate enrollments.`
+        : `Campaign created successfully with ${recipientInserts.length} recipients.`
     })
   } catch (error) {
     console.error('Campaigns POST error:', error)

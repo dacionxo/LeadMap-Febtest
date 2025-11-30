@@ -56,14 +56,25 @@ export async function GET(request: NextRequest) {
         })
 
       // Update campaign recipients if applicable
-      await supabase
-        .from('campaign_recipients')
-        .update({
-          unsubscribed: true,
-          status: 'unsubscribed'
-        })
-        .eq('email', unsubscribe.email.toLowerCase())
-        .eq('campaign_id', '(SELECT campaign_id FROM campaigns WHERE user_id = $1)', { params: [unsubscribe.user_id] })
+      // First, get all campaign IDs for this user
+      const { data: userCampaigns } = await supabase
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', unsubscribe.user_id)
+
+      if (userCampaigns && userCampaigns.length > 0) {
+        const campaignIds = userCampaigns.map(c => c.id)
+        
+        // Update campaign recipients
+        await supabase
+          .from('campaign_recipients')
+          .update({
+            unsubscribed: true,
+            status: 'unsubscribed'
+          })
+          .eq('email', unsubscribe.email.toLowerCase())
+          .in('campaign_id', campaignIds)
+      }
 
       // Return HTML success page
       return new NextResponse(`

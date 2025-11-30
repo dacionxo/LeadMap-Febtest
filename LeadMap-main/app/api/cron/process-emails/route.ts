@@ -75,7 +75,7 @@ async function runCronJob(request: NextRequest) {
       .select(`
         *,
         mailbox:mailboxes(*),
-        campaign:campaigns(status)
+        campaign:campaigns(status, user_id)
       `)
       .eq('status', 'queued')
       .eq('direction', 'sent') // Only process sent emails, not received
@@ -409,19 +409,23 @@ async function runCronJob(request: NextRequest) {
               .eq('id', email.id)
 
             // Record 'sent' event in unified email_events table
-            await recordSentEvent({
-              userId: user.id,
-              emailId: email.id,
-              mailboxId: mailboxId,
-              campaignId: email.campaign_id || undefined,
-              campaignRecipientId: email.campaign_recipient_id || undefined,
-              campaignStepId: email.campaign_step_id || undefined,
-              recipientEmail: email.to_email,
-              providerMessageId: sendResult.providerMessageId || undefined
-            }).catch(err => {
-              console.warn('Failed to record sent event:', err)
-              // Don't fail email sending if event tracking fails
-            })
+            // Get user_id from email or campaign
+            const userId = email.user_id || email.campaign?.user_id
+            if (userId) {
+              await recordSentEvent({
+                userId: userId,
+                emailId: email.id,
+                mailboxId: mailboxId,
+                campaignId: email.campaign_id || undefined,
+                campaignRecipientId: email.campaign_recipient_id || undefined,
+                campaignStepId: email.campaign_step_id || undefined,
+                recipientEmail: email.to_email,
+                providerMessageId: sendResult.providerMessageId || undefined
+              }).catch(err => {
+                console.warn('Failed to record sent event:', err)
+                // Don't fail email sending if event tracking fails
+              })
+            }
 
             // Update campaign recipient if applicable
             if (email.campaign_recipient_id) {

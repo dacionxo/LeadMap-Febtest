@@ -73,6 +73,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Declare Supabase variables at the top to avoid duplicate declarations
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
   try {
     // Parse body first
     const body = await request.json().catch(() => ({}))
@@ -101,9 +105,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing emailAddress in notification' }, { status: 400 })
     }
 
-    // Get Supabase client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    // Validate Supabase configuration
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(

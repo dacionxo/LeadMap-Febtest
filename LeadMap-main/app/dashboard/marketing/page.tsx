@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import DashboardLayout from '../components/DashboardLayout'
 import EmailMarketing from './components/EmailMarketing'
+import ComposeEmail from './components/ComposeEmail'
 import AdManagerContent from './components/AdManager'
 import CountdownTimersContent from './components/CountdownTimers'
 import Snippets from './components/Snippets'
@@ -30,7 +31,7 @@ import {
   ArrowRight
 } from 'lucide-react'
 
-type MarketingTab = 'social-planner' | 'emails' | 'snippets' | 'countdown-timers' | 'trigger-links' | 'ad-manager'
+type MarketingTab = 'social-planner' | 'compose-email' | 'emails' | 'snippets' | 'countdown-timers' | 'trigger-links' | 'ad-manager'
 
 // Platform Icon Component with logo fallback
 function PlatformIcon({ logo, Icon, name, className }: { logo: string | null, Icon: any, name: string, className?: string }) {
@@ -66,6 +67,7 @@ function MarketingPageContent() {
 
   const tabs = useMemo(() => [
     { id: 'social-planner' as MarketingTab, label: 'Social Planner' },
+    { id: 'compose-email' as MarketingTab, label: 'Compose Email' },
     { id: 'emails' as MarketingTab, label: 'Emails' },
     { id: 'snippets' as MarketingTab, label: 'Snippets' },
     { id: 'countdown-timers' as MarketingTab, label: 'Countdown Timers' },
@@ -107,6 +109,7 @@ function MarketingPageContent() {
 
       {/* Content based on active tab */}
       {activeTab === 'social-planner' && <SocialPlannerContent />}
+      {activeTab === 'compose-email' && <ComposeEmail />}
       {activeTab === 'emails' && <EmailMarketing />}
       {activeTab === 'snippets' && <Snippets />}
       {activeTab === 'countdown-timers' && <CountdownTimersContent />}

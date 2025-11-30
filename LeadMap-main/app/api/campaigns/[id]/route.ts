@@ -131,6 +131,17 @@ export async function PATCH(
     if (body.description !== undefined) updates.description = body.description
     if (body.start_at !== undefined) updates.start_at = body.start_at
     if (body.timezone !== undefined) updates.timezone = body.timezone
+    if (body.mailbox_id !== undefined) updates.mailbox_id = body.mailbox_id
+    if (body.daily_cap !== undefined) updates.daily_cap = body.daily_cap
+    if (body.hourly_cap !== undefined) updates.hourly_cap = body.hourly_cap
+    if (body.total_cap !== undefined) updates.total_cap = body.total_cap
+    if (body.stop_on_reply !== undefined) updates.stop_on_reply = body.stop_on_reply
+    if (body.open_tracking_enabled !== undefined) updates.open_tracking_enabled = body.open_tracking_enabled
+    if (body.link_tracking_enabled !== undefined) updates.link_tracking_enabled = body.link_tracking_enabled
+    if (body.text_only_mode !== undefined) updates.text_only_mode = body.text_only_mode
+    if (body.first_email_text_only !== undefined) updates.first_email_text_only = body.first_email_text_only
+    if (body.warmup_enabled !== undefined) updates.warmup_enabled = body.warmup_enabled
+    if (body.warmup_schedule !== undefined) updates.warmup_schedule = body.warmup_schedule
     if (body.status !== undefined) {
       // Validate status transition
       const allowedTransitions: Record<string, string[]> = {

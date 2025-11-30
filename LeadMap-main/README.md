@@ -69,28 +69,56 @@ STRIPE_STARTER_PRICE_ID=price_starter_monthly
 STRIPE_PRO_PRICE_ID=price_pro_monthly
 
 # Email Provider Configuration (for transactional emails)
-# Choose one or more providers:
-# Resend (Recommended)
+# Choose one or more providers. The system will use the first available provider in order.
+
+# Resend (Recommended for Next.js)
 RESEND_API_KEY=re_xxxxxxxxxxxxx
 RESEND_FROM_EMAIL=noreply@yourdomain.com
+RESEND_SANDBOX_DOMAIN=sandbox.yourdomain.com  # Optional: for test mode
 
 # SendGrid (Alternative)
 SENDGRID_API_KEY=SG.xxxxxxxxxxxxx
 SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+SENDGRID_SANDBOX_MODE=false  # Set to true for test mode
 
 # Mailgun (Alternative)
 MAILGUN_API_KEY=xxxxxxxxxxxxx
 MAILGUN_DOMAIN=yourdomain.com
+MAILGUN_SANDBOX_DOMAIN=sandbox.yourdomain.com  # Optional: for test mode
 
-# Generic Email Service (Alternative)
+# AWS SES (Alternative)
+AWS_SES_REGION=us-east-1
+AWS_SES_ACCESS_KEY_ID=your_access_key
+AWS_SES_SECRET_ACCESS_KEY=your_secret_key
+AWS_SES_FROM_EMAIL=noreply@yourdomain.com
+AWS_SES_CONFIGURATION_SET=your_config_set  # Optional: for tracking
+
+# SMTP (Generic)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_SECURE=true  # Use TLS/SSL
+
+# Generic Email Service API (Alternative)
 EMAIL_SERVICE_URL=https://api.example.com/send
 EMAIL_SERVICE_API_KEY=your_api_key
 EMAIL_FROM=noreply@yourdomain.com
 
-# Email Settings
+# Email Settings & Policies
 EMAIL_DEFAULT_FROM_NAME=Your Company Name
 EMAIL_DEFAULT_REPLY_TO=support@yourdomain.com
 EMAIL_DEFAULT_FOOTER=<p>© 2024 Your Company. All rights reserved.</p>
+
+# Email Environment Policy
+EMAIL_ALLOW_SEND_IN_DEV=false  # Set to true to allow sending in development
+EMAIL_SANDBOX_MODE=false  # Set to true to enable sandbox/test mode globally
+EMAIL_TRACKING_DOMAIN=track.yourdomain.com  # Optional: for click/open tracking
+
+# Email Provider Health Checks
+EMAIL_HEALTH_CHECK_ENABLED=true  # Enable automatic health checks
+EMAIL_HEALTH_CHECK_INTERVAL=3600  # Check every hour (in seconds)
 ```
 
 ### 3. Database Setup

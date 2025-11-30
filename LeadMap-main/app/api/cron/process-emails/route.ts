@@ -636,12 +636,3 @@ async function scheduleNextStep(
   }
 }
 
-// Vercel Cron calls with GET, but we also support POST for manual triggers
-export async function GET(request: NextRequest) {
-  return runCronJob(request)
-}
-
-export async function POST(request: NextRequest) {
-  return runCronJob(request)
-}
-

@@ -31,8 +31,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Get stats for each campaign
+    interface Campaign {
+      id: string
+      [key: string]: any
+    }
+
+    interface RecipientStatus {
+      status: string
+    }
+
     const campaignsWithStats = await Promise.all(
-      (campaigns || []).map(async (campaign) => {
+      (campaigns || []).map(async (campaign: Campaign) => {
         // Get recipient count and status breakdown
         const { data: recipients, error: recipientsError } = await supabase
           .from('campaign_recipients')
@@ -51,10 +60,10 @@ export async function GET(request: NextRequest) {
         }
 
         const total = recipients?.length || 0
-        const sent = recipients?.filter(r => ['queued', 'in_progress', 'completed'].includes(r.status)).length || 0
-        const completed = recipients?.filter(r => r.status === 'completed').length || 0
-        const pending = recipients?.filter(r => r.status === 'pending' || r.status === 'queued').length || 0
-        const failed = recipients?.filter(r => r.status === 'failed' || r.status === 'bounced').length || 0
+        const sent = recipients?.filter((r: RecipientStatus) => ['queued', 'in_progress', 'completed'].includes(r.status)).length || 0
+        const completed = recipients?.filter((r: RecipientStatus) => r.status === 'completed').length || 0
+        const pending = recipients?.filter((r: RecipientStatus) => r.status === 'pending' || r.status === 'queued').length || 0
+        const failed = recipients?.filter((r: RecipientStatus) => r.status === 'failed' || r.status === 'bounced').length || 0
 
         return {
           ...campaign,

@@ -1860,9 +1860,53 @@ function EditTemplateModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                HTML Content
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  HTML Content
+                </label>
+                <button
+                  onClick={async () => {
+                    if (!formData.html) {
+                      alert('Please enter some content to rewrite')
+                      return
+                    }
+                    setIsRewriting(true)
+                    try {
+                      const response = await fetch('/api/assistant', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          message: `Rewrite this email template to be more professional and concise:\n\n${formData.html}`
+                        })
+                      })
+                      const data = await response.json()
+                      if (data.response) {
+                        setFormData(prev => ({ ...prev, html: data.response }))
+                      }
+                    } catch (error) {
+                      console.error('AI rewrite error:', error)
+                      alert('Failed to rewrite with AI')
+                    } finally {
+                      setIsRewriting(false)
+                    }
+                  }}
+                  disabled={isRewriting}
+                  className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isRewriting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Rewriting...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Rewrite with AI
+                    </>
+                  )}
+                </button>
+              </div>
               <textarea
                 value={formData.html}
                 onChange={(e) => setFormData({ ...formData, html: e.target.value })}

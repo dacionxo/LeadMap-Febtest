@@ -54,6 +54,8 @@ export function extractRecipientVariables(recipient: {
   email: string
   firstName?: string
   lastName?: string
+  first_name?: string  // Support snake_case for backward compatibility
+  last_name?: string   // Support snake_case for backward compatibility
 }): TemplateVariables {
   return {
     email: recipient.email,

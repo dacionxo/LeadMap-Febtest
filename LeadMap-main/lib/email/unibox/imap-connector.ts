@@ -144,7 +144,7 @@ async function fetchIMAPMessages(
     const messages: Array<{ uid: number; raw: any; parsed: any }> = []
 
     imap.once('ready', () => {
-      imap.openBox('INBOX', false, (err, box) => {
+      imap.openBox('INBOX', false, (err: Error | null, box: any) => {
         if (err) {
           imap.end()
           reject(err)
@@ -166,7 +166,7 @@ async function fetchIMAPMessages(
         // Limit results
         if (options.maxMessages) {
           // Sort by date descending and limit
-          imap.search(searchCriteria, (err, results) => {
+          imap.search(searchCriteria, (err: Error | null, results: number[] | undefined) => {
             if (err) {
               imap.end()
               reject(err)
@@ -186,7 +186,7 @@ async function fetchIMAPMessages(
             fetchMessages(imap, limitedResults, mailboxEmail)
           })
         } else {
-          imap.search(searchCriteria, (err, results) => {
+          imap.search(searchCriteria, (err: Error | null, results: number[] | undefined) => {
             if (err) {
               imap.end()
               reject(err)
@@ -242,7 +242,7 @@ async function fetchIMAPMessages(
               }
 
               // Parse the email
-              simpleParser(buffer, (err, parsed) => {
+              simpleParser(buffer, (err: Error | null, parsed: any) => {
                 if (err) {
                   console.error('Error parsing email:', err)
                   processedCount++
@@ -270,7 +270,7 @@ async function fetchIMAPMessages(
             })
           })
 
-          fetch.once('error', (err) => {
+          fetch.once('error', (err: Error) => {
             imap.end()
             reject(err)
           })
@@ -282,7 +282,7 @@ async function fetchIMAPMessages(
       })
     })
 
-    imap.once('error', (err) => {
+    imap.once('error', (err: Error) => {
       reject(err)
     })
 

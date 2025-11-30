@@ -95,7 +95,7 @@ async function runCronJob(request: NextRequest) {
     }
 
     // Fetch campaigns for emails that have campaign_id
-    const campaignIds = [...new Set(queuedEmails.map((e: any) => e.campaign_id).filter(Boolean))]
+    const campaignIds = Array.from(new Set(queuedEmails.map((e: any) => e.campaign_id).filter(Boolean)))
     const campaignsMap = new Map<string, any>()
     
     if (campaignIds.length > 0) {

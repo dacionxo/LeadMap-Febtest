@@ -111,16 +111,27 @@ export async function POST(request: NextRequest) {
           onConflict: 'user_id,email'
         })
 
-      // Update all campaign recipients with this email
-      await supabase
-        .from('campaign_recipients')
-        .update({
-          bounced: true,
-          unsubscribed: true,
-          status: 'bounced'
-        })
-        .eq('email', email.toLowerCase())
-        .eq('campaign_id', '(SELECT id FROM campaigns WHERE user_id = $1)', { params: [userId] })
+      // Update all campaign recipients with this email that belong to user's campaigns
+      // First, get all campaign IDs for this user
+      const { data: userCampaigns } = await supabase
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', userId)
+
+      if (userCampaigns && userCampaigns.length > 0) {
+        const campaignIds = userCampaigns.map(c => c.id)
+        
+        // Update campaign recipients
+        await supabase
+          .from('campaign_recipients')
+          .update({
+            bounced: true,
+            unsubscribed: true,
+            status: 'bounced'
+          })
+          .eq('email', email.toLowerCase())
+          .in('campaign_id', campaignIds)
+      }
     }
 
     return NextResponse.json({ success: true, bounce })

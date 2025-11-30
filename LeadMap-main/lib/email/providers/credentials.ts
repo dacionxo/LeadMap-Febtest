@@ -26,6 +26,27 @@ export interface ProviderCredential {
   verified?: boolean
 }
 
+interface EncryptedCredentialRecord {
+  id: string
+  user_id: string
+  provider_type: string
+  provider_name?: string
+  encrypted_api_key?: string | null
+  encrypted_secret_key?: string | null
+  encrypted_password?: string | null
+  region?: string
+  domain?: string
+  host?: string
+  port?: number
+  username?: string
+  from_email?: string
+  sandbox_mode?: boolean
+  tracking_domain?: string
+  active?: boolean
+  verified?: boolean
+  [key: string]: any
+}
+
 /**
  * Get user's provider credentials
  */
@@ -64,7 +85,7 @@ export async function getUserProviderCredentials(
   }
 
   // Decrypt credentials
-  return (data || []).map(cred => ({
+  return (data || []).map((cred: EncryptedCredentialRecord) => ({
     ...cred,
     api_key: cred.encrypted_api_key ? decrypt(cred.encrypted_api_key) : undefined,
     secret_key: cred.encrypted_secret_key ? decrypt(cred.encrypted_secret_key) : undefined,

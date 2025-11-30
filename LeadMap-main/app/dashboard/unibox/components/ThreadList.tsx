@@ -21,7 +21,12 @@ interface Thread {
     read: boolean
   } | null
   lastMessageAt: string
+  contactId: string | null
+  listingId: string | null
+  campaignId: string | null
   messageCount: number
+  createdAt: string
+  updatedAt: string
 }
 
 interface Props {

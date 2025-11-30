@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
+import { sendViaMailbox } from '@/lib/email/sendViaMailbox'
+import { Mailbox, EmailPayload } from '@/lib/email/types'
 
 /**
  * Send Campaign API
  * POST: Send a campaign to all recipients
+ * 
+ * NOTE: This route uses the OLD email_campaigns table for backward compatibility.
+ * For new campaigns, use /api/campaigns/[id]/send instead.
  */
 export async function POST(
   request: NextRequest,
@@ -20,7 +26,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch campaign
+    // Fetch campaign from OLD email_campaigns table (backward compatibility)
     const { data: campaign, error: campaignError } = await supabase
       .from('email_campaigns')
       .select('*')
@@ -57,8 +63,23 @@ export async function POST(
       return NextResponse.json({ error: 'No valid contacts found' }, { status: 400 })
     }
 
+    // Get mailbox using service role (to access tokens)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+
     // Find mailbox
-    const { data: mailbox, error: mailboxError } = await supabase
+    const { data: mailbox, error: mailboxError } = await supabaseAdmin
       .from('mailboxes')
       .select('*')
       .eq('email', campaign.sender_email)
@@ -70,15 +91,17 @@ export async function POST(
       return NextResponse.json({ error: 'Mailbox not found or inactive' }, { status: 404 })
     }
 
-    // Send emails to all recipients
+    // Send emails to all recipients using consolidated sendViaMailbox
     const emailPromises = contacts.map(async (contact: { id: string; email: string }) => {
-      // Import send functions from emails/send route
-      const sendResult = await sendEmailViaMailbox(
-        mailbox,
-        contact.email,
-        campaign.subject,
-        campaign.html_content || ''
-      )
+      const emailPayload: EmailPayload = {
+        to: contact.email,
+        subject: campaign.subject,
+        html: campaign.html_content || '',
+        fromName: campaign.sender_name,
+        fromEmail: campaign.sender_email
+      }
+
+      const sendResult = await sendViaMailbox(mailbox as Mailbox, emailPayload)
 
       // Log email in emails table
       await supabase
@@ -92,8 +115,9 @@ export async function POST(
           html: campaign.html_content || '',
           status: sendResult.success ? 'sent' : 'failed',
           sent_at: sendResult.success ? new Date().toISOString() : null,
-          provider_message_id: sendResult.messageId || null,
+          provider_message_id: sendResult.providerMessageId || null,
           error: sendResult.error || null,
+          direction: 'sent'
         })
 
       return sendResult
@@ -121,96 +145,6 @@ export async function POST(
   } catch (error: any) {
     console.error('Send campaign error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-// Helper function to send email (reuse from emails/send route)
-async function sendEmailViaMailbox(mailbox: any, to: string, subject: string, html: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  try {
-    if (mailbox.provider === 'gmail') {
-      const emailContent = [
-        `From: ${mailbox.display_name || mailbox.email} <${mailbox.email}>`,
-        `To: ${to}`,
-        `Subject: ${subject}`,
-        `MIME-Version: 1.0`,
-        `Content-Type: text/html; charset=UTF-8`,
-        ``,
-        html,
-      ].join('\r\n')
-
-      const encodedEmail = Buffer.from(emailContent)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '')
-
-      const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${mailbox.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ raw: encodedEmail }),
-      })
-
-      if (!response.ok) {
-        return { success: false, error: 'Gmail API error' }
-      }
-
-      const data = await response.json()
-      return { success: true, messageId: data.id }
-    } else if (mailbox.provider === 'outlook') {
-      const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${mailbox.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: {
-            subject,
-            body: { contentType: 'HTML', content: html },
-            toRecipients: [{ emailAddress: { address: to } }],
-          },
-          saveToSentItems: true,
-        }),
-      })
-
-      if (!response.ok) {
-        return { success: false, error: 'Microsoft Graph API error' }
-      }
-
-      return { success: true, messageId: `outlook-${Date.now()}` }
-    } else {
-      // SMTP sending
-      let nodemailer: any
-      try {
-        nodemailer = await import('nodemailer')
-      } catch {
-        return { success: false, error: 'Nodemailer not available' }
-      }
-
-      const transporter = nodemailer.createTransport({
-        host: mailbox.smtp_host,
-        port: mailbox.smtp_port,
-        secure: mailbox.smtp_port === 465,
-        auth: {
-          user: mailbox.smtp_username,
-          pass: mailbox.smtp_password,
-        },
-      })
-
-      const info = await transporter.sendMail({
-        from: `"${mailbox.from_name || mailbox.email}" <${mailbox.from_email || mailbox.email}>`,
-        to,
-        subject,
-        html,
-      })
-
-      return { success: true, messageId: info.messageId }
-    }
-  } catch (error: any) {
-    return { success: false, error: error.message }
   }
 }
 

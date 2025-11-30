@@ -4,10 +4,32 @@
  */
 
 import { Mailbox, EmailPayload, SendResult } from '../types'
+import { decryptMailboxTokens } from '../encryption'
+
+/**
+ * Decrypt mailbox tokens/passwords for use
+ */
+function getDecryptedMailbox(mailbox: Mailbox): Mailbox {
+  const decrypted = decryptMailboxTokens({
+    access_token: mailbox.access_token,
+    refresh_token: mailbox.refresh_token,
+    smtp_password: mailbox.smtp_password
+  })
+
+  return {
+    ...mailbox,
+    access_token: decrypted.access_token || mailbox.access_token,
+    refresh_token: decrypted.refresh_token || mailbox.refresh_token,
+    smtp_password: decrypted.smtp_password || mailbox.smtp_password
+  }
+}
 
 export async function smtpSend(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
   try {
-    if (!mailbox.smtp_host || !mailbox.smtp_port || !mailbox.smtp_username || !mailbox.smtp_password) {
+    // Decrypt passwords if encrypted
+    const decryptedMailbox = getDecryptedMailbox(mailbox)
+    
+    if (!decryptedMailbox.smtp_host || !decryptedMailbox.smtp_port || !decryptedMailbox.smtp_username || !decryptedMailbox.smtp_password) {
       return {
         success: false,
         error: 'SMTP credentials are incomplete'
@@ -19,7 +41,7 @@ export async function smtpSend(mailbox: Mailbox, email: EmailPayload): Promise<S
       const nodemailer = await import('nodemailer').catch(() => null)
       
       if (nodemailer && nodemailer.default) {
-        return await sendViaNodemailer(mailbox, email, nodemailer.default)
+        return await sendViaNodemailer(decryptedMailbox, email, nodemailer.default)
       }
     } catch (error) {
       // Nodemailer not available, fall through to fetch-based SMTP
@@ -27,7 +49,7 @@ export async function smtpSend(mailbox: Mailbox, email: EmailPayload): Promise<S
 
     // Fallback: Use a simple SMTP implementation via API route
     // For now, we'll use a server-side API endpoint
-    return await sendViaSMTPAPI(mailbox, email)
+    return await sendViaSMTPAPI(decryptedMailbox, email)
   } catch (error: any) {
     return {
       success: false,

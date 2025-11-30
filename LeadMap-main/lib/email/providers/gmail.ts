@@ -4,19 +4,41 @@
  */
 
 import { Mailbox, EmailPayload, SendResult } from '../types'
+import { decryptMailboxTokens } from '../encryption'
+
+/**
+ * Decrypt mailbox tokens for use
+ */
+function getDecryptedMailbox(mailbox: Mailbox): Mailbox {
+  const decrypted = decryptMailboxTokens({
+    access_token: mailbox.access_token,
+    refresh_token: mailbox.refresh_token,
+    smtp_password: mailbox.smtp_password
+  })
+
+  return {
+    ...mailbox,
+    access_token: decrypted.access_token || mailbox.access_token,
+    refresh_token: decrypted.refresh_token || mailbox.refresh_token,
+    smtp_password: decrypted.smtp_password || mailbox.smtp_password
+  }
+}
 
 export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
   try {
+    // Decrypt tokens if encrypted
+    const decryptedMailbox = getDecryptedMailbox(mailbox)
+    
     // Check if token needs refresh
-    let accessToken = mailbox.access_token
-    if (mailbox.token_expires_at && mailbox.refresh_token) {
-      const expiresAt = new Date(mailbox.token_expires_at)
+    let accessToken = decryptedMailbox.access_token
+    if (decryptedMailbox.token_expires_at && decryptedMailbox.refresh_token) {
+      const expiresAt = new Date(decryptedMailbox.token_expires_at)
       const now = new Date()
       const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
 
       if (expiresAt < fiveMinutesFromNow) {
         // Token is expired or about to expire, refresh it
-        const refreshed = await refreshGmailToken(mailbox)
+        const refreshed = await refreshGmailToken(decryptedMailbox)
         if (!refreshed.success || !refreshed.accessToken) {
           return {
             success: false,
@@ -90,8 +112,11 @@ export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<
   }
 }
 
-async function refreshGmailToken(mailbox: Mailbox): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  if (!mailbox.refresh_token) {
+export async function refreshGmailToken(mailbox: Mailbox): Promise<{ success: boolean; accessToken?: string; error?: string }> {
+  // Decrypt refresh token if encrypted
+  const decryptedMailbox = getDecryptedMailbox(mailbox)
+  
+  if (!decryptedMailbox.refresh_token) {
     return {
       success: false,
       error: 'Refresh token is missing'
@@ -118,7 +143,7 @@ async function refreshGmailToken(mailbox: Mailbox): Promise<{ success: boolean; 
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        refresh_token: mailbox.refresh_token,
+        refresh_token: decryptedMailbox.refresh_token,
         grant_type: 'refresh_token',
       })
     })
@@ -133,12 +158,11 @@ async function refreshGmailToken(mailbox: Mailbox): Promise<{ success: boolean; 
 
     const data = await response.json()
     
-    // Update mailbox with new token (this should be done via API call in production)
-    // For now, we'll return the new token and let the caller handle the update
-    
+    // Return both access token and expiration for caller to save
     return {
       success: true,
       accessToken: data.access_token
+      // Note: expires_in is returned by Google but we track expiration via token_expires_at in mailbox
     }
   } catch (error: any) {
     return {

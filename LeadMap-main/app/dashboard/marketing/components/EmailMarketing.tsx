@@ -23,7 +23,8 @@ import {
   Download,
   MoreVertical,
   Clock,
-  Info
+  Info,
+  Sparkles
 } from 'lucide-react'
 import {
   BarChart,

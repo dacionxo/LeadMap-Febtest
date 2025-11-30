@@ -5,9 +5,11 @@
 -- 1. Adds unique constraint on provider_message_id to prevent duplicate emails
 -- 2. Adds unique constraint on raw_message_id for received emails
 -- 
--- NOTE: This version uses regular CREATE INDEX (not CONCURRENTLY) so it can
--- run inside a transaction block. For production with large tables, see
--- email_fixes_migration_concurrent.sql instead.
+-- This version uses regular CREATE INDEX (NOT CONCURRENTLY) so it can
+-- run inside a transaction block (which Supabase SQL editor does automatically).
+-- 
+-- For production with large tables (>1000 rows), use the concurrent version
+-- instead: email_fixes_migration_concurrent.sql
 -- ============================================================================
 
 -- Add unique index on provider_message_id (for sent emails from providers)

@@ -2,7 +2,7 @@
  * Email Provider Types
  */
 
-export type EmailProvider = 'gmail' | 'outlook' | 'smtp' | 'resend' | 'sendgrid' | 'mailgun' | 'ses' | 'generic'
+export type EmailProvider = 'gmail' | 'outlook' | 'smtp' | 'imap_smtp' | 'resend' | 'sendgrid' | 'mailgun' | 'ses' | 'generic'
 
 export interface Mailbox {
   id: string

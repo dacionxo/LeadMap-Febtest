@@ -275,17 +275,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Log webhook processing for monitoring
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (supabaseUrl && supabaseServiceKey) {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-        auth: { autoRefreshToken: false, persistSession: false }
-      })
-      
-      // You could create a webhook_logs table to track webhook health
-      // For now, we'll just log to console
-      console.log(`Gmail webhook processed: ${processedEmails.length} emails for mailbox ${mailbox.id}`)
-    }
+    // You could create a webhook_logs table to track webhook health
+    // For now, we'll just log to console
+    console.log(`Gmail webhook processed: ${processedEmails.length} emails for mailbox ${mailbox.id}`)
 
     return NextResponse.json({
       success: true,

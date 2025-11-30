@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { encryptMailboxTokens } from '@/lib/email/encryption'
 
 /**
  * Mailbox API
@@ -44,6 +45,20 @@ export async function PATCH(
     if (body.dailyLimit !== undefined) updates.daily_limit = body.dailyLimit
     if (body.hourlyLimit !== undefined) updates.hourly_limit = body.hourlyLimit
     if (body.active !== undefined) updates.active = body.active
+    
+    // Handle token updates (encrypt them)
+    if (body.accessToken !== undefined || body.refreshToken !== undefined || body.smtpPassword !== undefined) {
+      const encrypted = encryptMailboxTokens({
+        access_token: body.accessToken || null,
+        refresh_token: body.refreshToken || null,
+        smtp_password: body.smtpPassword || null
+      })
+      
+      if (body.accessToken !== undefined) updates.access_token = encrypted.access_token || body.accessToken
+      if (body.refreshToken !== undefined) updates.refresh_token = encrypted.refresh_token || body.refreshToken
+      if (body.smtpPassword !== undefined) updates.smtp_password = encrypted.smtp_password || body.smtpPassword
+      if (body.tokenExpiresAt !== undefined) updates.token_expires_at = body.tokenExpiresAt
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })

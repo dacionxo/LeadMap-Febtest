@@ -235,8 +235,8 @@ function EmailMarketingContent() {
     if (!selectedMailbox) return
     
     try {
-      // Fetch sent emails only (not received emails)
-      const response = await fetch(`/api/emails?mailboxId=${selectedMailbox}&direction=sent`, { credentials: 'include' })
+      // Fetch both sent and received emails for comprehensive view
+      const response = await fetch(`/api/emails?mailboxId=${selectedMailbox}`, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
         setEmails(data.emails || [])
@@ -248,17 +248,20 @@ function EmailMarketingContent() {
 
   const fetchStats = async () => {
     try {
-      // TODO: Create API endpoint for email statistics
-      // For now, calculate from emails
+      // Use the stats API endpoint
       const response = await fetch(`/api/emails/stats?mailboxId=${selectedMailbox || 'all'}`, { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
         setStats(data.stats || stats)
-      } else {
-        // Calculate from emails as fallback
-        const delivered = emails.filter(e => e.status === 'sent').length
-        const opened = emails.filter(e => e.opened_at).length
-        const clicked = emails.filter(e => e.clicked_at).length
+      } else if (response.status === 404) {
+        // Stats endpoint not found - use fallback but warn
+        console.warn('Stats endpoint not available, using fallback calculation')
+        const sentEmails = emails.filter(e => e.direction === 'sent' && e.status === 'sent')
+        const delivered = sentEmails.length
+        // Note: opened_at and clicked_at tracking not implemented yet
+        // These will be 0 until tracking is added
+        const opened = 0 // emails.filter(e => e.opened_at).length
+        const clicked = 0 // emails.filter(e => e.clicked_at).length
         setStats({
           delivered,
           opened,
@@ -267,12 +270,28 @@ function EmailMarketingContent() {
           bounced: 0,
           unsubscribed: 0,
           spamComplaints: 0,
-          openRate: delivered > 0 ? (opened / delivered) * 100 : 0,
-          clickRate: delivered > 0 ? (clicked / delivered) * 100 : 0,
+          openRate: 0, // Will be 0 until tracking is implemented
+          clickRate: 0, // Will be 0 until tracking is implemented
+        })
+      } else {
+        // Other error - use fallback
+        const sentEmails = emails.filter(e => e.direction === 'sent' && e.status === 'sent')
+        const delivered = sentEmails.length
+        setStats({
+          delivered,
+          opened: 0,
+          clicked: 0,
+          ordered: 0,
+          bounced: 0,
+          unsubscribed: 0,
+          spamComplaints: 0,
+          openRate: 0,
+          clickRate: 0,
         })
       }
     } catch (error) {
       console.error('Error fetching stats:', error)
+      // Silent fallback on error
     }
   }
 
@@ -414,18 +433,24 @@ function EmailMarketingContent() {
         </button>
       </div>
 
-      {/* Sample Data Banner */}
-      {emails.length === 0 && !hasDismissedSampleDataBanner && (
+      {/* Sample Data Banner - Only show if no mailboxes connected */}
+      {mailboxes.length === 0 && emails.length === 0 && !hasDismissedSampleDataBanner && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center justify-between">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            You're viewing sample data. Create your own campaign to see real data.
+            No email data yet. Connect a mailbox and send your first email to see analytics.
           </p>
           <div className="flex gap-2">
+            <button 
+              onClick={() => setShowConnectModal(true)}
+              className="px-3 py-1.5 text-sm text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            >
+              Connect Mailbox
+            </button>
             <button 
               onClick={handleClearSampleData}
               className="px-3 py-1.5 text-sm text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
             >
-              Clear Sample Data
+              Dismiss
             </button>
           </div>
         </div>

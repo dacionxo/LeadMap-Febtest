@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 /**
@@ -102,11 +103,18 @@ export async function POST(request: NextRequest) {
       startAt,
       timezone,
       steps,
-      recipients
+      recipients, // Individual recipients (legacy)
+      listIds // NEW: List-based recipient selection
     } = body
 
     if (!mailboxId || !name || !sendStrategy) {
       return NextResponse.json({ error: 'Mailbox ID, name, and send strategy are required' }, { status: 400 })
+    }
+    
+    // Must provide either recipients or listIds
+    if ((!recipients || !Array.isArray(recipients) || recipients.length === 0) && 
+        (!listIds || !Array.isArray(listIds) || listIds.length === 0)) {
+      return NextResponse.json({ error: 'Either recipients array or listIds array is required' }, { status: 400 })
     }
 
     // Verify mailbox belongs to user
@@ -134,9 +142,132 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Single email campaigns require exactly one step' }, { status: 400 })
     }
 
-    // Validate recipients
-    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
-      return NextResponse.json({ error: 'At least one recipient is required' }, { status: 400 })
+    // Build recipients from lists if listIds provided
+    let allRecipients: any[] = recipients || []
+    
+    if (listIds && Array.isArray(listIds) && listIds.length > 0) {
+      // Use service role to fetch list memberships
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      
+      if (!supabaseUrl || !supabaseServiceKey) {
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+      }
+      
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
+      
+      // Verify lists belong to user
+      const { data: lists, error: listsError } = await supabaseAdmin
+        .from('lists')
+        .select('id, type, name')
+        .in('id', listIds)
+        .eq('user_id', user.id)
+      
+      if (listsError || !lists || lists.length !== listIds.length) {
+        return NextResponse.json({ error: 'One or more lists not found or unauthorized' }, { status: 404 })
+      }
+      
+      // Fetch all list memberships for these lists
+      const { data: memberships, error: membershipsError } = await supabaseAdmin
+        .from('list_memberships')
+        .select('list_id, item_type, item_id')
+        .in('list_id', listIds)
+      
+      if (membershipsError) {
+        console.error('Error fetching list memberships:', membershipsError)
+        return NextResponse.json({ error: 'Failed to fetch list members' }, { status: 500 })
+      }
+      
+      // Group memberships by item_type
+      const contactsMap = new Map<string, any>()
+      const listingsMap = new Map<string, any>()
+      
+      memberships?.forEach((membership: any) => {
+        if (membership.item_type === 'contact') {
+          contactsMap.set(membership.item_id, true)
+        } else if (membership.item_type === 'listing') {
+          listingsMap.set(membership.item_id, true)
+        }
+      })
+      
+      // Fetch contacts from list
+      if (contactsMap.size > 0) {
+        const { data: contacts, error: contactsError } = await supabaseAdmin
+          .from('contacts')
+          .select('id, email, first_name, last_name, company')
+          .in('id', Array.from(contactsMap.keys()))
+          .eq('user_id', user.id)
+          .not('email', 'is', null)
+        
+        if (contactsError) {
+          console.error('Error fetching contacts:', contactsError)
+        } else if (contacts) {
+          contacts.forEach((contact: any) => {
+            if (contact.email) {
+              allRecipients.push({
+                email: contact.email.toLowerCase(),
+                firstName: contact.first_name,
+                lastName: contact.last_name,
+                company: contact.company,
+                contactId: contact.id
+              })
+            }
+          })
+        }
+      }
+      
+      // Fetch listings and extract email addresses
+      if (listingsMap.size > 0) {
+        // Try multiple listing tables
+        const listingTables = ['listings', 'expired_listings', 'probate_leads', 'fsbo_leads', 'frbo_leads']
+        
+        for (const table of listingTables) {
+          try {
+            const { data: listings, error: listingsError } = await supabaseAdmin
+              .from(table)
+              .select('listing_id, agent_email, agent_name')
+              .in('listing_id', Array.from(listingsMap.keys()))
+              .not('agent_email', 'is', null)
+            
+            if (!listingsError && listings) {
+              listings.forEach((listing: any) => {
+                if (listing.agent_email) {
+                  const nameParts = (listing.agent_name || '').split(' ')
+                  allRecipients.push({
+                    email: listing.agent_email.toLowerCase(),
+                    firstName: nameParts[0] || null,
+                    lastName: nameParts.slice(1).join(' ') || null,
+                    listingId: listing.listing_id
+                  })
+                }
+              })
+            }
+          } catch (tableError) {
+            // Table might not exist, continue
+            console.warn(`Table ${table} not accessible or doesn't exist`)
+          }
+        }
+      }
+      
+      // Deduplicate recipients by email
+      const uniqueRecipients = new Map<string, any>()
+      allRecipients.forEach(recipient => {
+        const email = recipient.email.toLowerCase()
+        if (!uniqueRecipients.has(email)) {
+          uniqueRecipients.set(email, recipient)
+        }
+      })
+      allRecipients = Array.from(uniqueRecipients.values())
+    }
+    
+    // Validate we have recipients
+    if (!allRecipients || allRecipients.length === 0) {
+      return NextResponse.json({ error: 'No valid recipients found in selected lists' }, { status: 400 })
     }
 
     // Create campaign
@@ -182,8 +313,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create campaign steps' }, { status: 500 })
     }
 
-    // Create campaign recipients
-    const recipientInserts = recipients.map((recipient: any) => ({
+    // Create campaign recipients from allRecipients (includes list-based and manual)
+    const recipientInserts = allRecipients.map((recipient: any) => ({
       campaign_id: campaign.id,
       contact_id: recipient.contactId || null,
       listing_id: recipient.listingId || null,

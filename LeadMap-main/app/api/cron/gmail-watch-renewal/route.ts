@@ -5,7 +5,7 @@ import { setupGmailWatch, refreshGmailToken } from '@/lib/email/providers/gmail-
 export const runtime = 'nodejs'
 
 /**
- * POST /api/cron/gmail-watch-renewal
+ * Gmail Watch Renewal Cron Job
  * Renew Gmail Watch subscriptions (they expire after 7 days)
  * Runs daily at 3 AM
  * 
@@ -14,8 +14,10 @@ export const runtime = 'nodejs'
  * - Refreshes access tokens if needed
  * - Renews Gmail Watch subscriptions
  * - Updates watch_expiration and watch_history_id in database
+ * 
+ * Vercel Cron calls with GET, but we also support POST for manual triggers
  */
-export async function POST(request: NextRequest) {
+async function runCronJob(request: NextRequest) {
   try {
     // Verify service key or cron secret
     const authHeader = request.headers.get('authorization')
@@ -206,5 +208,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Vercel Cron calls with GET, but we also support POST for manual triggers
+export async function GET(request: NextRequest) {
+  return runCronJob(request)
+}
+
+export async function POST(request: NextRequest) {
+  return runCronJob(request)
 }
 

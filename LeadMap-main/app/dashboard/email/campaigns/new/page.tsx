@@ -8,7 +8,9 @@ import {
   Loader2,
   AlertCircle,
   Plus,
-  X
+  X,
+  Upload,
+  FileText
 } from 'lucide-react'
 
 interface Mailbox {
@@ -45,6 +47,8 @@ export default function NewCampaignPage() {
   ])
 
   const [recipients, setRecipients] = useState<Array<{ email: string; firstName?: string; lastName?: string }>>([])
+  const [recipientErrors, setRecipientErrors] = useState<Record<number, string>>({})
+  const [showCSVImport, setShowCSVImport] = useState(false)
 
   useEffect(() => {
     fetchMailboxes()
@@ -94,10 +98,76 @@ export default function NewCampaignPage() {
     setRecipients([...recipients, { email: '' }])
   }
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
   const handleRecipientChange = (index: number, field: string, value: string) => {
     const newRecipients = [...recipients]
     newRecipients[index] = { ...newRecipients[index], [field]: value }
     setRecipients(newRecipients)
+
+    // Validate email
+    const errors = { ...recipientErrors }
+    if (field === 'email') {
+      if (value && !validateEmail(value)) {
+        errors[index] = 'Invalid email format'
+      } else {
+        delete errors[index]
+      }
+      setRecipientErrors(errors)
+    }
+  }
+
+  const handleCSVImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line)
+      
+      const importedRecipients: Array<{ email: string; firstName?: string; lastName?: string }> = []
+      const seenEmails = new Set<string>()
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        // Support CSV format: email,firstName,lastName or just email
+        const parts = line.split(',').map(p => p.trim())
+        const email = parts[0]
+
+        if (!email) continue
+
+        if (!validateEmail(email)) {
+          alert(`Invalid email on line ${i + 1}: ${email}`)
+          continue
+        }
+
+        if (seenEmails.has(email.toLowerCase())) {
+          console.warn(`Duplicate email skipped: ${email}`)
+          continue
+        }
+
+        seenEmails.add(email.toLowerCase())
+        importedRecipients.push({
+          email,
+          firstName: parts[1] || '',
+          lastName: parts[2] || ''
+        })
+      }
+
+      // Merge with existing recipients, avoiding duplicates
+      const existingEmails = new Set(recipients.map(r => r.email.toLowerCase()))
+      const newRecipients = importedRecipients.filter(r => !existingEmails.has(r.email.toLowerCase()))
+      
+      setRecipients([...recipients, ...newRecipients])
+      setShowCSVImport(false)
+      alert(`Imported ${newRecipients.length} recipients`)
+    } catch (error) {
+      console.error('Error importing CSV:', error)
+      alert('Failed to import CSV file')
+    }
   }
 
   const handleRemoveRecipient = (index: number) => {
@@ -117,6 +187,28 @@ export default function NewCampaignPage() {
 
     if (recipients.length === 0) {
       alert('Please add at least one recipient')
+      return
+    }
+
+    // Validate all recipients
+    const invalidRecipients = recipients.filter(r => !r.email || !validateEmail(r.email))
+    if (invalidRecipients.length > 0) {
+      alert('Please fix invalid email addresses before submitting')
+      return
+    }
+
+    // Check for duplicates
+    const emailSet = new Set<string>()
+    const duplicates: string[] = []
+    recipients.forEach(r => {
+      const emailLower = r.email.toLowerCase()
+      if (emailSet.has(emailLower)) {
+        duplicates.push(r.email)
+      }
+      emailSet.add(emailLower)
+    })
+    if (duplicates.length > 0) {
+      alert(`Please remove duplicate emails: ${duplicates.join(', ')}`)
       return
     }
 
@@ -320,33 +412,91 @@ export default function NewCampaignPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recipients</h2>
-              <button
-                onClick={handleAddRecipient}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-              >
-                <Plus className="w-4 h-4" />
-                Add Recipient
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowCSVImport(!showCSVImport)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import CSV
+                </button>
+                <button
+                  onClick={handleAddRecipient}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Recipient
+                </button>
+              </div>
             </div>
+
+            {/* CSV Import Section */}
+            {showCSVImport && (
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CSV Format:</span>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                  email@example.com,FirstName,LastName<br />
+                  Or just: email@example.com
+                </p>
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleCSVImport}
+                  className="text-sm"
+                />
+                <button
+                  onClick={() => setShowCSVImport(false)}
+                  className="ml-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
             <div className="space-y-2">
               {recipients.map((recipient, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="email"
-                    value={recipient.email}
-                    onChange={(e) => handleRecipientChange(index, 'email', e.target.value)}
-                    placeholder="email@example.com"
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                  <button
-                    onClick={() => handleRemoveRecipient(index)}
-                    className="text-red-600 dark:text-red-400 hover:text-red-800"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                <div key={index}>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="email"
+                      value={recipient.email}
+                      onChange={(e) => handleRecipientChange(index, 'email', e.target.value)}
+                      placeholder="email@example.com"
+                      className={`flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                        recipientErrors[index]
+                          ? 'border-red-500 dark:border-red-500'
+                          : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                    />
+                    <button
+                      onClick={() => handleRemoveRecipient(index)}
+                      className="text-red-600 dark:text-red-400 hover:text-red-800"
+                      title="Remove recipient"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {recipientErrors[index] && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 ml-1">
+                      {recipientErrors[index]}
+                    </p>
+                  )}
                 </div>
               ))}
+              {recipients.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  No recipients added. Click "Add Recipient" or "Import CSV" to get started.
+                </p>
+              )}
             </div>
+            {recipients.length > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {recipients.length} recipient{recipients.length !== 1 ? 's' : ''} added
+              </p>
+            )}
           </div>
 
           {/* Actions */}

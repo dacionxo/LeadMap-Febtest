@@ -4,11 +4,13 @@ import { createClient } from '@supabase/supabase-js'
 export const runtime = 'nodejs'
 
 /**
- * POST /api/calendar/followups/process
+ * Calendar Followups Process Cron Job
  * Process and trigger follow-up workflows for completed events
  * This is called by a cron job
+ * 
+ * Vercel Cron calls with GET, but we also support POST for manual triggers
  */
-export async function POST(request: NextRequest) {
+async function runCronJob(request: NextRequest) {
   try {
     // Verify service key or cron secret
     const authHeader = request.headers.get('authorization')
@@ -123,6 +125,15 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Vercel Cron calls with GET, but we also support POST for manual triggers
+export async function GET(request: NextRequest) {
+  return runCronJob(request)
+}
+
+export async function POST(request: NextRequest) {
+  return runCronJob(request)
 }
 
 /**

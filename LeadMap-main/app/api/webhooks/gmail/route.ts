@@ -15,9 +15,73 @@ import { fetchGmailMessage, parseGmailMessage, refreshGmailToken } from '@/lib/e
 
 export const runtime = 'nodejs'
 
+/**
+ * Verify Pub/Sub message signature (if configured)
+ */
+async function verifyPubSubMessage(body: any, headers: Headers): Promise<boolean> {
+  // If GMAIL_PUBSUB_VERIFICATION_TOKEN is set, verify the token
+  const verificationToken = process.env.GMAIL_PUBSUB_VERIFICATION_TOKEN
+  if (verificationToken) {
+    const providedToken = headers.get('x-verification-token')
+    return providedToken === verificationToken
+  }
+  // If no token configured, allow all (for development)
+  // In production, you should always verify
+  return true
+}
+
+/**
+ * Health check endpoint
+ */
+export async function GET(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const topicName = process.env.GMAIL_PUBSUB_TOPIC_NAME
+
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    checks: {
+      supabase: !!(supabaseUrl && supabaseServiceKey),
+      pubsub_topic: !!topicName,
+      pubsub_verification: !!process.env.GMAIL_PUBSUB_VERIFICATION_TOKEN
+    }
+  }
+
+  // Check for mailboxes with expired watches
+  if (supabaseUrl && supabaseServiceKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      })
+
+      const now = new Date().toISOString()
+      const { count } = await supabase
+        .from('mailboxes')
+        .select('*', { count: 'exact', head: true })
+        .eq('provider', 'gmail')
+        .not('watch_expiration', 'is', null)
+        .lt('watch_expiration', now)
+
+      health.checks.expired_watches = count || 0
+    } catch (error) {
+      health.checks.expired_watches = 'error'
+    }
+  }
+
+  return NextResponse.json(health)
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    // Parse body first
+    const body = await request.json().catch(() => ({}))
+    
+    // Verify Pub/Sub message (if verification token is configured)
+    const isValid = await verifyPubSubMessage(body, request.headers)
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid verification token' }, { status: 401 })
+    }
 
     // Google Pub/Sub sends notifications in a specific format
     // The message data is base64 encoded
@@ -198,12 +262,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update mailbox with new historyId
+    // Update mailbox with new historyId and last sync time
     if (historyId) {
       await supabase
         .from('mailboxes')
-        .update({ watch_history_id: historyId })
+        .update({ 
+          watch_history_id: historyId,
+          last_synced_at: new Date().toISOString(),
+          last_error: null // Clear any previous errors on successful sync
+        })
         .eq('id', mailbox.id)
+    }
+
+    // Log webhook processing for monitoring
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (supabaseUrl && supabaseServiceKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      })
+      
+      // You could create a webhook_logs table to track webhook health
+      // For now, we'll just log to console
+      console.log(`Gmail webhook processed: ${processedEmails.length} emails for mailbox ${mailbox.id}`)
     }
 
     return NextResponse.json({

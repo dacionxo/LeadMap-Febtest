@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { encryptMailboxTokens } from '@/lib/email/encryption'
 
 export const runtime = 'nodejs'
 
@@ -107,6 +108,13 @@ export async function GET(request: NextRequest) {
     // Calculate token expiration
     const expiresAt = new Date(Date.now() + (expires_in * 1000)).toISOString()
 
+    // Encrypt tokens before storing
+    const encrypted = encryptMailboxTokens({
+      access_token,
+      refresh_token,
+      smtp_password: null
+    })
+
     // Save mailbox to database (reuse existing supabase client)
     const supabase = supabaseAuth
     const { error: dbError } = await supabase
@@ -116,8 +124,8 @@ export async function GET(request: NextRequest) {
         provider: 'gmail',
         email,
         display_name: userInfo.name || email,
-        access_token,
-        refresh_token,
+        access_token: encrypted.access_token || access_token,
+        refresh_token: encrypted.refresh_token || refresh_token,
         token_expires_at: expiresAt,
         active: true,
       }, {

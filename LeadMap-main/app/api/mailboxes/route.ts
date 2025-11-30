@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { encryptMailboxTokens } from '@/lib/email/encryption'
 
 /**
  * Mailboxes API
@@ -105,18 +106,30 @@ export async function POST(request: NextRequest) {
     }
 
     if (provider === 'gmail' || provider === 'outlook') {
-      mailboxData.access_token = access_token
-      mailboxData.refresh_token = refresh_token
+      // Encrypt tokens before storing
+      const encrypted = encryptMailboxTokens({
+        access_token,
+        refresh_token,
+        smtp_password: null
+      })
+      mailboxData.access_token = encrypted.access_token || access_token
+      mailboxData.refresh_token = encrypted.refresh_token || refresh_token
       if (token_expires_at) {
         mailboxData.token_expires_at = token_expires_at
       }
     }
 
     if (provider === 'smtp') {
+      // Encrypt SMTP password before storing
+      const encrypted = encryptMailboxTokens({
+        access_token: null,
+        refresh_token: null,
+        smtp_password
+      })
       mailboxData.smtp_host = smtp_host
       mailboxData.smtp_port = smtp_port
       mailboxData.smtp_username = smtp_username
-      mailboxData.smtp_password = smtp_password
+      mailboxData.smtp_password = encrypted.smtp_password || smtp_password
       mailboxData.from_name = from_name
       mailboxData.from_email = from_email || email
     }

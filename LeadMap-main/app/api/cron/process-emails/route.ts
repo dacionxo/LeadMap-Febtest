@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendViaMailbox, checkMailboxLimits } from '@/lib/email/sendViaMailbox'
 import { Mailbox } from '@/lib/email/types'
+import { substituteTemplateVariables, extractRecipientVariables } from '@/lib/email/template-variables'
+import { refreshGmailToken } from '@/lib/email/providers/gmail'
+import { refreshOutlookToken } from '@/lib/email/providers/outlook'
+import { decryptMailboxTokens, encryptMailboxTokens } from '@/lib/email/encryption'
 
 /**
  * Email Processing Scheduler
@@ -21,20 +25,33 @@ import { Mailbox } from '@/lib/email/types'
  * );
  */
 
-export async function POST(request: NextRequest) {
+async function runCronJob(request: NextRequest) {
   try {
     // Verify cron secret or service key (same pattern as other cron jobs)
     const authHeader = request.headers.get('authorization')
     const cronSecret = request.headers.get('x-vercel-cron-secret')
     const serviceKey = request.headers.get('x-service-key')
     
+    // Ensure CRON_SECRET is configured
+    const expectedCronSecret = process.env.CRON_SECRET
+    if (!expectedCronSecret) {
+      console.error('CRON_SECRET environment variable is not set')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+    
+    // Strict authentication check - reject if no auth headers or invalid values
     const isValidRequest = 
-      cronSecret === process.env.CRON_SECRET ||
-      serviceKey === process.env.CALENDAR_SERVICE_KEY ||
-      authHeader === `Bearer ${process.env.CRON_SECRET}` ||
-      authHeader === `Bearer ${process.env.CALENDAR_SERVICE_KEY}`
+      (cronSecret && cronSecret === expectedCronSecret) ||
+      (serviceKey && serviceKey === process.env.CALENDAR_SERVICE_KEY) ||
+      (authHeader && (authHeader === `Bearer ${expectedCronSecret}` || authHeader === `Bearer ${process.env.CALENDAR_SERVICE_KEY}`))
 
     if (!isValidRequest) {
+      console.warn('Unauthorized cron request attempt', {
+        hasCronSecret: !!cronSecret,
+        hasServiceKey: !!serviceKey,
+        hasAuthHeader: !!authHeader,
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -126,7 +143,65 @@ export async function POST(request: NextRequest) {
     // Process each mailbox
     const mailboxEntries = Array.from(emailsByMailbox.entries())
     for (const [mailboxId, emails] of mailboxEntries) {
-      const mailbox = emails[0].mailbox as Mailbox
+      let mailbox = emails[0].mailbox as Mailbox
+
+      // PROACTIVE TOKEN REFRESH: Refresh tokens before processing emails
+      if ((mailbox.provider === 'gmail' || mailbox.provider === 'outlook') && mailbox.refresh_token) {
+        // Check if token needs refresh (expires within 10 minutes)
+        if (mailbox.token_expires_at) {
+          const expiresAt = new Date(mailbox.token_expires_at)
+          const tenMinutesFromNow = new Date(Date.now() + 10 * 60 * 1000)
+
+          if (expiresAt < tenMinutesFromNow) {
+            try {
+              let refreshResult: { success: boolean; accessToken?: string; error?: string } | null = null
+
+              // Refresh functions handle decryption internally
+              if (mailbox.provider === 'gmail') {
+                refreshResult = await refreshGmailToken(mailbox)
+              } else if (mailbox.provider === 'outlook') {
+                refreshResult = await refreshOutlookToken(mailbox)
+              }
+
+              if (refreshResult?.success && refreshResult.accessToken) {
+                // Update mailbox with new token (encrypt before storing)
+                const encrypted = encryptMailboxTokens({
+                  access_token: refreshResult.accessToken,
+                  refresh_token: null, // Keep existing refresh token (don't re-encrypt)
+                  smtp_password: null
+                })
+
+                // Calculate new expiration (typically 1 hour from now)
+                const newExpiresAt = new Date(Date.now() + 3600 * 1000).toISOString()
+
+                await supabase
+                  .from('mailboxes')
+                  .update({
+                    access_token: encrypted.access_token || refreshResult.accessToken,
+                    token_expires_at: newExpiresAt,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', mailboxId)
+
+                // Update local mailbox object with new token
+                mailbox = {
+                  ...mailbox,
+                  access_token: refreshResult.accessToken,
+                  token_expires_at: newExpiresAt
+                }
+
+                console.log(`Refreshed ${mailbox.provider} token for mailbox ${mailboxId}`)
+              } else if (refreshResult?.error) {
+                console.warn(`Failed to refresh ${mailbox.provider} token for mailbox ${mailboxId}: ${refreshResult.error}`)
+                // Continue anyway - provider will try to refresh on-demand during send
+              }
+            } catch (error: any) {
+              console.error(`Error refreshing ${mailbox.provider} token for mailbox ${mailboxId}:`, error)
+              // Continue anyway - provider will try to refresh on-demand during send
+            }
+          }
+        }
+      }
 
       // Count emails sent in last hour and day for this mailbox (only sent emails)
       const { data: recentEmails } = await supabase
@@ -172,11 +247,148 @@ export async function POST(request: NextRequest) {
 
       for (const email of emailsToProcess) {
         try {
+          // ROBUST PAUSE/RESUME/CANCEL GATING: Re-check campaign status before each send
+          // This prevents sending after a campaign is paused/cancelled
+          if (email.campaign_id) {
+            const { data: campaignCheck } = await supabase
+              .from('campaigns')
+              .select('status')
+              .eq('id', email.campaign_id)
+              .single()
+            
+            if (campaignCheck && ['paused', 'cancelled'].includes(campaignCheck.status)) {
+              // Skip this email - campaign is paused or cancelled
+              continue
+            }
+          }
+          
+          // Also check mailbox is still active
+          const { data: mailboxCheck } = await supabase
+            .from('mailboxes')
+            .select('active')
+            .eq('id', mailboxId)
+            .single()
+          
+          if (!mailboxCheck || !mailboxCheck.active) {
+            // Mailbox was deactivated, skip
+            continue
+          }
+          
           // Mark as sending
           await supabase
             .from('emails')
             .update({ status: 'sending' })
             .eq('id', email.id)
+
+          // Get recipient data for template variable substitution
+          let recipientData: any = { email: email.to_email }
+          let campaignRecipient: any = null
+          
+          if (email.campaign_recipient_id) {
+            const { data: recipient } = await supabase
+              .from('campaign_recipients')
+              .select('email, first_name, last_name, metadata, unsubscribed, bounced')
+              .eq('id', email.campaign_recipient_id)
+              .single()
+            
+            if (recipient) {
+              campaignRecipient = recipient
+              recipientData = {
+                email: recipient.email,
+                firstName: recipient.first_name,
+                lastName: recipient.last_name,
+                ...(recipient.metadata || {})
+              }
+              
+              // UNSUBSCRIBE ENFORCEMENT: Check if recipient is unsubscribed
+              if (recipient.unsubscribed) {
+                await supabase
+                  .from('emails')
+                  .update({ 
+                    status: 'failed',
+                    error: 'Recipient has unsubscribed'
+                  })
+                  .eq('id', email.id)
+                continue // Skip this email
+              }
+              
+              // BOUNCE HANDLING: Check if recipient has hard bounced
+              if (recipient.bounced) {
+                await supabase
+                  .from('emails')
+                  .update({ 
+                    status: 'failed',
+                    error: 'Recipient email has hard bounced'
+                  })
+                  .eq('id', email.id)
+                continue // Skip this email
+              }
+            }
+          }
+          
+          // Also check global unsubscribe/bounce status
+          const { data: campaignData } = email.campaign_id ? await supabase
+            .from('campaigns')
+            .select('user_id')
+            .eq('id', email.campaign_id)
+            .single() : { data: null }
+          
+          if (campaignData) {
+            // Check if email is globally unsubscribed
+            const { data: isUnsubscribed } = await supabase
+              .rpc('is_email_unsubscribed', {
+                p_user_id: campaignData.user_id,
+                p_email: email.to_email.toLowerCase()
+              })
+            
+            if (isUnsubscribed) {
+              await supabase
+                .from('emails')
+                .update({ 
+                  status: 'failed',
+                  error: 'Email is globally unsubscribed'
+                })
+                .eq('id', email.id)
+              
+              if (email.campaign_recipient_id) {
+                await supabase
+                  .from('campaign_recipients')
+                  .update({ unsubscribed: true, status: 'unsubscribed' })
+                  .eq('id', email.campaign_recipient_id)
+              }
+              continue
+            }
+            
+            // Check if email has hard bounced
+            const { data: hasBounced } = await supabase
+              .rpc('has_email_bounced', {
+                p_user_id: campaignData.user_id,
+                p_email: email.to_email.toLowerCase()
+              })
+            
+            if (hasBounced) {
+              await supabase
+                .from('emails')
+                .update({ 
+                  status: 'failed',
+                  error: 'Email has hard bounced'
+                })
+                .eq('id', email.id)
+              
+              if (email.campaign_recipient_id) {
+                await supabase
+                  .from('campaign_recipients')
+                  .update({ bounced: true, status: 'bounced' })
+                  .eq('id', email.campaign_recipient_id)
+              }
+              continue
+            }
+          }
+
+          // Substitute template variables in subject and HTML
+          const variables = extractRecipientVariables(recipientData)
+          const processedSubject = substituteTemplateVariables(email.subject || '', variables)
+          const processedHtml = substituteTemplateVariables(email.html || '', variables)
 
           // Send email
           const fromName = mailbox.from_name || mailbox.display_name
@@ -184,8 +396,8 @@ export async function POST(request: NextRequest) {
 
           const sendResult = await sendViaMailbox(mailbox, {
             to: email.to_email,
-            subject: email.subject,
-            html: email.html,
+            subject: processedSubject,
+            html: processedHtml,
             fromName,
             fromEmail
           })
@@ -302,6 +514,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Vercel Cron calls with GET, but we also support POST for manual triggers
+export async function GET(request: NextRequest) {
+  return runCronJob(request)
+}
+
+export async function POST(request: NextRequest) {
+  return runCronJob(request)
+}
+
 /**
  * Schedule the next step in a sequence campaign
  */
@@ -355,7 +576,7 @@ async function scheduleNextStep(
     // Get recipient info
     const { data: recipient } = await supabase
       .from('campaign_recipients')
-      .select('email, campaign:campaigns(mailbox_id, timezone)')
+      .select('email, first_name, last_name, campaign:campaigns(mailbox_id, timezone)')
       .eq('id', recipientId)
       .single()
 
@@ -384,6 +605,16 @@ async function scheduleNextStep(
 
     if (!campaignData) return
 
+    // Substitute template variables for next step
+    const recipientData = {
+      email: recipient.email,
+      firstName: recipient.first_name,
+      lastName: recipient.last_name,
+    }
+    const variables = extractRecipientVariables(recipientData)
+    const processedSubject = substituteTemplateVariables(nextStep.subject || '', variables)
+    const processedHtml = substituteTemplateVariables(nextStep.html || '', variables)
+
     // Create email record for next step
     await supabase
       .from('emails')
@@ -394,8 +625,8 @@ async function scheduleNextStep(
         campaign_step_id: nextStep.id,
         campaign_recipient_id: recipientId,
         to_email: recipient.email,
-        subject: nextStep.subject,
-        html: nextStep.html,
+        subject: processedSubject,
+        html: processedHtml,
         status: 'queued',
         scheduled_at: scheduledAt.toISOString(),
         direction: 'sent' // Explicitly mark as sent email

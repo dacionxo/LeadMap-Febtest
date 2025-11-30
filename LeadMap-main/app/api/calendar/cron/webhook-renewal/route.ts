@@ -5,11 +5,13 @@ import { getValidAccessToken } from '@/lib/google-calendar-sync'
 export const runtime = 'nodejs'
 
 /**
- * POST /api/calendar/cron/webhook-renewal
+ * Calendar Webhook Renewal Cron Job
  * Renew Google Calendar webhook subscriptions (they expire after 7 days)
  * Runs daily
+ * 
+ * Vercel Cron calls with GET, but we also support POST for manual triggers
  */
-export async function POST(request: NextRequest) {
+async function runCronJob(request: NextRequest) {
   try {
     // Verify service key or cron secret
     const authHeader = request.headers.get('authorization')
@@ -191,5 +193,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Vercel Cron calls with GET, but we also support POST for manual triggers
+export async function GET(request: NextRequest) {
+  return runCronJob(request)
+}
+
+export async function POST(request: NextRequest) {
+  return runCronJob(request)
 }
 

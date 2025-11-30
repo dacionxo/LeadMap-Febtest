@@ -7,11 +7,13 @@ import { refreshGmailToken } from '@/lib/email/providers/gmail-watch'
 export const runtime = 'nodejs'
 
 /**
- * POST /api/cron/sync-mailboxes
+ * Mailbox Sync Cron Job
  * Syncs all active mailboxes to ingest new emails
  * Runs every 5 minutes
+ * 
+ * Vercel Cron calls with GET, but we also support POST for manual triggers
  */
-export async function POST(request: NextRequest) {
+async function runCronJob(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization')
@@ -213,5 +215,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Vercel Cron calls with GET, but we also support POST for manual triggers
+export async function GET(request: NextRequest) {
+  return runCronJob(request)
+}
+
+export async function POST(request: NextRequest) {
+  return runCronJob(request)
 }
 

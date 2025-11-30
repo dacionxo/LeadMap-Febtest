@@ -173,8 +173,10 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
 }
 
 export async function refreshOutlookToken(mailbox: Mailbox): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  // Mailbox tokens should already be decrypted by caller
-  if (!mailbox.refresh_token) {
+  // Decrypt refresh token if encrypted
+  const decryptedMailbox = getDecryptedMailbox(mailbox)
+  
+  if (!decryptedMailbox.refresh_token) {
     return {
       success: false,
       error: 'Refresh token is missing'

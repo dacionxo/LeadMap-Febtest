@@ -552,7 +552,8 @@ async function runCronJob(request: NextRequest) {
 
           // Record 'failed' event
           // Get user_id from email or campaign
-          const userId = email.user_id || email.campaign?.user_id
+          const campaignForError = email.campaign_id ? campaignsMap.get(email.campaign_id) : null
+          const userId = email.user_id || campaignForError?.user_id
           if (userId) {
             await recordFailedEvent({
               userId: userId,

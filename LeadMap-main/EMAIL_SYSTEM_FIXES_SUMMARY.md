@@ -53,17 +53,20 @@ This document summarizes all fixes applied to resolve the issues identified in t
 **Problem:** No unique constraint on `provider_message_id` - duplicate webhook events could create duplicate emails.
 
 **Solution:**
-- Created migration SQL (`supabase/email_fixes_migration.sql`)
+- Created migration SQL (`supabase/email_fixes_migration.sql`) - transaction-safe version
+- Created concurrent version (`supabase/email_fixes_migration_concurrent.sql`) for production
 - Added unique index on `emails.provider_message_id` (where not null)
 - Added unique index on `emails.raw_message_id` (where not null)
 - Added unique index on `email_messages.provider_message_id, mailbox_id` (for Unibox)
 - Added performance indexes on `direction` column
+- Fixed transaction block issues - migration can now run in Supabase SQL editor
 
 **Files Changed:**
-- `supabase/email_fixes_migration.sql` (NEW)
+- `supabase/email_fixes_migration.sql` (NEW - transaction-safe)
+- `supabase/email_fixes_migration_concurrent.sql` (NEW - for large tables)
 
 **Action Required:**
-- Run migration SQL in Supabase SQL editor
+- Run `email_fixes_migration.sql` in Supabase SQL editor (transaction-safe)
 
 ---
 

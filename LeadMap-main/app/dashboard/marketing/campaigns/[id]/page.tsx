@@ -536,7 +536,28 @@ function CampaignBuilderContent() {
                     <button className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
                       <RefreshCw className="w-4 h-4" />
                     </button>
-                    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/assistant', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                              message: `Generate a professional email subject line for a real estate marketing campaign. The email is about: ${campaign.subject || 'general real estate outreach'}. Make it compelling and professional.`
+                            })
+                          })
+                          const data = await response.json()
+                          if (data.response) {
+                            setCampaign(prev => ({ ...prev, subject: data.response }))
+                          }
+                        } catch (error) {
+                          console.error('AI error:', error)
+                          alert('Failed to generate subject with AI')
+                        }
+                      }}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                    >
                       Content AI
                     </button>
                   </div>

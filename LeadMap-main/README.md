@@ -234,6 +234,125 @@ LeadMap/
     └── email_tracking_schema.sql      # Open/click tracking
 ```
 
+## 📧 Email Marketing System - End-to-End Workflow
+
+### Complete Email Flow: Connect → Compose → Send → Track
+
+The email marketing system provides a complete workflow for managing email campaigns, from connecting mailboxes to tracking performance.
+
+#### Step 1: Connect Mailbox
+1. Navigate to **Settings → Email Accounts** (or **Email → Email Accounts** in sidebar)
+2. Click **"Connect Mailbox"**
+3. Choose your provider:
+   - **Gmail**: OAuth connection (requires Google Cloud Console setup)
+   - **Outlook**: OAuth connection (requires Azure AD setup)
+   - **SMTP/IMAP**: Manual configuration for custom email servers
+4. Complete OAuth flow or enter SMTP credentials
+5. Mailbox is now connected and ready to use
+
+#### Step 2: Compose Email
+1. Navigate to **Email → Compose** in sidebar
+2. Select your connected mailbox
+3. Enter recipient email address
+4. (Optional) Select a template from the dropdown
+5. Enter subject and HTML content
+6. (Optional) Schedule for later
+7. Click **"Send Now"** or **"Schedule"**
+
+#### Step 3: Create Campaign
+1. Navigate to **Email → Campaigns** in sidebar
+2. Click **"Create Campaign"** or **"New"**
+3. **Campaign Wizard Steps**:
+   - **Basics**: Name, description, mailbox selection
+   - **Steps**: Define email sequence (single or multi-step)
+     - For sequences: Set delay hours between steps
+     - Enable "Stop on Reply" to pause sequence when recipient responds
+   - **Recipients**: Add recipients manually or import CSV
+   - **Review**: Confirm settings and recipient count
+4. Click **"Create Campaign"**
+5. Campaign is created in "draft" status
+
+#### Step 4: Send Campaign
+1. From campaign list, click on your campaign
+2. Review campaign details and recipient list
+3. Click **"Start Campaign"** or **"Send"**
+4. **Safety Rails**: If sending to 100+ recipients, confirmation modal appears:
+   - "You're about to email X recipients. Are you sure?"
+5. Campaign status changes to "running"
+6. Background processor sends emails respecting rate limits
+
+#### Step 5: Track Performance
+1. Navigate to **Email → Analytics** in sidebar
+2. View **KPI Cards**:
+   - Total sent
+   - Open rate
+   - Click rate
+   - Reply rate
+   - Opportunities
+3. View **Time-Series Graph**:
+   - Toggle metrics on/off via legend
+   - See trends over time
+4. Filter by date range and mailbox
+5. Export data as CSV if needed
+
+#### Step 6: Manage Templates
+1. Navigate to **Email → Templates** in sidebar
+2. **Create Template**:
+   - Click **"New"**
+   - Enter name, subject, and HTML content
+   - Use **"Rewrite with AI"** button to improve content
+   - Save template
+3. **Use Template in Campaign**:
+   - Click **"Use in Campaign"** button (Send icon) next to template
+   - Automatically opens campaign wizard with template pre-filled
+4. **Edit Template**:
+   - Click template name or edit icon
+   - Modify content
+   - Use **"Rewrite with AI"** for improvements
+   - Save changes
+
+#### Step 7: Unified Inbox (Unibox)
+1. Navigate to **Email → Unibox** in sidebar
+2. **3-Pane Layout**:
+   - **Left Sidebar**: Mailbox selection and filters
+   - **Middle Pane**: Thread list with unread counts
+   - **Right Pane**: Full conversation view
+3. **Features**:
+   - View all emails (sent and received) in threaded conversations
+   - Reply and forward directly from Unibox
+   - Link emails to CRM contacts/listings
+   - Search and filter threads
+4. Real-time updates via Gmail Watch (for Gmail mailboxes)
+
+### Email System Features
+
+#### Mailbox Management
+- **OAuth Integration**: Gmail and Outlook OAuth flows
+- **SMTP/IMAP Support**: Generic email server support
+- **Token Encryption**: Secure storage of OAuth tokens
+- **Rate Limiting**: Per-mailbox daily/hourly limits
+- **Health Monitoring**: Automatic health checks
+
+#### Campaign System
+- **Single & Sequence Campaigns**: One-time sends or multi-step drips
+- **Template Integration**: Use templates in campaigns
+- **Recipient Management**: Manual entry or CSV import
+- **Safety Rails**: Confirmation for bulk sends (100+ recipients)
+- **Reply Detection**: Automatically stop sequences on reply
+- **Background Processing**: Cron job processes queued emails
+
+#### Analytics & Tracking
+- **Open Tracking**: 1x1 pixel tracking
+- **Click Tracking**: Link click tracking with clean URLs
+- **Time-Series Analytics**: Daily/weekly/monthly aggregations
+- **Per-Recipient Profiles**: Individual engagement tracking
+- **Export**: CSV export of analytics data
+
+#### AI Integration
+- **Content AI**: Generate subject lines in campaign builder
+- **Rewrite with AI**: Improve template content
+- **Assistant Integration**: Uses OpenRouter API with fallbacks
+
 ## Features Overview
 
 ### Authentication & Trial Management

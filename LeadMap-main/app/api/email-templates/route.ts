@@ -16,10 +16,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await supabase
+    // Get query params for filtering
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+    const folder = searchParams.get('folder')
+    const scope = searchParams.get('scope')
+    const isActive = searchParams.get('is_active')
+
+    let query = supabase
       .from('email_templates')
-      .select('*')
+      .select(`
+        *,
+        stats:template_stats!template_stats_template_id_fkey(
+          total_sent,
+          total_opened,
+          total_clicked,
+          total_replied,
+          open_rate,
+          click_rate,
+          reply_rate,
+          last_used_at
+        )
+      `)
       .order('created_at', { ascending: false })
+
+    // Apply filters
+    if (category) {
+      query = query.eq('category', category)
+    }
+    if (folder) {
+      query = query.eq('folder_path', folder)
+    }
+    if (scope) {
+      query = query.eq('scope', scope)
+    } else {
+      // By default, show user's templates and global templates
+      query = query.or(`scope.eq.global,created_by.eq.${user.id}`)
+    }
+    if (isActive !== null) {
+      query = query.eq('is_active', isActive === 'true')
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('Database error:', error)
@@ -58,8 +96,17 @@ export async function POST(request: NextRequest) {
       .from('email_templates')
       .insert({
         title,
+        subject: subject || title,
         body: bodyContent,
         category,
+        folder_path: body.folder_path || '',
+        description: body.description || null,
+        scope: body.scope || 'user',
+        team_id: body.team_id || null,
+        tags: body.tags || [],
+        allowed_variables: body.allowed_variables || [],
+        is_active: body.is_active !== undefined ? body.is_active : true,
+        version: 1,
         created_by: user.id
       })
       .select()

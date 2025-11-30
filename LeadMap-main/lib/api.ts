@@ -1,4 +1,5 @@
 import type { EmailTemplate, Listing, ProbateLead } from '@/types'
+import { renderTemplate as renderTemplateEngine, renderSubject as renderSubjectEngine, previewTemplate, extractTemplateVariables, validateTemplateVariables, type TemplateContext, type TemplateOptions } from '@/lib/email/template-engine'
 
 /**
  * Authenticated fetch wrapper
@@ -53,6 +54,56 @@ export const deleteEmailTemplate = (id: string) =>
   }).then(r => r.json())
 
 /**
+ * Template Test Email API
+ */
+export interface TestTemplateRequest {
+  template_id: string
+  test_email: string
+  test_context?: Record<string, any>
+  mailbox_id: string
+}
+
+export const testEmailTemplate = (request: TestTemplateRequest) =>
+  authedFetch(`/api/email-templates/${request.template_id}/test`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  }).then(r => r.json())
+
+/**
+ * Template Versions API
+ */
+export const getTemplateVersions = (templateId: string) =>
+  authedFetch(`/api/email-templates/${templateId}/versions`).then(r => r.json()) as Promise<{ versions: any[] }>
+
+export const restoreTemplateVersion = (templateId: string, version: number, changeNotes?: string) =>
+  authedFetch(`/api/email-templates/${templateId}/versions`, {
+    method: 'POST',
+    body: JSON.stringify({ version, change_notes: changeNotes }),
+  }).then(r => r.json())
+
+/**
+ * Template Stats API
+ */
+export const getTemplateStats = (templateId: string, version?: number) => {
+  const url = version
+    ? `/api/email-templates/${templateId}/stats?version=${version}`
+    : `/api/email-templates/${templateId}/stats`
+  return authedFetch(url).then(r => r.json()) as Promise<{ stats: any[] }>
+}
+
+/**
+ * Template Folders API
+ */
+export const listTemplateFolders = () =>
+  authedFetch('/api/template-folders').then(r => r.json()) as Promise<{ folders: any[] }>
+
+export const createTemplateFolder = (folder: { name: string; path: string; parent_folder_id?: string; scope?: string }) =>
+  authedFetch('/api/template-folders', {
+    method: 'POST',
+    body: JSON.stringify(folder),
+  }).then(r => r.json())
+
+/**
  * Geo Leads API
  */
 export const postGeoLeads = (lat: number, lng: number, radius_km: number) =>
@@ -94,19 +145,75 @@ export const askAssistant = async (
 }
 
 /**
- * Template rendering helper
+ * Template rendering helper (enhanced with advanced engine)
  */
-export function renderTemplate(body: string, lead: Partial<Listing>): string {
-  return body
-    .replace(/\{\{address\}\}/g, lead.address || '')
-    .replace(/\{\{city\}\}/g, lead.city || '')
-    .replace(/\{\{state\}\}/g, lead.state || '')
-    .replace(/\{\{zip\}\}/g, lead.zip || '')
-    .replace(/\{\{owner_name\}\}/g, lead.owner_name || 'Owner')
-    .replace(/\{\{price\}\}/g, lead.price ? `$${lead.price.toLocaleString()}` : 'N/A')
-    .replace(/\{\{price_drop_percent\}\}/g, lead.price_drop_percent?.toString() || '0')
-    .replace(/\{\{days_on_market\}\}/g, lead.days_on_market?.toString() || '0')
+export function renderTemplate(body: string, lead: Partial<Listing>, options?: TemplateOptions): string {
+  const context: TemplateContext = {
+    address: lead.address || '',
+    city: lead.city || '',
+    state: lead.state || '',
+    zip: lead.zip || '',
+    owner_name: lead.owner_name || 'Owner',
+    price: lead.price,
+    price_drop_percent: lead.price_drop_percent || 0,
+    days_on_market: lead.days_on_market || 0,
+    url: lead.url || '',
+    source: lead.source || '',
+    owner_email: lead.owner_email || '',
+    owner_phone: lead.owner_phone || '',
+    // Nested structure for advanced templates
+    listing: {
+      address: lead.address || '',
+      city: lead.city || '',
+      state: lead.state || '',
+      zip: lead.zip || '',
+      price: lead.price,
+      price_drop_percent: lead.price_drop_percent || 0,
+      days_on_market: lead.days_on_market || 0,
+      url: lead.url || '',
+    },
+    owner: {
+      name: lead.owner_name || 'Owner',
+      email: lead.owner_email || '',
+      phone: lead.owner_phone || '',
+    },
+  }
+
+  return renderTemplateEngine(body, context, options)
 }
+
+/**
+ * Render subject line with template variables
+ */
+export function renderSubject(subject: string, lead: Partial<Listing>, options?: TemplateOptions): string {
+  const context: TemplateContext = {
+    address: lead.address || '',
+    city: lead.city || '',
+    state: lead.state || '',
+    zip: lead.zip || '',
+    owner_name: lead.owner_name || 'Owner',
+    price: lead.price,
+    price_drop_percent: lead.price_drop_percent || 0,
+    days_on_market: lead.days_on_market || 0,
+    listing: {
+      address: lead.address || '',
+      city: lead.city || '',
+      state: lead.state || '',
+      zip: lead.zip || '',
+      price: lead.price,
+    },
+    owner: {
+      name: lead.owner_name || 'Owner',
+    },
+  }
+
+  return renderSubjectEngine(subject, context, options)
+}
+
+/**
+ * Preview template with sample data
+ */
+export { previewTemplate, extractTemplateVariables, validateTemplateVariables }
 
 /**
  * Email Sending API

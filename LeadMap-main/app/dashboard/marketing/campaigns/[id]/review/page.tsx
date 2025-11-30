@@ -89,6 +89,17 @@ function CampaignReviewContent() {
   const handleSend = async () => {
     if (!campaign) return
 
+    // Safety rails: Confirm if sending to large number of recipients
+    const recipientCount = contacts.length
+    if (recipientCount > 100) {
+      const confirmed = confirm(
+        `You're about to email ${recipientCount.toLocaleString()} recipients. This will send ${recipientCount} emails. Are you sure you want to continue?`
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+
     setSending(true)
     try {
       // Send campaign emails

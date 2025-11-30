@@ -47,9 +47,81 @@ export interface EmailTemplate {
   id: string
   title: string
   body: string
+  subject?: string | null
   category?: string | null
+  version?: number | null
+  parent_template_id?: string | null
+  folder_path?: string | null
+  description?: string | null
+  scope?: 'global' | 'user' | 'team'
+  team_id?: string | null
+  is_active?: boolean | null
+  tags?: string[] | null
+  allowed_variables?: string[] | null
   created_at?: string
   updated_at?: string
+  created_by?: string | null
+  // Stats (joined from template_stats)
+  stats?: TemplateStats | null
+}
+
+export interface TemplateVersion {
+  id: string
+  template_id: string
+  version: number
+  title: string
+  subject?: string | null
+  body: string
+  category: string
+  folder_path?: string | null
+  created_at: string
+  created_by?: string | null
+  created_by_name?: string | null
+  change_notes?: string | null
+}
+
+export interface TemplateStats {
+  id: string
+  template_id: string
+  version?: number | null
+  total_sent: number
+  total_opened: number
+  total_clicked: number
+  total_replied: number
+  total_bounced: number
+  total_unsubscribed: number
+  open_rate: number
+  click_rate: number
+  reply_rate: number
+  bounce_rate: number
+  last_used_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TemplateTestSend {
+  id: string
+  template_id: string
+  version?: number | null
+  test_email: string
+  rendered_subject?: string | null
+  rendered_body?: string | null
+  test_context?: Record<string, any> | null
+  sent_at: string
+  sent_by?: string | null
+  opened_at?: string | null
+  clicked_at?: string | null
+}
+
+export interface TemplateFolder {
+  id: string
+  name: string
+  path: string
+  parent_folder_id?: string | null
+  scope?: 'global' | 'user' | 'team'
+  user_id?: string | null
+  team_id?: string | null
+  created_at: string
   created_by?: string | null
 }
 

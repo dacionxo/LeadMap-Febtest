@@ -43,6 +43,25 @@
 - **`dashboard/templates/page.tsx`** - Email templates page
 - **`dashboard/settings/page.tsx`** - User settings page
 - **`dashboard/docs/page.tsx`** - Documentation page
+- **`dashboard/email/`** - Email marketing features
+  - **`campaigns/page.tsx`** - Campaign list page
+  - **`campaigns/new/page.tsx`** - Campaign creation wizard
+  - **`campaigns/[id]/page.tsx`** - Campaign detail page
+  - **`compose/page.tsx`** - Email composer page
+  - **`mailboxes/page.tsx`** - Mailbox management page (deprecated, moved to settings)
+- **`dashboard/marketing/`** - Marketing tools
+  - **`page.tsx`** - Marketing dashboard with tabs
+  - **`components/EmailMarketing.tsx`** - Main email marketing component with tabs (Campaigns, Unibox, Templates, Analytics)
+  - **`components/UniboxWrapper.tsx`** - Unibox 3-pane layout wrapper
+  - **`campaigns/[id]/page.tsx`** - Marketing campaign builder
+  - **`campaigns/[id]/review/page.tsx`** - Campaign review page
+- **`dashboard/unibox/`** - Unified inbox
+  - **`page.tsx`** - Unibox main page
+  - **`components/UniboxContent.tsx`** - 3-pane Unibox layout orchestrator
+  - **`components/UniboxSidebar.tsx`** - Left sidebar (mailboxes/filters)
+  - **`components/ThreadList.tsx`** - Middle pane (thread list)
+  - **`components/ThreadView.tsx`** - Right pane (conversation view)
+  - **`components/ReplyComposer.tsx`** - Reply/forward composer
 
 ### Pricing
 - **`pricing/page.tsx`** - Pricing page (server component, renders PricingPage)
@@ -81,6 +100,47 @@
 #### Email Templates
 - **`email-templates/route.ts`** - GET: List all email templates; POST: Create new template (admin only)
 - **`email-templates/[id]/route.ts`** - GET: Get template by ID; PUT: Update template (admin only); DELETE: Delete template (admin only)
+
+#### Email System
+- **`mailboxes/route.ts`** - GET: List user mailboxes; POST: Create/update mailbox
+- **`mailboxes/[id]/route.ts`** - DELETE: Remove mailbox; PATCH: Update mailbox settings
+- **`mailboxes/[id]/watch/route.ts`** - POST: Setup Gmail Watch; DELETE: Stop Watch
+- **`mailboxes/oauth/gmail/route.ts`** - GET: Initiate Gmail OAuth flow
+- **`mailboxes/oauth/gmail/callback/route.ts`** - GET: Handle Gmail OAuth callback
+- **`mailboxes/oauth/outlook/route.ts`** - GET: Initiate Outlook OAuth flow
+- **`mailboxes/oauth/outlook/callback/route.ts`** - GET: Handle Outlook OAuth callback
+- **`emails/send/route.ts`** - POST: Send one-off email
+- **`emails/received/route.ts`** - GET: List received emails; POST: Log received email
+- **`emails/queue/route.ts`** - POST: Queue email for background processing
+- **`emails/stats/route.ts`** - GET: Get email statistics
+- **`email/track/open/route.ts`** - GET: Track email opens (1x1 pixel)
+- **`email/track/click/route.ts`** - GET: Track email clicks and redirect
+- **`email/preferences/route.ts`** - GET: Get user email preferences; PATCH: Update preferences
+- **`email/analytics/timeseries/route.ts`** - GET: Get time-series email analytics
+- **`email/analytics/recipient/route.ts`** - GET: Get per-recipient engagement data
+- **`email/analytics/export/route.ts`** - GET: Export analytics as CSV
+- **`webhooks/gmail/route.ts`** - POST: Handle Gmail Pub/Sub webhook notifications
+- **`webhooks/outlook/route.ts`** - POST: Handle Outlook change notifications
+- **`unibox/threads/route.ts`** - GET: List email threads; POST: Create thread
+- **`unibox/threads/[id]/route.ts`** - GET: Get thread details; PATCH: Update thread
+- **`unibox/threads/[id]/reply/route.ts`** - POST: Reply to thread
+- **`unibox/threads/[id]/forward/route.ts`** - POST: Forward thread
+- **`r/[eventId]/route.ts`** - GET: Clean URL redirect for click tracking
+
+#### Campaign Management
+- **`campaigns/route.ts`** - GET: List campaigns with stats; POST: Create campaign
+- **`campaigns/[id]/route.ts`** - GET: Get campaign details; PATCH: Update campaign
+- **`campaigns/[id]/pause/route.ts`** - POST: Pause campaign
+- **`campaigns/[id]/resume/route.ts`** - POST: Resume campaign
+- **`campaigns/[id]/cancel/route.ts`** - POST: Cancel campaign
+- **`campaigns/[id]/report/route.ts`** - GET: Get campaign report/analytics
+
+#### Background Jobs (Cron)
+- **`cron/process-emails/route.ts`** - GET/POST: Process queued emails (runs every minute)
+- **`cron/process-campaigns/route.ts`** - GET/POST: Process campaign sequences (runs every minute)
+- **`cron/gmail-watch-renewal/route.ts`** - GET/POST: Renew Gmail Watch subscriptions (runs daily)
+- **`cron/sync-mailboxes/route.ts`** - GET/POST: Sync all mailboxes (runs every 5 minutes)
+- **`cron/provider-health-check/route.ts`** - GET/POST: Check provider health (runs hourly)
 
 ## 📁 Components Directory (`/components`)
 
@@ -162,6 +222,14 @@
 1. **`api/email-templates/route.ts`** - CRUD operations for email templates
 2. **`api/email-templates/[id]/route.ts`** - Individual template operations
 3. **`EmailTemplateModal.tsx`** - Template editor component
+4. **`api/mailboxes/route.ts`** - Mailbox management (Gmail, Outlook, SMTP)
+5. **`api/emails/send/route.ts`** - Send one-off emails
+6. **`api/campaigns/route.ts`** - Campaign creation and management
+7. **`api/cron/process-emails/route.ts`** - Background email processor
+8. **`api/unibox/threads/route.ts`** - Unified inbox thread management
+9. **`api/email/analytics/timeseries/route.ts`** - Email analytics time-series data
+10. **`dashboard/marketing/components/EmailMarketing.tsx`** - Email marketing dashboard
+11. **`dashboard/unibox/`** - Unified inbox UI (3-pane layout)
 
 ## 🚀 Deployment Flow
 

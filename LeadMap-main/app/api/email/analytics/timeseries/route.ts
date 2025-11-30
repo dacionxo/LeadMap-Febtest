@@ -30,10 +30,10 @@ export async function GET(request: NextRequest) {
     const campaignId = searchParams.get('campaignId')
     const groupBy = searchParams.get('groupBy') || 'day' // 'day', 'week', 'month'
 
-    // Build base query
+    // Build base query to get all events
     let query = supabase
       .from('email_events')
-      .select('event_type, event_timestamp, mailbox_id, campaign_id')
+      .select('event_type, event_timestamp, mailbox_id, campaign_id, recipient_email, email_id')
       .eq('user_id', user.id)
       .gte('event_timestamp', startDate)
       .lte('event_timestamp', endDate)
@@ -53,13 +53,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 })
     }
 
-    // Group events by date and event type
+    // Group events by date and event type, tracking unique recipients for opens/clicks
     const dateGroups = new Map<string, {
       date: string
       sent: number
       delivered: number
       opened: number
+      uniqueOpens: number
+      uniqueOpenRecipients: Set<string>
       clicked: number
+      uniqueClicks: number
+      uniqueClickRecipients: Set<string>
       replied: number
       bounced: number
       complaint: number
@@ -91,7 +95,11 @@ export async function GET(request: NextRequest) {
           sent: 0,
           delivered: 0,
           opened: 0,
+          uniqueOpens: 0,
+          uniqueOpenRecipients: new Set<string>(),
           clicked: 0,
+          uniqueClicks: 0,
+          uniqueClickRecipients: new Set<string>(),
           replied: 0,
           bounced: 0,
           complaint: 0,
@@ -100,6 +108,7 @@ export async function GET(request: NextRequest) {
       }
 
       const group = dateGroups.get(dateKey)!
+      const recipientKey = `${event.recipient_email || ''}:${event.email_id || ''}`
       
       switch (event.event_type) {
         case 'sent':
@@ -110,9 +119,23 @@ export async function GET(request: NextRequest) {
           break
         case 'opened':
           group.opened++
+          // Track unique opens (unique recipient + email combinations)
+          if (event.recipient_email && event.email_id) {
+            if (!group.uniqueOpenRecipients.has(recipientKey)) {
+              group.uniqueOpenRecipients.add(recipientKey)
+              group.uniqueOpens++
+            }
+          }
           break
         case 'clicked':
           group.clicked++
+          // Track unique clicks (unique recipient + email combinations)
+          if (event.recipient_email && event.email_id) {
+            if (!group.uniqueClickRecipients.has(recipientKey)) {
+              group.uniqueClickRecipients.add(recipientKey)
+              group.uniqueClicks++
+            }
+          }
           break
         case 'replied':
           group.replied++
@@ -129,8 +152,20 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Convert map to sorted array
-    const timeseries = Array.from(dateGroups.values()).sort((a, b) => 
+    // Convert map to sorted array, converting Sets to counts
+    const timeseries = Array.from(dateGroups.values()).map(day => ({
+      date: day.date,
+      sent: day.sent,
+      delivered: day.delivered,
+      opened: day.opened,
+      uniqueOpens: day.uniqueOpens,
+      clicked: day.clicked,
+      uniqueClicks: day.uniqueClicks,
+      replied: day.replied,
+      bounced: day.bounced,
+      complaint: day.complaint,
+      failed: day.failed
+    })).sort((a, b) => 
       a.date.localeCompare(b.date)
     )
 
@@ -139,7 +174,9 @@ export async function GET(request: NextRequest) {
       sent: timeseries.reduce((sum, day) => sum + day.sent, 0),
       delivered: timeseries.reduce((sum, day) => sum + day.delivered, 0),
       opened: timeseries.reduce((sum, day) => sum + day.opened, 0),
+      uniqueOpens: timeseries.reduce((sum, day) => sum + day.uniqueOpens, 0),
       clicked: timeseries.reduce((sum, day) => sum + day.clicked, 0),
+      uniqueClicks: timeseries.reduce((sum, day) => sum + day.uniqueClicks, 0),
       replied: timeseries.reduce((sum, day) => sum + day.replied, 0),
       bounced: timeseries.reduce((sum, day) => sum + day.bounced, 0),
       complaint: timeseries.reduce((sum, day) => sum + day.complaint, 0),
@@ -148,8 +185,8 @@ export async function GET(request: NextRequest) {
 
     const rates = {
       deliveryRate: totals.sent > 0 ? (totals.delivered / totals.sent) * 100 : 0,
-      openRate: totals.delivered > 0 ? (totals.opened / totals.delivered) * 100 : 0,
-      clickRate: totals.delivered > 0 ? (totals.clicked / totals.delivered) * 100 : 0,
+      openRate: totals.delivered > 0 ? (totals.uniqueOpens / totals.delivered) * 100 : 0,
+      clickRate: totals.delivered > 0 ? (totals.uniqueClicks / totals.delivered) * 100 : 0,
       replyRate: totals.delivered > 0 ? (totals.replied / totals.delivered) * 100 : 0,
       bounceRate: totals.sent > 0 ? (totals.bounced / totals.sent) * 100 : 0,
       complaintRate: totals.delivered > 0 ? (totals.complaint / totals.delivered) * 100 : 0,

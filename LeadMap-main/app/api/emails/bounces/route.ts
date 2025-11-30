@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { recordBouncedEvent, recordComplaintEvent, recordDeliveredEvent } from '@/lib/email/event-tracking'
 
 /**
  * Email Bounce Handler API
@@ -73,6 +74,37 @@ export async function POST(request: NextRequest) {
     if (bounceError) {
       console.error('Bounce recording error:', bounceError)
       return NextResponse.json({ error: 'Failed to record bounce' }, { status: 500 })
+    }
+
+    // Record bounce event in unified email_events table
+    if (bounceType === 'complaint') {
+      await recordComplaintEvent({
+        userId,
+        emailId: emailId || undefined,
+        mailboxId: mailboxId || undefined,
+        campaignId: campaignId || undefined,
+        campaignRecipientId: campaignRecipientId || undefined,
+        recipientEmail: email.toLowerCase(),
+        complaintType: 'spam',
+        complaintFeedback: bounceReason || undefined,
+        providerMessageId: providerMessageId || undefined
+      }).catch(err => {
+        console.warn('Failed to record complaint event:', err)
+      })
+    } else {
+      await recordBouncedEvent({
+        userId,
+        emailId: emailId || undefined,
+        mailboxId: mailboxId || undefined,
+        campaignId: campaignId || undefined,
+        campaignRecipientId: campaignRecipientId || undefined,
+        recipientEmail: email.toLowerCase(),
+        bounceType: bounceType === 'hard' ? 'hard' : 'soft',
+        bounceReason: bounceReason || undefined,
+        providerMessageId: providerMessageId || undefined
+      }).catch(err => {
+        console.warn('Failed to record bounced event:', err)
+      })
     }
 
     // Update email record if applicable

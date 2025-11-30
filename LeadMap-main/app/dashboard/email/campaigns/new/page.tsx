@@ -52,7 +52,35 @@ export default function NewCampaignPage() {
 
   useEffect(() => {
     fetchMailboxes()
+    // Check for templateId in URL params
+    const urlParams = new URLSearchParams(window.location.search)
+    const templateId = urlParams.get('templateId')
+    if (templateId) {
+      fetchTemplateAndApply(templateId)
+    }
   }, [])
+
+  const fetchTemplateAndApply = async (templateId: string) => {
+    try {
+      const response = await fetch(`/api/email-templates/${templateId}`)
+      if (response.ok) {
+        const data = await response.json()
+        const template = data.template
+        if (template) {
+          // Apply template to first step
+          setSteps([{
+            stepNumber: 1,
+            delayHours: 0,
+            subject: template.subject || template.title || '',
+            html: template.html || template.body || '',
+            stopOnReply: true
+          }])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching template:', error)
+    }
+  }
 
   const fetchMailboxes = async () => {
     try {
@@ -210,6 +238,17 @@ export default function NewCampaignPage() {
     if (duplicates.length > 0) {
       alert(`Please remove duplicate emails: ${duplicates.join(', ')}`)
       return
+    }
+
+    // Safety rails: Confirm if sending to large number of recipients
+    const recipientCount = recipients.filter(r => r.email && validateEmail(r.email)).length
+    if (recipientCount > 100) {
+      const confirmed = confirm(
+        `You're about to email ${recipientCount.toLocaleString()} recipients. This will send ${recipientCount} emails. Are you sure you want to continue?`
+      )
+      if (!confirmed) {
+        return
+      }
     }
 
     try {

@@ -24,7 +24,19 @@ export async function GET(
 
     const { data, error } = await supabase
       .from('email_templates')
-      .select('*')
+      .select(`
+        *,
+        stats:template_stats!template_stats_template_id_fkey(
+          total_sent,
+          total_opened,
+          total_clicked,
+          total_replied,
+          open_rate,
+          click_rate,
+          reply_rate,
+          last_used_at
+        )
+      `)
       .eq('id', id)
       .single()
 
@@ -66,7 +78,14 @@ export async function PUT(
 
     if (name !== undefined) updateData.title = name
     if (bodyContent !== undefined) updateData.body = bodyContent
-    // Note: subject is not stored in the current schema, but we can add it if needed
+    if (subject !== undefined) updateData.subject = subject
+    if (body.category !== undefined) updateData.category = body.category
+    if (body.folder_path !== undefined) updateData.folder_path = body.folder_path
+    if (body.description !== undefined) updateData.description = body.description
+    if (body.scope !== undefined) updateData.scope = body.scope
+    if (body.tags !== undefined) updateData.tags = body.tags
+    if (body.allowed_variables !== undefined) updateData.allowed_variables = body.allowed_variables
+    if (body.is_active !== undefined) updateData.is_active = body.is_active
 
     const { data, error } = await supabase
       .from('email_templates')

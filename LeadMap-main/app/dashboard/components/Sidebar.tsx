@@ -67,12 +67,19 @@ const navSections: NavSection[] = [
     ]
   },
   {
+    title: 'EMAIL',
+    items: [
+      { label: 'Campaigns', icon: Mail, href: '/dashboard/marketing?tab=campaigns' },
+      { label: 'Unibox', icon: MessageCircle, href: '/dashboard/marketing?tab=unibox' },
+      { label: 'Templates', icon: FileText, href: '/dashboard/marketing?tab=templates' },
+      { label: 'Analytics', icon: BarChart3, href: '/dashboard/marketing?tab=analytics' },
+      { label: 'Compose', icon: Mail, href: '/dashboard/email/compose' }
+    ]
+  },
+  {
     title: 'MARKETING',
     items: [
       { label: 'Social Planner', icon: Megaphone, href: '/dashboard/marketing' },
-      { label: 'Email Campaigns', icon: Mail, href: '/dashboard/email/campaigns' },
-      { label: 'Compose Email', icon: Mail, href: '/dashboard/email/compose' },
-      { label: 'Mailboxes', icon: Mail, href: '/dashboard/email/mailboxes' },
       { label: 'Conversations', icon: MessageCircle, href: '/dashboard/conversations' }
     ]
   },

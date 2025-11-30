@@ -712,18 +712,36 @@ function EmailStatistics({ stats, emails }: { stats: EmailStats; emails: Email[]
   }
 
   // Format chart data for the line graph
-  const chartData = timeseriesData.map((day) => {
-    const date = new Date(day.date)
+  const chartData = (timeseriesData || []).map((day: any) => {
+    // Handle date formatting - can be ISO string or date string
+    let date: Date
+    try {
+      // If date is already in format "YYYY-MM-DD", add time for parsing
+      if (day.date && day.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        date = new Date(day.date + 'T00:00:00')
+      } else {
+        date = new Date(day.date)
+      }
+    } catch (e) {
+      // Fallback if date parsing fails
+      date = new Date()
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      date = new Date()
+    }
+    
     const dayMonth = `${String(date.getDate()).padStart(2, '0')} ${date.toLocaleString('default', { month: 'short' })}`
     
     return {
       date: dayMonth,
-      sent: selectedMetrics.sent ? day.sent : null,
-      totalOpens: selectedMetrics.totalOpens ? day.opened : null,
-      uniqueOpens: selectedMetrics.uniqueOpens ? day.opened : null, // Using opened as unique for now
-      totalReplies: selectedMetrics.totalReplies ? day.replied : null,
-      totalClicks: selectedMetrics.totalClicks ? day.clicked : null,
-      uniqueClicks: selectedMetrics.uniqueClicks ? day.clicked : null, // Using clicked as unique for now
+      sent: selectedMetrics.sent ? (day.sent || 0) : null,
+      totalOpens: selectedMetrics.totalOpens ? (day.opened || 0) : null,
+      uniqueOpens: selectedMetrics.uniqueOpens ? (day.uniqueOpens || 0) : null,
+      totalReplies: selectedMetrics.totalReplies ? (day.replied || 0) : null,
+      totalClicks: selectedMetrics.totalClicks ? (day.clicked || 0) : null,
+      uniqueClicks: selectedMetrics.uniqueClicks ? (day.uniqueClicks || 0) : null,
     }
   })
 
@@ -1568,6 +1586,16 @@ function EmailTemplates({ templates }: { templates: EmailTemplate[] }) {
                   <div className="col-span-1 flex items-center gap-2">
                     <button
                       onClick={() => {
+                        // Navigate to campaign creation with template pre-selected
+                        window.location.href = `/dashboard/email/campaigns/new?templateId=${template.id}`
+                      }}
+                      className="text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+                      title="Use in Campaign"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
                         setSelectedTemplate(template)
                         setShowEditModal(true)
                       }}
@@ -1761,6 +1789,7 @@ function EditTemplateModal({
     subject: template.subject || '',
     html: template.html || template.body || '',
   })
+  const [isRewriting, setIsRewriting] = useState(false)
 
   const handleUpdate = async () => {
     if (!formData.name || !formData.subject || !formData.html) {

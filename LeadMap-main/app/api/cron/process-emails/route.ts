@@ -6,6 +6,7 @@ import { substituteTemplateVariables, extractRecipientVariables } from '@/lib/em
 import { refreshGmailToken } from '@/lib/email/providers/gmail'
 import { refreshOutlookToken } from '@/lib/email/providers/outlook'
 import { decryptMailboxTokens, encryptMailboxTokens } from '@/lib/email/encryption'
+import { recordSentEvent, recordFailedEvent, logEmailFailure } from '@/lib/email/event-tracking'
 
 /**
  * Email Processing Scheduler
@@ -407,6 +408,21 @@ async function runCronJob(request: NextRequest) {
               })
               .eq('id', email.id)
 
+            // Record 'sent' event in unified email_events table
+            await recordSentEvent({
+              userId: user.id,
+              emailId: email.id,
+              mailboxId: mailboxId,
+              campaignId: email.campaign_id || undefined,
+              campaignRecipientId: email.campaign_recipient_id || undefined,
+              campaignStepId: email.campaign_step_id || undefined,
+              recipientEmail: email.to_email,
+              providerMessageId: sendResult.providerMessageId || undefined
+            }).catch(err => {
+              console.warn('Failed to record sent event:', err)
+              // Don't fail email sending if event tracking fails
+            })
+
             // Update campaign recipient if applicable
             if (email.campaign_recipient_id) {
               await supabase
@@ -456,6 +472,33 @@ async function runCronJob(request: NextRequest) {
               })
               .eq('id', email.id)
 
+            // Record 'failed' event in unified email_events table
+            await recordFailedEvent({
+              userId: user.id,
+              emailId: email.id,
+              mailboxId: mailboxId,
+              recipientEmail: email.to_email,
+              errorMessage: sendResult.error || 'Unknown error'
+            }).catch(err => {
+              console.warn('Failed to record failed event:', err)
+            })
+
+            // Log failure for alerting
+            await logEmailFailure({
+              userId: user.id,
+              mailboxId: mailboxId,
+              emailId: email.id,
+              failureType: 'send_failed',
+              errorMessage: sendResult.error || 'Email send failed',
+              context: {
+                campaign_id: email.campaign_id,
+                campaign_recipient_id: email.campaign_recipient_id,
+                provider: mailbox.provider
+              }
+            }).catch(err => {
+              console.warn('Failed to log email failure:', err)
+            })
+
             // Update mailbox last_error
             await supabase
               .from('mailboxes')
@@ -480,6 +523,31 @@ async function runCronJob(request: NextRequest) {
               error: error.message || 'Unknown error'
             })
             .eq('id', email.id)
+
+          // Record 'failed' event
+          await recordFailedEvent({
+            userId: user.id,
+            emailId: email.id,
+            mailboxId: mailboxId,
+            recipientEmail: email.to_email,
+            errorMessage: error.message || 'Unknown error',
+            errorCode: error.code
+          }).catch(() => {})
+
+          // Log failure for alerting
+          await logEmailFailure({
+            userId: user.id,
+            mailboxId: mailboxId,
+            emailId: email.id,
+            failureType: 'send_failed',
+            errorMessage: error.message || 'Unknown error',
+            errorCode: error.code,
+            errorStack: error.stack,
+            context: {
+              campaign_id: email.campaign_id,
+              campaign_recipient_id: email.campaign_recipient_id
+            }
+          }).catch(() => {})
         }
 
         // Small delay between sends to avoid overwhelming the provider

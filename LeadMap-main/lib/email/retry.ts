@@ -126,3 +126,4 @@ export function isPermanentFailure(error: string): boolean {
   return permanentMessages.some(msg => lowerError.includes(msg))
 }
 
+

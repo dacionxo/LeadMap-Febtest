@@ -100,3 +100,4 @@ CREATE POLICY "Users can delete variants for their campaigns"
     )
   );
 
+

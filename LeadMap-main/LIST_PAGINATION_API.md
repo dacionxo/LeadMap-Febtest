@@ -150,3 +150,4 @@ const response = await fetch('/api/lists/YOUR_LIST_ID/paginated?page=1')
 - The endpoint maintains backward compatibility with the response format of `/api/listings/paginated`
 - All queries respect Row Level Security (RLS) policies
 
+

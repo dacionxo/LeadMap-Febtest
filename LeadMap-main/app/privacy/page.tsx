@@ -1231,7 +1231,7 @@ export default function PrivacyPage() {
               <nav className="flex flex-col gap-3">
                 <Link href="/privacy" className="text-sm font-light text-black hover:underline transition-colors">Privacy Policy</Link>
                 <Link href="/terms" className="text-sm font-light text-black hover:underline transition-colors">Terms of Service</Link>
-                <Link href="/cookies" className="text-sm font-light text-black hover:underline transition-colors">Cookie Policy</Link>
+                <Link href="/refund-policy" className="text-sm font-light text-black hover:underline transition-colors">Refund Policy</Link>
               </nav>
             </div>
 

@@ -423,8 +423,8 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="hidden md:flex items-center space-x-6">
-                <a href="/about" className="text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-normal text-sm">
-                  About
+                <a href="/contact" className="text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-normal text-sm">
+                  Contact
                 </a>
                 <a href="/pricing" className="text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-normal text-sm">
                   Pricing
@@ -1663,7 +1663,7 @@ export default function LandingPage() {
               <nav className="flex flex-col gap-3">
                 <a href="/privacy" className="text-sm font-light text-black hover:text-black transition-colors">Privacy Policy</a>
                 <a href="/terms" className="text-sm font-light text-black hover:text-black transition-colors">Terms of Service</a>
-                <a href="/cookies" className="text-sm font-light text-black hover:text-black transition-colors">Cookie Policy</a>
+                <a href="/refund-policy" className="text-sm font-light text-black hover:text-black transition-colors">Refund Policy</a>
               </nav>
             </div>
 
@@ -1672,10 +1672,7 @@ export default function LandingPage() {
               <h4 className="text-sm font-heading font-semibold text-black uppercase tracking-wider">Product</h4>
               <nav className="flex flex-col gap-3">
                 <a href="/dashboard" className="text-sm font-light text-black hover:text-black transition-colors">Dashboard</a>
-                <a href="/features" className="text-sm font-light text-black hover:text-black transition-colors">Features</a>
                 <a href="/pricing" className="text-sm font-light text-black hover:text-black transition-colors">Pricing</a>
-                <a href="/integrations" className="text-sm font-light text-black hover:text-black transition-colors">Integrations</a>
-                <a href="/api" className="text-sm font-light text-black hover:text-black transition-colors">API</a>
               </nav>
             </div>
 
@@ -1683,11 +1680,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-4">
               <h4 className="text-sm font-heading font-semibold text-black uppercase tracking-wider">Resources</h4>
               <nav className="flex flex-col gap-3">
-                <a href="/blog" className="text-sm font-light text-black hover:text-black transition-colors">Blog</a>
-                <a href="/guides" className="text-sm font-light text-black hover:text-black transition-colors">Guides</a>
-                <a href="/case-studies" className="text-sm font-light text-black hover:text-black transition-colors">Case Studies</a>
-                <a href="/help" className="text-sm font-light text-black hover:text-black transition-colors">Help Center</a>
-                <a href="/documentation" className="text-sm font-light text-black hover:text-black transition-colors">Documentation</a>
+                {/* Resources links will be added here as pages are created */}
               </nav>
             </div>
 
@@ -1695,11 +1688,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-4">
               <h4 className="text-sm font-heading font-semibold text-black uppercase tracking-wider">Company</h4>
               <nav className="flex flex-col gap-3">
-                <a href="/about" className="text-sm font-light text-black hover:text-black transition-colors">About Us</a>
-                <a href="/careers" className="text-sm font-light text-black hover:text-black transition-colors">Careers</a>
                 <a href="/contact" className="text-sm font-light text-black hover:text-black transition-colors">Contact</a>
-                <a href="/partners" className="text-sm font-light text-black hover:text-black transition-colors">Partners</a>
-                <a href="/press" className="text-sm font-light text-black hover:text-black transition-colors">Press</a>
               </nav>
             </div>
 

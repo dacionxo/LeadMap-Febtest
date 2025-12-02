@@ -1730,6 +1730,17 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+        
+        {/* Copyright Footer */}
+        <div className="border-t border-gray-200 dark:border-gray-700 py-6">
+          <div className="flex justify-center">
+            <div className="w-full max-w-[1440px] px-5 tablet:px-12 desktop-s:px-16 desktop:px-20 desktop-xl:px-24">
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                © {new Date().getFullYear()} Galapagos Digital LLC. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import DashboardLayout from '../../components/DashboardLayout'
 import CalendarView from './components/CalendarView'
 import CalendarOnboardingView from './components/CalendarOnboardingView'
@@ -11,6 +12,7 @@ import ConnectCalendarModal from './components/ConnectCalendarModal'
 import { Plus } from 'lucide-react'
 
 export default function CalendarPage() {
+  const router = useRouter()
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -93,9 +95,19 @@ export default function CalendarPage() {
   }
 
   const handleDateSelect = (start: Date, end: Date) => {
-    setCreateModalDate(start)
-    setCreateModalEndDate(end)
-    setIsCreateModalOpen(true)
+    // Show action menu with options: Create Calendar Event or Create Email Campaign
+    const action = confirm('Create email campaign starting this day?\n\nClick OK for email campaign, Cancel for calendar event.')
+    if (action) {
+      // Navigate to campaign builder with pre-filled start date
+      const dateStr = start.toISOString().split('T')[0]
+      const timeStr = start.toTimeString().slice(0, 5)
+      router.push(`/dashboard/marketing/campaigns/new?startDate=${dateStr}&startTime=${timeStr}`)
+    } else {
+      // Default: create calendar event
+      setCreateModalDate(start)
+      setCreateModalEndDate(end)
+      setIsCreateModalOpen(true)
+    }
   }
 
   const handleEventDelete = async (eventId: string) => {

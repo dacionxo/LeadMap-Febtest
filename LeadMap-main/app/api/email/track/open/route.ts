@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { recordEmailEvent } from '@/lib/email/event-tracking'
 
 /**
  * Email Open Tracking
@@ -64,6 +65,66 @@ export async function GET(request: NextRequest) {
               .eq('id', recipientId)
           } catch {
             // Ignore errors
+          }
+        }
+
+        // Record event in unified email_events table
+        if (emailId) {
+          try {
+            // Fetch email record to get user_id, mailbox_id, campaign_id, to_email
+            const { data: emailRecord } = await supabase
+              .from('emails')
+              .select('user_id, mailbox_id, campaign_id, campaign_recipient_id, to_email')
+              .eq('id', emailId)
+              .single()
+
+            if (emailRecord && emailRecord.user_id && emailRecord.to_email) {
+              await recordEmailEvent({
+                userId: emailRecord.user_id,
+                eventType: 'opened',
+                emailId: emailId,
+                mailboxId: emailRecord.mailbox_id || undefined,
+                campaignId: emailRecord.campaign_id || campaignId || undefined,
+                campaignRecipientId: emailRecord.campaign_recipient_id || recipientId || undefined,
+                recipientEmail: emailRecord.to_email,
+                ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+                userAgent: request.headers.get('user-agent') || undefined,
+              }).catch(err => {
+                console.warn('Failed to record open event in email_events:', err)
+                // Don't fail tracking if event recording fails
+              })
+            }
+          } catch (err) {
+            console.warn('Failed to fetch email record for event tracking:', err)
+          }
+        } else if (recipientId) {
+          // If we only have recipientId, try to get email info from campaign_recipients
+          try {
+            const { data: recipient } = await supabase
+              .from('campaign_recipients')
+              .select('email, campaign_id, campaign:campaigns(user_id, mailbox_id)')
+              .eq('id', recipientId)
+              .single()
+
+            if (recipient && recipient.campaign) {
+              const campaign = recipient.campaign as any
+              if (campaign.user_id && recipient.email) {
+                await recordEmailEvent({
+                  userId: campaign.user_id,
+                  eventType: 'opened',
+                  mailboxId: campaign.mailbox_id || undefined,
+                  campaignId: recipient.campaign_id || campaignId || undefined,
+                  campaignRecipientId: recipientId,
+                  recipientEmail: recipient.email,
+                  ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+                  userAgent: request.headers.get('user-agent') || undefined,
+                }).catch(err => {
+                  console.warn('Failed to record open event in email_events:', err)
+                })
+              }
+            }
+          } catch (err) {
+            console.warn('Failed to fetch recipient record for event tracking:', err)
           }
         }
       }

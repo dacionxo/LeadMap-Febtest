@@ -19,12 +19,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get campaigns with basic stats
-    const { data: campaigns, error: campaignsError } = await supabase
+    const { searchParams } = new URL(request.url)
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
+
+    // Build query
+    let query = supabase
       .from('campaigns')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+
+    // Filter by date range if provided (for calendar integration)
+    if (startDate && endDate) {
+      // Filter campaigns that have a start_at or scheduled_at within the range
+      query = query.or(`start_at.gte.${startDate},start_at.lte.${endDate},scheduled_at.gte.${startDate},scheduled_at.lte.${endDate}`)
+    }
+
+    query = query.order('created_at', { ascending: false })
+
+    const { data: campaigns, error: campaignsError } = await query
 
     if (campaignsError) {
       console.error('Database error:', campaignsError)

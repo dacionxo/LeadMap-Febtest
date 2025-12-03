@@ -94,12 +94,25 @@ function CampaignBuilderContent() {
   const [saving, setSaving] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
+  const [showPreviewWithSample, setShowPreviewWithSample] = useState(true)
+  const [previewContent, setPreviewContent] = useState('')
+  const [previewSubject, setPreviewSubject] = useState('')
 
   useEffect(() => {
     fetchMailboxes()
     fetchContacts()
     if (!isNew) {
       fetchCampaign()
+    } else {
+      // Pre-fill start date/time from URL params if coming from calendar
+      const urlParams = new URLSearchParams(window.location.search)
+      const startDate = urlParams.get('startDate')
+      const startTime = urlParams.get('startTime')
+      if (startDate && startTime) {
+        setScheduledDate(startDate)
+        setScheduledTime(startTime)
+        setCampaign(prev => ({ ...prev, send_type: 'schedule' }))
+      }
     }
     checkRequiredFields()
   }, [campaignId, isNew])
@@ -107,6 +120,46 @@ function CampaignBuilderContent() {
   useEffect(() => {
     checkRequiredFields()
   }, [campaign])
+
+  // Update preview when content changes
+  useEffect(() => {
+    if (showPreviewWithSample && campaign.html_content) {
+      // Sample recipient data
+      const sampleRecipient = {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        first_name: 'John',
+        last_name: 'Doe'
+      }
+      
+      // Simple template variable substitution (no dynamic import needed)
+      let processed = campaign.html_content
+      let processedSubject = campaign.subject || ''
+      
+      // Replace common template variables
+      const replacements: Record<string, string> = {
+        '{{first_name}}': sampleRecipient.first_name,
+        '{{firstName}}': sampleRecipient.firstName,
+        '{{last_name}}': sampleRecipient.last_name,
+        '{{lastName}}': sampleRecipient.lastName,
+        '{{email}}': sampleRecipient.email,
+        '{{full_name}}': `${sampleRecipient.first_name} ${sampleRecipient.last_name}`,
+      }
+      
+      Object.entries(replacements).forEach(([key, value]) => {
+        const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'gi')
+        processed = processed.replace(regex, value)
+        processedSubject = processedSubject.replace(regex, value)
+      })
+      
+      setPreviewContent(processed)
+      setPreviewSubject(processedSubject)
+    } else {
+      setPreviewContent('')
+      setPreviewSubject('')
+    }
+  }, [campaign.html_content, campaign.subject, showPreviewWithSample])
 
   const fetchMailboxes = async () => {
     try {
@@ -838,13 +891,47 @@ function CampaignBuilderContent() {
               <p className="text-center text-sm text-gray-500 dark:text-gray-400">Spam score: Coming Soon</p>
             </div>
 
-            {/* Content Preview */}
+            {/* Content Preview with Sample Data */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Content</h3>
-              <div 
-                className="prose prose-sm max-w-none dark:prose-invert mb-4 min-h-[100px] border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-                dangerouslySetInnerHTML={{ __html: campaign.html_content || '<p>Hi There!</p>' }}
-              />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Content Preview</h3>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <input
+                      type="checkbox"
+                      checked={showPreviewWithSample}
+                      onChange={(e) => setShowPreviewWithSample(e.target.checked)}
+                      className="rounded"
+                    />
+                    Show with sample data
+                  </label>
+                </div>
+              </div>
+              
+              {showPreviewWithSample ? (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-200">
+                    <strong>Preview with sample recipient:</strong> John Doe (john.doe@example.com)
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+                    <div className="mb-2 text-xs text-gray-600 dark:text-gray-400">
+                      <div>From: {campaign.sender_name || campaign.sender_email} &lt;{campaign.sender_email || 'sender@example.com'}&gt;</div>
+                      <div>To: John Doe &lt;john.doe@example.com&gt;</div>
+                      <div className="font-medium mt-1">Subject: {previewSubject || campaign.subject || '(No subject)'}</div>
+                    </div>
+                    <div 
+                      className="prose prose-sm max-w-none dark:prose-invert mt-4 min-h-[100px]"
+                      dangerouslySetInnerHTML={{ __html: previewContent || campaign.html_content || '<p>Hi There!</p>' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="prose prose-sm max-w-none dark:prose-invert mb-4 min-h-[100px] border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                  dangerouslySetInnerHTML={{ __html: campaign.html_content || '<p>Hi There!</p>' }}
+                />
+              )}
+              
               <button 
                 onClick={() => {
                   const newContent = prompt('Enter HTML content:', campaign.html_content || '<p>Hi There!</p>')
@@ -852,7 +939,7 @@ function CampaignBuilderContent() {
                     setCampaign(prev => ({ ...prev, html_content: newContent }))
                   }
                 }}
-                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300"
+                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 mt-4"
               >
                 Start from scratch
               </button>

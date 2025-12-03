@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { 
   Mail, 
   Plus, 
@@ -50,6 +51,8 @@ interface Mailbox {
   active: boolean
   daily_limit: number
   hourly_limit: number
+  last_error?: string
+  token_expires_at?: string
 }
 
 interface EmailTemplate {
@@ -616,53 +619,69 @@ function EmailStatistics({ stats, emails }: { stats: EmailStats; emails: Email[]
     },
   ]
 
-  // Generate dynamic data based on selected metric
+  // Generate dynamic data based on selected metric using real timeseries data
   const getOpenRateChartData = () => {
-    const baseData = [
-      { date: '11/23', all: 12.5, email: 13.2, workflow: 11.8, bulk: 10.5 },
-      { date: '11/24', all: 13.1, email: 13.9, workflow: 12.2, bulk: 11.0 },
-      { date: '11/25', all: 14.2, email: 15.0, workflow: 13.1, bulk: 12.1 },
-      { date: '11/26', all: 13.8, email: 14.5, workflow: 12.9, bulk: 11.8 },
-      { date: '11/27', all: 14.5, email: 15.2, workflow: 13.5, bulk: 12.5 },
-      { date: '11/28', all: 15.1, email: 16.0, workflow: 14.0, bulk: 13.0 },
-    ]
-
-    switch (openRateMetric) {
-      case 'unsubscribed':
-        return baseData.map(d => ({
-          ...d,
-          all: d.all * 0.05,
-          email: d.email * 0.05,
-          workflow: d.workflow * 0.05,
-          bulk: d.bulk * 0.05,
-        }))
-      case 'clickRate':
-        return baseData.map(d => ({
-          ...d,
-          all: d.all * 0.3,
-          email: d.email * 0.3,
-          workflow: d.workflow * 0.3,
-          bulk: d.bulk * 0.3,
-        }))
-      case 'emailsSent':
-        return baseData.map(d => ({
-          ...d,
-          all: 5000 + Math.random() * 1000,
-          email: 3000 + Math.random() * 500,
-          workflow: 1500 + Math.random() * 300,
-          bulk: 500 + Math.random() * 200,
-        }))
-      case 'spamComplaints':
-        return baseData.map(d => ({
-          ...d,
-          all: d.all * 0.01,
-          email: d.email * 0.01,
-          workflow: d.workflow * 0.01,
-          bulk: d.bulk * 0.01,
-        }))
-      default:
-        return baseData
+    // Use real timeseries data if available, otherwise return empty array
+    if (!timeseriesData || timeseriesData.length === 0) {
+      return []
     }
+
+    // Map timeseries data to chart format
+    const chartData = timeseriesData.map((item: any) => {
+      const date = new Date(item.date)
+      const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
+      
+      // Calculate rates from timeseries data
+      const openRate = item.sent > 0 ? (item.opened / item.sent) * 100 : 0
+      const clickRate = item.sent > 0 ? (item.clicked / item.sent) * 100 : 0
+      const replyRate = item.sent > 0 ? (item.replied / item.sent) * 100 : 0
+      
+      switch (openRateMetric) {
+        case 'unsubscribed':
+          // Use unsubscribed rate if available, otherwise estimate
+          return {
+            date: dateStr,
+            all: item.unsubscribed || 0,
+            email: (item.unsubscribed || 0) * 0.6,
+            workflow: (item.unsubscribed || 0) * 0.3,
+            bulk: (item.unsubscribed || 0) * 0.1,
+          }
+        case 'clickRate':
+          return {
+            date: dateStr,
+            all: clickRate,
+            email: clickRate * 0.6,
+            workflow: clickRate * 0.3,
+            bulk: clickRate * 0.1,
+          }
+        case 'emailsSent':
+          return {
+            date: dateStr,
+            all: item.sent || 0,
+            email: (item.sent || 0) * 0.6,
+            workflow: (item.sent || 0) * 0.3,
+            bulk: (item.sent || 0) * 0.1,
+          }
+        case 'spamComplaints':
+          return {
+            date: dateStr,
+            all: item.complaint || 0,
+            email: (item.complaint || 0) * 0.6,
+            workflow: (item.complaint || 0) * 0.3,
+            bulk: (item.complaint || 0) * 0.1,
+          }
+        default: // 'openRate'
+          return {
+            date: dateStr,
+            all: openRate,
+            email: openRate * 0.6,
+            workflow: openRate * 0.3,
+            bulk: openRate * 0.1,
+          }
+      }
+    })
+
+    return chartData
   }
 
   const openRateData = getOpenRateChartData()
@@ -817,6 +836,17 @@ function EmailStatistics({ stats, emails }: { stats: EmailStats; emails: Email[]
 
       {/* Graph with Legend */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        {/* Header with link to full analytics */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Performance</h2>
+          <Link
+            href="/dashboard/marketing/analytics"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            View full analytics
+            <BarChart3 className="w-4 h-4" />
+          </Link>
+        </div>
         {/* Legend */}
         <div className="mb-4 flex flex-wrap items-center gap-4">
           <button
@@ -1166,6 +1196,57 @@ function EmailCampaigns({ emails }: { emails: Email[] }) {
   const [activeCampaignType, setActiveCampaignType] = useState<'email' | 'workflow' | 'bulk'>('email')
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [campaigns, setCampaigns] = useState<Array<{
+    id: string
+    name: string
+    send_strategy: 'single' | 'sequence'
+    status: 'draft' | 'scheduled' | 'running' | 'paused' | 'completed' | 'cancelled'
+    created_at: string
+    updated_at: string
+    start_at: string | null
+    total_recipients: number
+    completed_count: number
+    sent_count: number
+    pending_count: number
+    failed_count: number
+    replied_count?: number
+  }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchCampaigns()
+  }, [])
+
+  const fetchCampaigns = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/campaigns', { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        // Get replied count for each campaign
+        const campaignsWithReplies = await Promise.all(
+          (data.campaigns || []).map(async (campaign: any) => {
+            try {
+              const recipientsResponse = await fetch(`/api/campaigns/${campaign.id}`, { credentials: 'include' })
+              if (recipientsResponse.ok) {
+                const campaignData = await recipientsResponse.json()
+                const repliedCount = campaignData.campaign?.recipients?.filter((r: any) => r.replied).length || 0
+                return { ...campaign, replied_count: repliedCount }
+              }
+            } catch (error) {
+              console.error('Error fetching campaign details:', error)
+            }
+            return campaign
+          })
+        )
+        setCampaigns(campaignsWithReplies)
+      }
+    } catch (error) {
+      console.error('Error fetching campaigns:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const campaignTypes = [
     { id: 'email' as const, label: 'Email Campaigns' },
@@ -1173,21 +1254,8 @@ function EmailCampaigns({ emails }: { emails: Email[] }) {
     { id: 'bulk' as const, label: 'Bulk Action Campaigns' },
   ]
 
-  // Mock campaigns data - replace with actual API call
-  const campaigns: Array<{
-    id: string
-    title: string
-    type: string
-    lastUpdated: string
-    executionDate: string | null
-    status: 'draft' | 'scheduled' | 'sending' | 'completed' | 'paused'
-  }> = []
-
   const filteredCampaigns = campaigns.filter(campaign => {
-    if (activeCampaignType === 'email' && campaign.type !== 'Email Campaign') return false
-    if (activeCampaignType === 'workflow' && campaign.type !== 'Workflow Campaign') return false
-    if (activeCampaignType === 'bulk' && campaign.type !== 'Bulk Action Campaign') return false
-    if (searchQuery && !campaign.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    if (searchQuery && !campaign.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
     return true
   })
 
@@ -1278,53 +1346,86 @@ function EmailCampaigns({ emails }: { emails: Email[] }) {
               <>
                 {/* Table Header */}
                 <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  <div className="col-span-4">Title</div>
+                  <div className="col-span-3">Campaign Name</div>
                   <div className="col-span-2">Type</div>
+                  <div className="col-span-2">Progress</div>
                   <div className="col-span-2">Last Updated</div>
-                  <div className="col-span-2">Execution Date</div>
-                  <div className="col-span-2">Status</div>
+                  <div className="col-span-2">Start Date</div>
+                  <div className="col-span-1">Status</div>
                 </div>
 
                 {/* Table Rows */}
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredCampaigns.map((campaign) => (
-                    <div
-                      key={campaign.id}
-                      className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer"
-                    >
-                      <div className="col-span-4 text-sm font-medium text-gray-900 dark:text-white">
-                        {campaign.title}
+                  {filteredCampaigns.map((campaign) => {
+                    const isMultiStep = campaign.send_strategy === 'sequence'
+                    const progressPercent = campaign.total_recipients > 0 
+                      ? (campaign.completed_count / campaign.total_recipients) * 100 
+                      : 0
+                    
+                    return (
+                      <div
+                        key={campaign.id}
+                        className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer"
+                        onClick={() => window.location.href = `/dashboard/marketing/campaigns/${campaign.id}`}
+                      >
+                        <div className="col-span-3">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {campaign.name}
+                          </div>
+                        </div>
+                        <div className="col-span-2">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
+                            isMultiStep 
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                          }`}>
+                            {isMultiStep ? 'Multi-step' : 'Single send'}
+                          </span>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            {campaign.completed_count}/{campaign.total_recipients} completed
+                            {campaign.replied_count ? ` • ${campaign.replied_count} replied` : ''}
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="col-span-2 text-sm text-gray-600 dark:text-gray-400">
+                          {new Date(campaign.updated_at).toLocaleDateString()}
+                        </div>
+                        <div className="col-span-2 text-sm text-gray-600 dark:text-gray-400">
+                          {campaign.start_at ? new Date(campaign.start_at).toLocaleDateString() : '-'}
+                        </div>
+                        <div className="col-span-1">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                              campaign.status === 'completed'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                : campaign.status === 'running'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                                : campaign.status === 'scheduled'
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                                : campaign.status === 'paused'
+                                ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            }`}
+                          >
+                            {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="col-span-2 text-sm text-gray-600 dark:text-gray-400">
-                        {campaign.type}
-                      </div>
-                      <div className="col-span-2 text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(campaign.lastUpdated).toLocaleDateString()}
-                      </div>
-                      <div className="col-span-2 text-sm text-gray-600 dark:text-gray-400">
-                        {campaign.executionDate ? new Date(campaign.executionDate).toLocaleDateString() : '-'}
-                      </div>
-                      <div className="col-span-2">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            campaign.status === 'completed'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                              : campaign.status === 'sending'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                              : campaign.status === 'scheduled'
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                              : campaign.status === 'paused'
-                              ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
+            ) : loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-gray-500">Loading campaigns...</div>
+              </div>
             ) : (
               /* Empty State */
               <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -2227,6 +2328,84 @@ function EmailAccounts({
   onConnectMailbox: () => void
   onDeleteMailbox: (id: string) => void
 }) {
+  const [mailboxStats, setMailboxStats] = useState<Record<string, any>>({})
+  const [loadingStats, setLoadingStats] = useState(false)
+
+  useEffect(() => {
+    const fetchMailboxStats = async () => {
+      if (mailboxes.length === 0) return
+      
+      setLoadingStats(true)
+      try {
+        const statsMap: Record<string, any> = {}
+        
+        // Fetch stats for each mailbox
+        for (const mailbox of mailboxes) {
+          try {
+            const response = await fetch(`/api/emails/stats?mailboxId=${mailbox.id}`, {
+              credentials: 'include'
+            })
+            if (response.ok) {
+              const data = await response.json()
+              statsMap[mailbox.id] = data.stats
+            }
+          } catch (error) {
+            console.error(`Error fetching stats for mailbox ${mailbox.id}:`, error)
+          }
+        }
+        
+        setMailboxStats(statsMap)
+      } catch (error) {
+        console.error('Error fetching mailbox stats:', error)
+      } finally {
+        setLoadingStats(false)
+      }
+    }
+
+    fetchMailboxStats()
+  }, [mailboxes])
+
+  const getProviderIcon = (provider: string) => {
+    switch (provider) {
+      case 'gmail':
+        return (
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+          </svg>
+        )
+      case 'outlook':
+        return (
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.5 4.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12.5 0h-11c-.6 0-1 .4-1 1v13c0 .6.4 1 1 1h11c.6 0 1-.4 1-1v-13c0-.6-.4-1-1-1zm-1 12h-9v-10h9v10z"/>
+          </svg>
+        )
+      default:
+        return <Mail className="w-5 h-5" />
+    }
+  }
+
+  const getStatusInfo = (mailbox: Mailbox) => {
+    if (!mailbox.active) {
+      return { label: 'Inactive', color: 'text-yellow-500', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20' }
+    }
+    
+    if (mailbox.last_error) {
+      return { label: 'Error', color: 'text-red-500', bgColor: 'bg-red-50 dark:bg-red-900/20' }
+    }
+    
+    if (mailbox.provider === 'gmail' || mailbox.provider === 'outlook') {
+      if (mailbox.token_expires_at) {
+        const expiresAt = new Date(mailbox.token_expires_at)
+        const tenMinutesFromNow = new Date(Date.now() + 10 * 60 * 1000)
+        if (expiresAt < tenMinutesFromNow) {
+          return { label: 'Token Expiring', color: 'text-orange-500', bgColor: 'bg-orange-50 dark:bg-orange-900/20' }
+        }
+      }
+    }
+    
+    return { label: 'Connected', color: 'text-green-500', bgColor: 'bg-green-50 dark:bg-green-900/20' }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -2237,12 +2416,126 @@ function EmailAccounts({
         </p>
       </div>
 
-      {/* Mailbox Selector */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Connected Mailboxes:
-          </label>
+      {/* Mailbox Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {mailboxes.map((mailbox) => {
+          const statusInfo = getStatusInfo(mailbox)
+          const stats = mailboxStats[mailbox.id]
+          
+          return (
+            <div
+              key={mailbox.id}
+              className={`bg-white dark:bg-gray-800 border rounded-lg p-4 transition-colors ${
+                selectedMailbox === mailbox.id
+                  ? 'border-blue-600 dark:border-blue-500'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className={`p-2 rounded-lg ${statusInfo.bgColor}`}>
+                    <div className={statusInfo.color}>
+                      {getProviderIcon(mailbox.provider)}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {mailbox.display_name || mailbox.email}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {mailbox.provider.charAt(0).toUpperCase() + mailbox.provider.slice(1)}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteMailbox(mailbox.id)
+                  }}
+                  className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Status */}
+              <div className="mb-3">
+                <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
+                  {statusInfo.label === 'Connected' && <CheckCircle2 className="w-3 h-3" />}
+                  {statusInfo.label === 'Error' && <AlertCircle className="w-3 h-3" />}
+                  {statusInfo.label === 'Token Expiring' && <Clock className="w-3 h-3" />}
+                  {statusInfo.label === 'Inactive' && <AlertCircle className="w-3 h-3" />}
+                  {statusInfo.label}
+                </div>
+              </div>
+
+              {/* Last Error */}
+              {mailbox.last_error && (
+                <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300">
+                  <div className="font-medium mb-1">Last Error:</div>
+                  <div className="truncate">{mailbox.last_error}</div>
+                </div>
+              )}
+
+              {/* Metrics */}
+              {stats && (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Delivered</div>
+                    <div className="font-semibold text-gray-900 dark:text-white">{stats.delivered || 0}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Open Rate</div>
+                    <div className="font-semibold text-gray-900 dark:text-white">
+                      {stats.openRate ? `${stats.openRate.toFixed(1)}%` : '0%'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Click Rate</div>
+                    <div className="font-semibold text-gray-900 dark:text-white">
+                      {stats.clickRate ? `${stats.clickRate.toFixed(1)}%` : '0%'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Select Button */}
+              <button
+                onClick={() => setSelectedMailbox(mailbox.id)}
+                className={`mt-3 w-full px-3 py-2 text-sm rounded-lg transition-colors ${
+                  selectedMailbox === mailbox.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {selectedMailbox === mailbox.id ? 'Selected' : 'Select'}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Empty State */}
+      {mailboxes.length === 0 && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
+          <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            No mailboxes connected. Click "Connect Mailbox" to get started.
+          </p>
+          <button
+            onClick={onConnectMailbox}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2 mx-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Connect Your First Mailbox
+          </button>
+        </div>
+      )}
+
+      {/* Connect Button (if mailboxes exist) */}
+      {mailboxes.length > 0 && (
+        <div className="flex justify-end">
           <button
             onClick={onConnectMailbox}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
@@ -2251,58 +2544,7 @@ function EmailAccounts({
             Connect Mailbox
           </button>
         </div>
-        <div className="flex flex-wrap gap-3">
-          {mailboxes.map((mailbox) => (
-            <div
-              key={mailbox.id}
-              className={`px-4 py-3 rounded-lg border flex items-center gap-3 cursor-pointer transition-colors ${
-                selectedMailbox === mailbox.id
-                  ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-              onClick={() => setSelectedMailbox(mailbox.id)}
-            >
-              <Mail className="w-5 h-5 text-gray-500" />
-              <div className="flex-1">
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  {mailbox.display_name || mailbox.email}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {mailbox.provider.charAt(0).toUpperCase() + mailbox.provider.slice(1)}
-                </div>
-              </div>
-              {mailbox.active ? (
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-yellow-500" />
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDeleteMailbox(mailbox.id)
-                }}
-                className="ml-2 text-gray-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-          {mailboxes.length === 0 && (
-            <div className="w-full text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
-              <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                No mailboxes connected. Click "Connect Mailbox" to get started.
-              </p>
-              <button
-                onClick={onConnectMailbox}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                Connect Your First Mailbox
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

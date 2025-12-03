@@ -300,6 +300,7 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
       const start = view.activeStart.toISOString()
       const end = view.activeEnd.toISOString()
 
+      // Fetch calendar events
       const response = await fetch(`/api/calendar/events?start=${start}&end=${end}`, {
         credentials: 'include',
       })
@@ -317,14 +318,81 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
         filteredEvents = filteredEvents.filter((event: any) => event.status !== 'cancelled')
       }
       
-      // Format events using user's timezone from settings
-      // formatEventForCalendar uses settings?.default_timezone internally
+      // Format calendar events using user's timezone from settings
       const formattedEvents: EventInput[] = filteredEvents.map((event: any) => 
         formatEventForCalendar(event)
       )
 
-      setAllEvents(formattedEvents)
-      setEvents(formattedEvents)
+      // Fetch scheduled email campaigns
+      try {
+        const emailResponse = await fetch(`/api/campaigns?startDate=${start}&endDate=${end}`, {
+          credentials: 'include',
+        })
+        
+        if (emailResponse.ok) {
+          const emailData = await emailResponse.json()
+          const emailEvents: EventInput[] = (emailData.campaigns || [])
+            .filter((campaign: any) => {
+              // Only show scheduled campaigns with start_at
+              return campaign.start_at && 
+                     campaign.status !== 'cancelled' && 
+                     campaign.status !== 'completed'
+            })
+            .map((campaign: any) => {
+              const userTimezone = settings?.default_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+              const startDate = new Date(campaign.start_at)
+              
+              // Convert to user's timezone
+              const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: userTimezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              })
+              
+              const parts = formatter.formatToParts(startDate)
+              const year = parseInt(parts.find(p => p.type === 'year')?.value || '0')
+              const month = parseInt(parts.find(p => p.type === 'month')?.value || '1')
+              const day = parseInt(parts.find(p => p.type === 'day')?.value || '1')
+              const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0')
+              const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0')
+              
+              const localDate = new Date(year, month - 1, day, hour, minute)
+              const endDate = new Date(localDate.getTime() + 30 * 60 * 1000) // 30 min duration
+              
+              return {
+                id: `email-${campaign.id}`,
+                title: `📧 ${campaign.name}`,
+                start: localDate.toISOString(),
+                end: endDate.toISOString(),
+                allDay: false,
+                backgroundColor: '#3b82f6',
+                borderColor: '#2563eb',
+                extendedProps: {
+                  eventType: 'email_campaign',
+                  relatedType: 'campaign',
+                  relatedId: campaign.id,
+                  description: `Email campaign: ${campaign.name}`,
+                  status: campaign.status,
+                },
+              }
+            })
+          
+          // Combine calendar events and email events
+          const allFormattedEvents = [...formattedEvents, ...emailEvents]
+          setAllEvents(allFormattedEvents)
+          setEvents(allFormattedEvents)
+        }
+      } catch (emailError) {
+        console.error('Error fetching email campaigns:', emailError)
+        // If email fetch fails, just use calendar events
+        setAllEvents(formattedEvents)
+        setEvents(formattedEvents)
+      }
     } catch (error) {
       console.error('Error fetching events:', error)
     } finally {

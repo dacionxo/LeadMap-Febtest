@@ -52,11 +52,13 @@ export default function EmailAnalyticsDashboard() {
   const [selectedMailbox, setSelectedMailbox] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
   const [mailboxes, setMailboxes] = useState<Array<{ id: string; email: string; display_name?: string }>>([])
+  const [health, setHealth] = useState<any>(null)
 
   useEffect(() => {
     fetchMailboxes()
     fetchStats()
     fetchTimeseries()
+    fetchHealth()
   }, [selectedMailbox, selectedPeriod])
 
   const fetchMailboxes = async () => {
@@ -121,6 +123,21 @@ export default function EmailAnalyticsDashboard() {
       }
     } catch (error) {
       console.error('Error fetching timeseries:', error)
+    }
+  }
+
+  const fetchHealth = async () => {
+    try {
+      const response = await fetch('/api/email/health?hours=24', {
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setHealth(data.health)
+      }
+    } catch (error) {
+      console.error('Error fetching health:', error)
     }
   }
 
@@ -227,29 +244,90 @@ export default function EmailAnalyticsDashboard() {
         </div>
       </div>
 
+      {/* Health Widget */}
+      {health && (
+        <div className={`border rounded-lg p-4 ${
+          health.isHealthy 
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+            : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Email Health</h3>
+            <div className={`px-2 py-1 rounded text-xs font-medium ${
+              health.isHealthy 
+                ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200' 
+                : 'bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200'
+            }`}>
+              {health.isHealthy ? 'Healthy' : 'Needs Attention'}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <div className="text-gray-600 dark:text-gray-400">Last 24h Failures</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {health.last24hFailures}
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-600 dark:text-gray-400">Bounce Rate</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {health.bounceRate}%
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-600 dark:text-gray-400">Complaint Rate</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {health.complaintRate}%
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-600 dark:text-gray-400">Emails Sent</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {health.sentCount}
+              </div>
+            </div>
+          </div>
+          {health.topFailureReasons && health.topFailureReasons.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Top Failure Reasons:
+              </div>
+              <div className="space-y-1">
+                {health.topFailureReasons.slice(0, 3).map((reason: any, idx: number) => (
+                  <div key={idx} className="text-xs text-gray-600 dark:text-gray-400 flex justify-between">
+                    <span className="truncate flex-1">{reason.message}</span>
+                    <span className="ml-2 font-medium">{reason.count}x</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Delivered"
-          value={stats.delivered.toLocaleString()}
-          subtitle={`${stats.delivered > 0 ? ((stats.delivered / (stats.delivered + stats.bounced)) * 100).toFixed(1) : 0}% delivery rate`}
+          value={(stats.delivered || 0).toLocaleString()}
+          subtitle={`${stats.delivered > 0 ? ((stats.delivered / (stats.delivered + (stats.bounced || 0))) * 100).toFixed(1) : 0}% delivery rate`}
           color="blue"
         />
         <MetricCard
           title="Open Rate"
-          value={`${stats.openRate.toFixed(1)}%`}
-          subtitle={`${stats.opened.toLocaleString()} opens`}
+          value={`${(stats.openRate || 0).toFixed(1)}%`}
+          subtitle={`${(stats.opened || 0).toLocaleString()} opens`}
           color="green"
         />
         <MetricCard
           title="Click Rate"
-          value={`${stats.clickRate.toFixed(1)}%`}
-          subtitle={`${stats.clicked.toLocaleString()} clicks`}
+          value={`${(stats.clickRate || 0).toFixed(1)}%`}
+          subtitle={`${(stats.clicked || 0).toLocaleString()} clicks`}
           color="purple"
         />
         <MetricCard
           title="Reply Rate"
-          value={`${stats.replyRate.toFixed(1)}%`}
+          value={`${(stats.replyRate || 0).toFixed(1)}%`}
           subtitle={`${stats.replied || 0} replies`}
           color="orange"
         />
@@ -269,7 +347,7 @@ export default function EmailAnalyticsDashboard() {
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-yellow-800 dark:text-yellow-200">
-                {stats.bounceRate.toFixed(1)}%
+                {(stats.bounceRate || 0).toFixed(1)}%
               </div>
               <div className="text-xs text-yellow-700 dark:text-yellow-300">Bounce Rate</div>
             </div>
@@ -311,16 +389,16 @@ export default function EmailAnalyticsDashboard() {
                   <tr key={mb.mailboxId} className="border-b border-gray-100 dark:border-gray-800">
                     <td className="py-3 px-4 text-gray-900 dark:text-white">{mb.mailboxName}</td>
                     <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
-                      {mb.delivered.toLocaleString()}
+                      {(mb.delivered || 0).toLocaleString()}
                     </td>
                     <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
-                      {mb.openRate.toFixed(1)}%
+                      {(mb.openRate || 0).toFixed(1)}%
                     </td>
                     <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
-                      {mb.clickRate.toFixed(1)}%
+                      {(mb.clickRate || 0).toFixed(1)}%
                     </td>
                     <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
-                      {mb.bounceRate.toFixed(1)}%
+                      {(mb.bounceRate || 0).toFixed(1)}%
                     </td>
                   </tr>
                 ))}
@@ -363,7 +441,9 @@ function MetricCard({
 function TimeSeriesChart({ data }: { data: TimeSeriesData[] }) {
   // Simple bar chart implementation
   // In production, you'd use a charting library like recharts or chart.js
-  const maxValue = Math.max(...data.map(d => Math.max(d.sent, d.opened, d.clicked)))
+  const maxValue = data.length > 0 
+    ? Math.max(...data.map(d => Math.max(d.sent || 0, d.opened || 0, d.clicked || 0)))
+    : 1
   
   return (
     <div className="relative w-full h-full">

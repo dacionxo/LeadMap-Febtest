@@ -45,3 +45,4 @@ CREATE TRIGGER update_countdown_timers_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 
+

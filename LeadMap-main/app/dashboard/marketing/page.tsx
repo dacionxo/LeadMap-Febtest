@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import DashboardLayout from '../components/DashboardLayout'
 import EmailMarketing from './components/EmailMarketing'
 import ComposeEmail from './components/ComposeEmail'
-import AdManagerContent from './components/AdManager'
 import CountdownTimersContent from './components/CountdownTimers'
 import Snippets from './components/Snippets'
 import TriggerLinksContent from './components/TriggerLinks'
@@ -31,7 +30,7 @@ import {
   ArrowRight
 } from 'lucide-react'
 
-type MarketingTab = 'social-planner' | 'compose-email' | 'emails' | 'snippets' | 'countdown-timers' | 'trigger-links' | 'ad-manager'
+type MarketingTab = 'social-planner' | 'compose-email' | 'emails' | 'snippets' | 'countdown-timers' | 'trigger-links'
 
 // Platform Icon Component with logo fallback
 function PlatformIcon({ logo, Icon, name, className }: { logo: string | null, Icon: any, name: string, className?: string }) {
@@ -71,8 +70,7 @@ function MarketingPageContent() {
     { id: 'emails' as MarketingTab, label: 'Emails' },
     { id: 'snippets' as MarketingTab, label: 'Snippets' },
     { id: 'countdown-timers' as MarketingTab, label: 'Countdown Timers' },
-    { id: 'trigger-links' as MarketingTab, label: 'Trigger Links' },
-    { id: 'ad-manager' as MarketingTab, label: 'Ad Manager' }
+    { id: 'trigger-links' as MarketingTab, label: 'Trigger Links' }
   ], [])
 
   useEffect(() => {
@@ -114,7 +112,6 @@ function MarketingPageContent() {
       {activeTab === 'snippets' && <Snippets />}
       {activeTab === 'countdown-timers' && <CountdownTimersContent />}
       {activeTab === 'trigger-links' && <TriggerLinksContent />}
-      {activeTab === 'ad-manager' && <AdManagerContent />}
     </div>
   )
 }

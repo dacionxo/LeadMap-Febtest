@@ -7,16 +7,6 @@ import { cookies } from 'next/headers'
  * GET: Get activity feed (events) for a campaign
  */
 
-interface EmailRecord {
-  id: string
-  to_email: string
-  subject: string
-  sent_at: string | null
-  opened_at: string | null
-  clicked_at: string | null
-  status: string
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -61,7 +51,7 @@ export async function GET(
     }
 
     // Get email events
-    const emailIds = emails.map((e: EmailRecord) => e.id)
+    const emailIds = emails.map(e => e.id)
     let eventsQuery = supabase
       .from('email_events')
       .select(`
@@ -92,7 +82,7 @@ export async function GET(
 
     // Transform events into activity feed format
     const activities = (events || []).map((event: any) => {
-      const email = emails.find((e: EmailRecord) => e.id === event.email_id)
+      const email = emails.find((e: any) => e.id === event.email_id)
       return {
         id: event.id,
         type: event.event_type,
@@ -105,8 +95,8 @@ export async function GET(
 
     // Also include email sends as activities
     const sendActivities = emails
-      .filter((e: EmailRecord) => e.sent_at)
-      .map((email: EmailRecord) => ({
+      .filter((e: any) => e.sent_at)
+      .map((email: any) => ({
         id: `send-${email.id}`,
         type: 'sent',
         email: email.to_email,

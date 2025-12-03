@@ -45,3 +45,4 @@ CREATE INDEX IF NOT EXISTS idx_email_clicks_campaign_id ON email_clicks(campaign
 CREATE INDEX IF NOT EXISTS idx_email_clicks_clicked_at ON email_clicks(clicked_at);
 
 
+

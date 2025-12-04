@@ -489,6 +489,56 @@ function ProspectEnrichInner() {
     setSelectedIds(new Set())
   }, [viewType])
 
+  // Helper to update URL params when filters change
+  const updateUrlParams = useCallback((filters: Set<FilterType>, search?: string, view?: string, sort?: string, page?: number, apolloFilters?: Record<string, any>) => {
+    const params = new URLSearchParams()
+    
+    // Add filter param (only if not 'all')
+    const primaryCategory = getPrimaryCategory(filters)
+    if (primaryCategory !== 'all') {
+      params.set('filter', primaryCategory)
+    }
+    
+    // Add meta filters
+    const metaFilters = Array.from(filters).filter(f => !['all', 'expired', 'probate', 'fsbo', 'frbo', 'imports', 'trash', 'foreclosure'].includes(f))
+    if (metaFilters.length > 0) {
+      params.set('meta', metaFilters.join(','))
+    }
+    
+    // Add search
+    if (search) {
+      params.set('search', search)
+    }
+    
+    // Add view
+    if (view) {
+      params.set('view', view)
+    }
+    
+    // Add sort
+    if (sort) {
+      params.set('sort', sort)
+    }
+    
+    // Add page
+    if (page && page > 1) {
+      params.set('page', page.toString())
+    }
+    
+    // Add Apollo filters (serialize to JSON for complex objects)
+    if (apolloFilters && Object.keys(apolloFilters).length > 0) {
+      try {
+        params.set('apollo', JSON.stringify(apolloFilters))
+      } catch (e) {
+        console.warn('Failed to serialize Apollo filters:', e)
+      }
+    }
+    
+    // Update URL without page reload
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`
+    router.replace(newUrl, { scroll: false })
+  }, [router])
+
   // Sync search term to URL (only if not from URL itself)
   useEffect(() => {
     const searchParam = searchParams.get('search')
@@ -613,56 +663,6 @@ function ProspectEnrichInner() {
       console.error('Error accessing search params:', error)
     }
   }, [searchParams])
-
-  // Helper to update URL params when filters change
-  const updateUrlParams = useCallback((filters: Set<FilterType>, search?: string, view?: string, sort?: string, page?: number, apolloFilters?: Record<string, any>) => {
-    const params = new URLSearchParams()
-    
-    // Add filter param (only if not 'all')
-    const primaryCategory = getPrimaryCategory(filters)
-    if (primaryCategory !== 'all') {
-      params.set('filter', primaryCategory)
-    }
-    
-    // Add meta filters
-    const metaFilters = Array.from(filters).filter(f => !['all', 'expired', 'probate', 'fsbo', 'frbo', 'imports', 'trash', 'foreclosure'].includes(f))
-    if (metaFilters.length > 0) {
-      params.set('meta', metaFilters.join(','))
-    }
-    
-    // Add search
-    if (search) {
-      params.set('search', search)
-    }
-    
-    // Add view
-    if (view) {
-      params.set('view', view)
-    }
-    
-    // Add sort
-    if (sort) {
-      params.set('sort', sort)
-    }
-    
-    // Add page
-    if (page && page > 1) {
-      params.set('page', page.toString())
-    }
-    
-    // Add Apollo filters (serialize to JSON for complex objects)
-    if (apolloFilters && Object.keys(apolloFilters).length > 0) {
-      try {
-        params.set('apollo', JSON.stringify(apolloFilters))
-      } catch (e) {
-        console.warn('Failed to serialize Apollo filters:', e)
-      }
-    }
-    
-    // Update URL without page reload
-    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`
-    router.replace(newUrl, { scroll: false })
-  }, [router])
 
   const toggleFilter = (filterKey: FilterType) => {
     setSelectedFilters(prev => {

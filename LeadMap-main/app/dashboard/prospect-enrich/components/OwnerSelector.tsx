@@ -20,16 +20,37 @@ interface User {
 export default function OwnerSelector({ supabase, value, onChange }: OwnerSelectorProps) {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   useEffect(() => {
     loadUsers()
   }, [])
 
+  // Set default to current user if no value is provided
+  useEffect(() => {
+    if (!value && currentUserId && !loading) {
+      onChange(currentUserId)
+    }
+  }, [value, currentUserId, loading, onChange])
+
   async function loadUsers() {
     try {
       setLoading(true)
-      // Try to get users from auth.users or a users table
-      // Adjust the table name based on your schema
+      
+      // Get current logged-in user first
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        console.error('Error getting current user:', authError)
+        setUsers([])
+        setLoading(false)
+        return
+      }
+
+      // Set current user ID
+      setCurrentUserId(user.id)
+
+      // Try to get users from users table
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email, avatar_url')
@@ -37,10 +58,29 @@ export default function OwnerSelector({ supabase, value, onChange }: OwnerSelect
 
       if (error) {
         console.error('Error loading users:', error)
-        // Fallback: try to get from auth.users via a function or view
-        setUsers([])
+        // Fallback: use current user from auth
+        const currentUserData: User = {
+          id: user.id,
+          name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          email: user.email || '',
+          avatar_url: user.user_metadata?.avatar_url || null
+        }
+        setUsers([currentUserData])
       } else {
-        setUsers(data || [])
+        // Ensure current user is in the list
+        const currentUserInList = data?.find(u => u.id === user.id)
+        if (!currentUserInList && data) {
+          // Add current user if not in list
+          const currentUserData: User = {
+            id: user.id,
+            name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+            email: user.email || '',
+            avatar_url: user.user_metadata?.avatar_url || null
+          }
+          setUsers([currentUserData, ...data])
+        } else {
+          setUsers(data || [])
+        }
       }
     } catch (err) {
       console.error('Error:', err)

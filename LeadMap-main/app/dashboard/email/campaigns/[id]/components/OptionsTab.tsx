@@ -215,11 +215,17 @@ export default function OptionsTab({
       const userData = {
         id: user.id,
         email: user.email || '',
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User'
+        name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
       }
       
       setUsers([userData])
       setCurrentUserId(user.id)
+      
+      // If owner_id is not set, default to current user
+      if (!options.owner_id) {
+        setOptions(prev => ({ ...prev, owner_id: user.id }))
+        handleImmediateSave({ owner_id: user.id })
+      }
     } catch (error) {
       console.error('Error fetching users:', error)
       setUsers([])
@@ -736,7 +742,7 @@ export default function OptionsTab({
                   <option value="">No owner</option>
                   {users.map((user) => (
                     <option key={user.id} value={user.id}>
-                      {user.email || user.name || `User ${user.id.slice(0, 8)}`}
+                      {user.name || user.email || `User ${user.id.slice(0, 8)}`}
                     </option>
                   ))}
                 </select>

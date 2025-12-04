@@ -94,12 +94,20 @@ const MapComponent: React.FC<{
     };
   };
 
+  // Retry state for waiting for Google Maps API
+  const [mapInitAttempt, setMapInitAttempt] = useState(0);
+
   useEffect(() => {
     if (!mapRef.current || isInitializedRef.current || map) return;
     
-    // Check if google.maps is available
+    // ✅ Safety: only proceed once Maps JS is loaded
     if (typeof window === 'undefined' || !window.google || !window.google.maps) {
-      console.error('Google Maps API not loaded');
+      // Try again in 200ms, but cap the number of attempts (20 attempts = 4 seconds max)
+      if (mapInitAttempt < 20) {
+        const id = window.setTimeout(() => setMapInitAttempt(a => a + 1), 200);
+        return () => window.clearTimeout(id);
+      }
+      console.error('Google Maps API not available after waiting');
       if (onErrorRef.current) {
         setTimeout(() => onErrorRef.current?.(), 100);
       }
@@ -116,7 +124,7 @@ const MapComponent: React.FC<{
         }
       }, 15000); // 15 second timeout - give more time for API to load
 
-      const mapInstance = new google.maps.Map(mapRef.current, {
+      const mapInstance = new window.google.maps.Map(mapRef.current, {
         center: { lat: 28.5383, lng: -81.3792 },
         zoom: 10,
         streetViewControl: true, // Enable Street View Pegman control
@@ -137,7 +145,7 @@ const MapComponent: React.FC<{
       // Handle map resize when container becomes visible
       const handleResize = () => {
         if (mapInstance) {
-          google.maps.event.trigger(mapInstance, 'resize')
+          window.google.maps.event.trigger(mapInstance, 'resize')
         }
       }
 
@@ -167,7 +175,7 @@ const MapComponent: React.FC<{
         initTimeoutRef.current = null;
       }
       
-      const infoWindowInstance = new google.maps.InfoWindow();
+      const infoWindowInstance = new window.google.maps.InfoWindow();
       setInfoWindow(infoWindowInstance);
       
       mapInstance.addListener('click', () => {
@@ -195,8 +203,7 @@ const MapComponent: React.FC<{
         clearTimeout(initTimeoutRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [map, mapInitAttempt]);
 
   useEffect(() => {
     if (!map || !leads.length) return;
@@ -207,7 +214,7 @@ const MapComponent: React.FC<{
 
     leads.forEach((lead) => {
       if (lead.latitude && lead.longitude) {
-        const marker = new google.maps.Marker({
+        const marker = new window.google.maps.Marker({
           position: { lat: lead.latitude, lng: lead.longitude },
           map: map,
           title: `${lead.address}, ${lead.city}, ${lead.state}`,
@@ -279,7 +286,7 @@ const MapComponent: React.FC<{
             infoWindow.open(map, marker);
             
             // Add event listener to Street View button after info window is open
-            google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+            window.google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
               const btn = document.getElementById(`street-view-btn-${lead.id}`);
               if (btn) {
                 btn.addEventListener('click', () => {

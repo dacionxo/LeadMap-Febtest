@@ -1368,16 +1368,24 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [apiReadyAttempt, setApiReadyAttempt] = useState(0)
 
   useEffect(() => {
     if (!listing || !panoramaRef.current) return
 
-    // Check if Google Maps is loaded
+    // ✅ Ensure Maps JS is ready - retry if not available yet
     if (typeof window === 'undefined' || !window.google?.maps) {
+      // Try again in 200ms, but cap the number of attempts (20 attempts = 4 seconds max)
+      if (apiReadyAttempt < 20) {
+        const id = window.setTimeout(() => setApiReadyAttempt(a => a + 1), 200)
+        return () => window.clearTimeout(id)
+      }
       setError('Google Maps API not loaded')
       setIsLoading(false)
       return
     }
+
+    let cancelled = false
 
     const initializeStreetView = async () => {
       try {
@@ -1421,9 +1429,11 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
           return
         }
 
+        if (cancelled || !panoramaRef.current) return
+
         // Create or update Street View panorama
         if (!panoramaInstanceRef.current) {
-          panoramaInstanceRef.current = new google.maps.StreetViewPanorama(panoramaRef.current, {
+          panoramaInstanceRef.current = new window.google.maps.StreetViewPanorama(panoramaRef.current, {
             position,
             pov: { heading: 0, pitch: 0 },
             zoom: 1,
@@ -1436,7 +1446,7 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
           })
 
           // Listen for panorama status changes
-          google.maps.event.addListener(panoramaInstanceRef.current, 'status_changed', () => {
+          window.google.maps.event.addListener(panoramaInstanceRef.current, 'status_changed', () => {
             const status = panoramaInstanceRef.current?.getStatus()
             if (status === 'OK') {
               setIsLoading(false)
@@ -1456,10 +1466,12 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
           panoramaInstanceRef.current.setPosition(position)
           setIsLoading(false)
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error initializing Street View:', err)
-        setError('Failed to load Street View')
-        setIsLoading(false)
+        if (!cancelled) {
+          setError(err.message || 'Failed to load Street View')
+          setIsLoading(false)
+        }
       }
     }
 
@@ -1469,18 +1481,20 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
     }, 100)
 
     return () => {
+      cancelled = true
       clearTimeout(timer)
       if (panoramaInstanceRef.current) {
-        google.maps.event.clearInstanceListeners(panoramaInstanceRef.current)
+        window.google.maps.event.clearInstanceListeners(panoramaInstanceRef.current)
+        panoramaInstanceRef.current.setVisible(false)
       }
     }
-  }, [listing?.listing_id, listing?.lat, listing?.lng, listing?.street, listing?.city, listing?.state, listing?.zip_code])
+  }, [listing?.listing_id, listing?.lat, listing?.lng, listing?.street, listing?.city, listing?.state, listing?.zip_code, apiReadyAttempt])
 
   // Fallback to static image if Street View fails
   if (error && listing) {
     const lat = listing.lat ? Number(listing.lat) : null
     const lng = listing.lng ? Number(listing.lng) : null
-    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyCZ0i53LQCnvju3gZYXW5ZQe_IfgWBDM9M'
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     
     if (lat && lng && googleMapsApiKey) {
       const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=640x480&markers=color:red%7C${lat},${lng}&key=${googleMapsApiKey}`

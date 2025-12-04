@@ -1776,7 +1776,7 @@ function ComposeEmailModal({
                 <option value="">Select a template...</option>
                 {templates.map((template) => (
                   <option key={template.id} value={template.id}>
-                    {template.name}
+                    {template.title}
                   </option>
                 ))}
               </select>

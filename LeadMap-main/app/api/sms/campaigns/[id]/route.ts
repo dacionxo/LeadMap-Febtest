@@ -12,9 +12,10 @@ import { cookies } from 'next/headers'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -26,7 +27,7 @@ export async function GET(
     const { data: campaign, error } = await supabase
       .from('sms_campaigns')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
@@ -38,14 +39,14 @@ export async function GET(
     const { data: steps } = await supabase
       .from('sms_campaign_steps')
       .select('*')
-      .eq('campaign_id', params.id)
+      .eq('campaign_id', id)
       .order('step_order', { ascending: true })
 
     // Get enrollment count
     const { count: enrollmentCount } = await supabase
       .from('sms_campaign_enrollments')
       .select('*', { count: 'exact', head: true })
-      .eq('campaign_id', params.id)
+      .eq('campaign_id', id)
 
     return NextResponse.json({
       campaign: {
@@ -62,9 +63,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -80,7 +82,7 @@ export async function PATCH(
     const { data: existing } = await supabase
       .from('sms_campaigns')
       .select('id')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
@@ -97,7 +99,7 @@ export async function PATCH(
     const { data: campaign, error } = await supabase
       .from('sms_campaigns')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select('*')
       .single()
 
@@ -115,9 +117,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -130,7 +133,7 @@ export async function DELETE(
     const { data: existing } = await supabase
       .from('sms_campaigns')
       .select('id')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
@@ -142,7 +145,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('sms_campaigns')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       console.error('Campaign delete error:', error)

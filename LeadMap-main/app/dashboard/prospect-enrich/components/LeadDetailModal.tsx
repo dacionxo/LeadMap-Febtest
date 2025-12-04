@@ -1475,14 +1475,11 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
       }
     }
 
-    // Small delay to ensure container is visible
-    const timer = setTimeout(() => {
-      initializeStreetView()
-    }, 100)
+    // Start initialization immediately (no delay needed if container is already visible)
+    initializeStreetView()
 
     return () => {
       cancelled = true
-      clearTimeout(timer)
       if (panoramaInstanceRef.current) {
         window.google.maps.event.clearInstanceListeners(panoramaInstanceRef.current)
         panoramaInstanceRef.current.setVisible(false)

@@ -11,9 +11,10 @@ import { getOrCreateConversationForLead } from '@/lib/twilio'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -26,7 +27,7 @@ export async function POST(
     const { data: campaign } = await supabase
       .from('sms_campaigns')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
@@ -87,7 +88,7 @@ export async function POST(
     const { data: existingEnrollment } = await supabase
       .from('sms_campaign_enrollments')
       .select('id')
-      .eq('campaign_id', params.id)
+      .eq('campaign_id', id)
       .eq('conversation_id', convoRow.id)
       .maybeSingle()
 
@@ -102,7 +103,7 @@ export async function POST(
     const { data: firstStep } = await supabase
       .from('sms_campaign_steps')
       .select('*')
-      .eq('campaign_id', params.id)
+      .eq('campaign_id', id)
       .eq('step_order', 1)
       .single()
 
@@ -114,7 +115,7 @@ export async function POST(
     const { data: enrollment, error } = await supabase
       .from('sms_campaign_enrollments')
       .insert({
-        campaign_id: params.id,
+        campaign_id: id,
         conversation_id: convoRow.id,
         user_id: user.id,
         listing_id: listingId || convoRow.listing_id,
@@ -135,7 +136,7 @@ export async function POST(
     await supabase.from('sms_events').insert({
       event_type: 'campaign_started',
       user_id: user.id,
-      campaign_id: params.id,
+      campaign_id: id,
       conversation_id: convoRow.id,
       occurred_at: new Date().toISOString(),
       details: { enrollment_id: enrollment.id }

@@ -226,7 +226,7 @@ const MapComponent: React.FC<{
       }
     });
 
-    // Create markers for leads with coordinates (fast path)
+    // Create markers for leads with coordinates (fast path - instant rendering)
     leadsWithCoords.forEach((lead) => {
       const marker = new window.google.maps.Marker({
         position: { lat: lead.latitude!, lng: lead.longitude! },
@@ -235,7 +235,7 @@ const MapComponent: React.FC<{
         icon: getMarkerIcon(lead)
       });
 
-        marker.addListener('click', () => {
+      marker.addListener('click', () => {
           if (infoWindow) {
             infoWindow.close();
           }
@@ -309,11 +309,130 @@ const MapComponent: React.FC<{
               }
             });
           }
-        });
+      });
 
-        newMarkers.push(marker);
-      }
+      newMarkers.push(marker);
     });
+
+    // Geocode leads without coordinates (fallback - only if needed)
+    if (leadsNeedingGeocode.length > 0 && typeof window !== 'undefined' && window.google?.maps) {
+      // Use a small batch to avoid overwhelming the geocoding API
+      const batchSize = 5;
+      const batch = leadsNeedingGeocode.slice(0, batchSize);
+
+      batch.forEach(async (lead) => {
+        try {
+          const address = [lead.address, lead.city, lead.state, lead.zip]
+            .filter(Boolean)
+            .join(', ');
+
+          if (!address) return;
+
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ address }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              const location = results[0].geometry.location;
+              const marker = new window.google.maps.Marker({
+                position: { lat: location.lat(), lng: location.lng() },
+                map: map,
+                title: `${lead.address}, ${lead.city}, ${lead.state}`,
+                icon: getMarkerIcon(lead)
+              });
+
+              // Add click listener (same as above)
+              marker.addListener('click', () => {
+                if (infoWindow) {
+                  infoWindow.close();
+                }
+                
+                const addressStr = [lead.address, lead.city, lead.state, lead.zip]
+                  .filter(Boolean)
+                  .join(', ');
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.style.padding = '8px';
+                contentDiv.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                contentDiv.style.maxWidth = '300px';
+                
+                contentDiv.innerHTML = `
+                  <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px; font-weight: 600;">
+                    ${lead.address || 'Address not available'}
+                  </h3>
+                  <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 14px;">
+                    ${lead.city}, ${lead.state} ${lead.zip || ''}
+                  </p>
+                  <div style="display: flex; gap: 12px; margin: 8px 0;">
+                    <div>
+                      <span style="color: #059669; font-weight: bold; font-size: 18px;">
+                        $${lead.price.toLocaleString()}
+                      </span>
+                      ${lead.price_drop_percent > 0 ? `
+                        <span style="color: #dc2626; font-size: 14px; margin-left: 4px;">
+                          (${lead.price_drop_percent.toFixed(1)}% off)
+                        </span>
+                      ` : ''}
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 12px; margin: 8px 0; font-size: 14px; color: #6b7280;">
+                    ${lead.beds ? `<span>${lead.beds} bed${lead.beds !== 1 ? 's' : ''}</span>` : ''}
+                    ${lead.sqft ? `<span>${lead.sqft.toLocaleString()} sqft</span>` : ''}
+                    ${lead.year_built ? `<span>Built ${lead.year_built}</span>` : ''}
+                  </div>
+                  ${lead.days_on_market > 0 ? `
+                    <p style="margin: 4px 0 0 0; color: #f59e0b; font-size: 14px;">
+                      ${lead.days_on_market} days on market
+                    </p>
+                  ` : ''}
+                  <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <a href="${lead.url}" target="_blank" rel="noopener noreferrer" 
+                       style="display: inline-block; background: #3b82f6; color: white; 
+                              padding: 6px 12px; border-radius: 4px; text-decoration: none; 
+                              font-size: 14px; font-weight: 500;">
+                      View Property
+                    </a>
+                    <button id="street-view-btn-geocode-${lead.id}"
+                       style="background: #10b981; color: white; border: none;
+                              padding: 6px 12px; border-radius: 4px; cursor: pointer; 
+                              font-size: 14px; font-weight: 500;">
+                      Street View
+                    </button>
+                  </div>
+                `;
+                
+                if (infoWindow) {
+                  infoWindow.setContent(contentDiv);
+                  infoWindow.open(map, marker);
+                  
+                  window.google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+                    const btn = document.getElementById(`street-view-btn-geocode-${lead.id}`);
+                    if (btn) {
+                      btn.addEventListener('click', () => {
+                        onStreetViewClick(lead);
+                      });
+                    }
+                  });
+                }
+              });
+
+              newMarkers.push(marker);
+              setMarkers([...newMarkers]);
+
+              // Update bounds when new marker is added
+              if (newMarkers.length > 0 && map) {
+                const bounds = new window.google.maps.LatLngBounds();
+                newMarkers.forEach(m => {
+                  const pos = m.getPosition();
+                  if (pos) bounds.extend(pos);
+                });
+                map.fitBounds(bounds);
+              }
+            }
+          });
+        } catch (error) {
+          console.warn(`Failed to geocode ${lead.address}:`, error);
+        }
+      });
+    }
 
     setMarkers(newMarkers);
 

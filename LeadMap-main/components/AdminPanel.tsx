@@ -1,15 +1,54 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Upload, Download, Trash2, CheckCircle, AlertCircle, FileText, Plus, Edit, X } from 'lucide-react'
+import { Upload, Download, Trash2, CheckCircle, AlertCircle, FileText, Plus, Edit, X, BarChart3 } from 'lucide-react'
 import { listEmailTemplates, createEmailTemplate, updateEmailTemplate, deleteEmailTemplate, uploadProbateLeads } from '@/lib/api'
 import type { EmailTemplate } from '@/types'
 import { parse } from 'csv-parse/sync'
+import dynamic from 'next/dynamic'
+
+// Dynamically import analytics component to avoid SSR issues with recharts
+const ProspectAnalytics = dynamic(() => import('../app/dashboard/prospect-enrich/components/ProspectAnalytics'), { 
+  ssr: false,
+  loading: () => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '48px',
+      color: '#6b7280'
+    }}>
+      Loading analytics...
+    </div>
+  )
+})
 
 interface UploadResult {
   success: boolean
   message: string
   count?: number
+}
+
+interface Listing {
+  listing_id: string
+  property_url?: string | null
+  street?: string | null
+  city?: string | null
+  state?: string | null
+  zip_code?: string | null
+  list_price?: number | null
+  beds?: number | null
+  full_baths?: number | null
+  sqft?: number | null
+  status?: string | null
+  active?: boolean
+  ai_investment_score?: number | null
+  agent_email?: string | null
+  agent_phone?: string | null
+  agent_name?: string | null
+  created_at?: string
+  updated_at?: string
+  [key: string]: any
 }
 
 export default function AdminPanel() {
@@ -29,6 +68,11 @@ export default function AdminPanel() {
   const [probateFile, setProbateFile] = useState<File | null>(null)
   const [probateUploading, setProbateUploading] = useState(false)
   const probateFileInputRef = useRef<HTMLInputElement>(null)
+
+  // Database Analytics state
+  const [activeTab, setActiveTab] = useState<'upload' | 'templates' | 'probate' | 'analytics'>('upload')
+  const [analyticsListings, setAnalyticsListings] = useState<Listing[]>([])
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -90,6 +134,60 @@ export default function AdminPanel() {
   useEffect(() => {
     loadTemplates()
   }, [])
+
+  // Fetch listings for analytics
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      if (activeTab !== 'analytics') return
+      
+      setAnalyticsLoading(true)
+      try {
+        // Fetch from all listing tables
+        const tables = [
+          'listings',
+          'expired_listings',
+          'probate_leads',
+          'fsbo_leads',
+          'frbo_leads',
+          'imports',
+          'trash',
+          'foreclosure_listings'
+        ]
+
+        const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+        const supabase = createClientComponentClient()
+
+        const allListings: Listing[] = []
+        for (const table of tables) {
+          try {
+            const { data, error } = await supabase
+              .from(table)
+              .select('*')
+              .limit(1000) // Limit per table to prevent memory issues
+            
+            if (!error && data) {
+              allListings.push(...data)
+            }
+          } catch (e) {
+            console.warn(`Error fetching from ${table}:`, e)
+          }
+        }
+
+        // Deduplicate by listing_id
+        const uniqueListings = Array.from(
+          new Map(allListings.map(item => [item.listing_id, item])).values()
+        )
+
+        setAnalyticsListings(uniqueListings)
+      } catch (error) {
+        console.error('Error fetching analytics data:', error)
+      } finally {
+        setAnalyticsLoading(false)
+      }
+    }
+
+    fetchAnalyticsData()
+  }, [activeTab])
 
   const loadTemplates = async () => {
     setTemplatesLoading(true)
@@ -197,15 +295,64 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
-          <p className="text-gray-400">Upload CSV files to manage property leads</p>
+          <p className="text-gray-400">Manage property leads, templates, and view analytics</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Upload Section */}
-          <div className="card">
+        {/* Tab Navigation */}
+        <div className="mb-6 border-b border-gray-700">
+          <nav className="flex space-x-1">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === 'upload'
+                  ? 'border-blue-500 text-blue-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+              }`}
+            >
+              Upload Leads
+            </button>
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === 'templates'
+                  ? 'border-blue-500 text-blue-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+              }`}
+            >
+              Email Templates
+            </button>
+            <button
+              onClick={() => setActiveTab('probate')}
+              className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === 'probate'
+                  ? 'border-blue-500 text-blue-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+              }`}
+            >
+              Probate Upload
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'analytics'
+                  ? 'border-blue-500 text-blue-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Database Analytics
+            </button>
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'upload' && (
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Upload Section */}
+            <div className="card">
             <h2 className="text-xl font-semibold text-white mb-4">Upload Leads</h2>
             
             <div className="space-y-4">
@@ -329,76 +476,78 @@ export default function AdminPanel() {
             </div>
           </div>
         </div>
+        )}
 
-        {/* Email Templates Section */}
-        <div className="mt-8">
-          <div className="card">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-white">Email Templates</h2>
-              <button
-                onClick={() => {
-                  setEditingTemplate(null)
-                  setTemplateForm({ title: '', body: '', category: '' })
-                  setShowTemplateModal(true)
-                }}
-                className="btn-primary flex items-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Template
-              </button>
+        {activeTab === 'templates' && (
+          <div>
+            <div className="card">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-white">Email Templates</h2>
+                <button
+                  onClick={() => {
+                    setEditingTemplate(null)
+                    setTemplateForm({ title: '', body: '', category: '' })
+                    setShowTemplateModal(true)
+                  }}
+                  className="btn-primary flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Template
+                </button>
+              </div>
+
+              {templatesLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading templates...</p>
+                </div>
+              ) : templates.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400">No email templates yet</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Create your first template to get started
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {templates.map((template) => (
+                    <div key={template.id} className="flex items-start justify-between p-3 bg-gray-800 rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="text-white font-medium">{template.title}</h3>
+                        <p className="text-sm text-gray-400 mt-1">
+                          {template.category || 'Uncategorized'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                          {template.body}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2 ml-4">
+                        <button
+                          onClick={() => handleEditTemplate(template)}
+                          className="p-2 text-blue-500 hover:bg-blue-900/20 rounded transition-colors"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTemplate(template.id)}
+                          className="p-2 text-red-500 hover:bg-red-900/20 rounded transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-
-            {templatesLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading templates...</p>
-              </div>
-            ) : templates.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">No email templates yet</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Create your first template to get started
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {templates.map((template) => (
-                  <div key={template.id} className="flex items-start justify-between p-3 bg-gray-800 rounded-lg">
-                    <div className="flex-1">
-                      <h3 className="text-white font-medium">{template.title}</h3>
-                      <p className="text-sm text-gray-400 mt-1">
-                        {template.category || 'Uncategorized'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-                        {template.body}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2 ml-4">
-                      <button
-                        onClick={() => handleEditTemplate(template)}
-                        className="p-2 text-blue-500 hover:bg-blue-900/20 rounded transition-colors"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTemplate(template.id)}
-                        className="p-2 text-red-500 hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
-        </div>
+        )}
 
-        {/* Probate Upload Section */}
-        <div className="mt-8">
-          <div className="card">
-            <h2 className="text-xl font-semibold text-white mb-4">Probate Leads Upload</h2>
+        {activeTab === 'probate' && (
+          <div>
+            <div className="card">
+              <h2 className="text-xl font-semibold text-white mb-4">Probate Leads Upload</h2>
             
             <div className="space-y-4">
               <div>
@@ -447,7 +596,28 @@ export default function AdminPanel() {
               </button>
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div>
+            <div className="card">
+              <h2 className="text-xl font-semibold text-white mb-4">Database Analytics</h2>
+              <p className="text-sm text-gray-400 mb-6">
+                Comprehensive analytics across all property listings in the database
+              </p>
+              {analyticsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading analytics data...</p>
+                </div>
+              ) : (
+                <div style={{ minHeight: '600px' }}>
+                  <ProspectAnalytics listings={analyticsListings} loading={analyticsLoading} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Template Modal */}
         {showTemplateModal && (

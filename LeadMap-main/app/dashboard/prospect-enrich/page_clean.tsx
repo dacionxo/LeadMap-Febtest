@@ -100,6 +100,11 @@ interface Listing {
   created_at?: string
   updated_at?: string
   in_crm?: boolean
+  text?: string | null
+  last_sale_price?: number | null
+  last_sale_date?: string | null
+  lat?: number | null
+  lng?: number | null
 }
 
 type FilterType = 'all' | 'expired' | 'probate' | 'geo' | 'enriched' | 'listings' | 'high_value' | 'price_drop' | 'new_listings'
@@ -145,28 +150,61 @@ interface MapLead {
 
 // Helper function to transform Listing to MapLead
 function transformListingToLead(listing: Listing): MapLead {
+  // Calculate price drop percentage
+  let priceDropPercent = 0
+  if (listing.list_price_min && listing.list_price && listing.list_price_min > listing.list_price) {
+    priceDropPercent = ((listing.list_price_min - listing.list_price) / listing.list_price_min) * 100
+  }
+
+  // Calculate days on market
+  let daysOnMarket = 0
+  if (listing.time_listed) {
+    daysOnMarket = parseInt(listing.time_listed) || 0
+  } else if (listing.created_at) {
+    const createdDate = new Date(listing.created_at)
+    const now = new Date()
+    daysOnMarket = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  // Extract primary photo from photos_json if available
+  let primaryPhoto: string | undefined = undefined
+  if (listing.photos_json && Array.isArray(listing.photos_json) && listing.photos_json.length > 0) {
+    primaryPhoto = listing.photos_json[0]
+  } else if (listing.photos) {
+    // Try to parse photos string if it's JSON
+    try {
+      const parsed = JSON.parse(listing.photos)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        primaryPhoto = parsed[0]
+      }
+    } catch {
+      // If not JSON, use as-is if it's a single URL
+      primaryPhoto = listing.photos
+    }
+  }
+
   return {
-    id: listing.listing_id,
+    id: listing.listing_id || listing.property_url || '',
     address: listing.street || '',
     city: listing.city || '',
     state: listing.state || '',
     zip: listing.zip_code || '',
     price: listing.list_price || 0,
-    price_drop_percent: 0,
-    days_on_market: 0,
-    url: listing.property_url || '',
-    latitude: undefined,
-    longitude: undefined,
+    price_drop_percent: priceDropPercent,
+    days_on_market: daysOnMarket,
+    url: listing.property_url || listing.permalink || '',
+    latitude: listing.lat ? Number(listing.lat) : undefined,
+    longitude: listing.lng ? Number(listing.lng) : undefined,
     property_type: undefined,
     beds: listing.beds ?? undefined,
     sqft: listing.sqft ?? undefined,
     year_built: listing.year_built ?? undefined,
-    description: undefined,
+    description: listing.text || undefined,
     agent_name: listing.agent_name ?? undefined,
     agent_email: listing.agent_email ?? undefined,
-    primary_photo: undefined,
+    primary_photo: primaryPhoto,
     expired: !listing.active,
-    geo_source: null,
+    geo_source: listing.listing_source_name || null,
     owner_email: undefined,
     enrichment_confidence: null
   }

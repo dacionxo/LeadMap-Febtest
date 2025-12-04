@@ -22,23 +22,6 @@ import VirtualizedListingsTable from './components/VirtualizedListingsTable'
 import AddToListModal from './components/AddToListModal'
 import AddToCampaignModal from './components/AddToCampaignModal'
 import { useProspectData, Listing, FilterType, getPrimaryCategory } from './hooks/useProspectData'
-import dynamic from 'next/dynamic'
-
-// Dynamically import analytics component to avoid SSR issues with recharts
-const ProspectAnalytics = dynamic(() => import('./components/ProspectAnalytics'), { 
-  ssr: false,
-  loading: () => (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 'var(--spacing-xxl)',
-      color: 'var(--color-ui-text-base-tertiary)'
-    }}>
-      Loading analytics...
-    </div>
-  )
-})
 import { postEnrichLeads } from '@/lib/api'
 import { 
   Search, 
@@ -103,7 +86,7 @@ function ProspectEnrichInner() {
   const [selectedFilters, setSelectedFilters] = useState<Set<FilterType>>(new Set<FilterType>(['all']))
   const [apolloFilters, setApolloFilters] = useState<Record<string, any>>({})
   const [filtersVisible, setFiltersVisible] = useState(true)
-  const [viewTypeSelector, setViewTypeSelector] = useState<'database_analytics' | 'table' | 'cards' | 'map'>('table')
+  const [viewTypeSelector, setViewTypeSelector] = useState<'table' | 'map'>('table')
   const [sortBy, setSortBy] = useState('relevance')
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -150,6 +133,20 @@ function ProspectEnrichInner() {
 
   const activeCategory = useMemo(() => getPrimaryCategory(selectedFilters), [selectedFilters])
   
+  // Calculate filter counts - fetch from separate tables
+  const [filterCounts, setFilterCounts] = useState<Record<FilterType, number>>({
+    all: 0,
+    expired: 0,
+    probate: 0,
+    fsbo: 0,
+    frbo: 0,
+    imports: 0,
+    trash: 0,
+    foreclosure: 0,
+    high_value: 0,
+    price_drop: 0,
+    new_listings: 0
+  })
   
   // Resolve table name using the hook's logic
   const resolvedTableName = useMemo(() => {
@@ -166,18 +163,35 @@ function ProspectEnrichInner() {
            isNotAllCategory
   }, [useVirtualizedTable, viewTypeSelector, activeCategory])
 
-  // Market Segments (Apollo.io style)
-  const marketSegments = [
-    { key: 'all', label: 'All Prospects', count: 0 },
-    { key: 'expired', label: 'Expired Listings', count: 0 },
-    { key: 'probate', label: 'Probate Leads', count: 0 },
-    { key: 'geo', label: 'Geo Leads', count: 0 },
-    { key: 'enriched', label: 'Enriched', count: 0 },
-    { key: 'listings', label: 'Active Listings', count: 0 },
-    { key: 'high_value', label: 'High Value', count: 0 },
-    { key: 'price_drop', label: 'Price Drops', count: 0 },
-    { key: 'new_listings', label: 'New Listings', count: 0 }
-  ]
+  // Market Segments (Apollo.io style) - only include valid FilterType values
+  const marketSegments = useMemo(() => {
+    const counts = filterCounts || {
+      all: 0,
+      expired: 0,
+      probate: 0,
+      fsbo: 0,
+      frbo: 0,
+      imports: 0,
+      trash: 0,
+      foreclosure: 0,
+      high_value: 0,
+      price_drop: 0,
+      new_listings: 0
+    }
+    return [
+      { key: 'all' as FilterType, label: 'All Prospects', count: counts.all || 0 },
+      { key: 'expired' as FilterType, label: 'Expired Listings', count: counts.expired || 0 },
+      { key: 'probate' as FilterType, label: 'Probate Leads', count: counts.probate || 0 },
+      { key: 'fsbo' as FilterType, label: 'FSBO Leads', count: counts.fsbo || 0 },
+      { key: 'frbo' as FilterType, label: 'FRBO Leads', count: counts.frbo || 0 },
+      { key: 'imports' as FilterType, label: 'Imports', count: counts.imports || 0 },
+      { key: 'trash' as FilterType, label: 'Trash', count: counts.trash || 0 },
+      { key: 'foreclosure' as FilterType, label: 'Foreclosure', count: counts.foreclosure || 0 },
+      { key: 'high_value' as FilterType, label: 'High Value', count: counts.high_value || 0 },
+      { key: 'price_drop' as FilterType, label: 'Price Drops', count: counts.price_drop || 0 },
+      { key: 'new_listings' as FilterType, label: 'New Listings', count: counts.new_listings || 0 }
+    ]
+  }, [filterCounts])
 
   const handleEnrich = async (listingId: string) => {
     try {
@@ -475,20 +489,180 @@ function ProspectEnrichInner() {
     setSelectedIds(new Set())
   }, [viewType])
 
+  // Sync search term to URL (only if not from URL itself)
+  useEffect(() => {
+    const searchParam = searchParams.get('search')
+    // Only update URL if the search term differs from URL param (to avoid loops)
+    if (searchTerm !== (searchParam || '')) {
+      updateUrlParams(selectedFilters, searchTerm, viewTypeSelector, sortBy, currentPage, apolloFilters)
+    }
+  }, [searchTerm, selectedFilters, viewTypeSelector, sortBy, currentPage, apolloFilters, updateUrlParams, searchParams])
+
+  // Sync sort to URL
+  useEffect(() => {
+    const sortParam = searchParams.get('sort')
+    if (sortBy !== (sortParam || 'relevance')) {
+      updateUrlParams(selectedFilters, searchTerm, viewTypeSelector, sortBy, currentPage, apolloFilters)
+    }
+  }, [sortBy, selectedFilters, searchTerm, viewTypeSelector, currentPage, apolloFilters, updateUrlParams, searchParams])
+
+  // Sync page to URL
+  useEffect(() => {
+    const pageParam = searchParams.get('page')
+    const pageNum = pageParam ? parseInt(pageParam, 10) : 1
+    if (currentPage !== pageNum) {
+      updateUrlParams(selectedFilters, searchTerm, viewTypeSelector, sortBy, currentPage, apolloFilters)
+    }
+  }, [currentPage, selectedFilters, searchTerm, viewTypeSelector, sortBy, apolloFilters, updateUrlParams, searchParams])
+
+  // Sync view type to URL
+  useEffect(() => {
+    const viewParam = searchParams.get('view')
+    if (viewTypeSelector !== (viewParam || 'table')) {
+      updateUrlParams(selectedFilters, searchTerm, viewTypeSelector, sortBy, currentPage, apolloFilters)
+    }
+  }, [viewTypeSelector, selectedFilters, searchTerm, sortBy, currentPage, apolloFilters, updateUrlParams, searchParams])
+
+  // Sync Apollo filters to URL (debounced to avoid too many updates)
+  useEffect(() => {
+    const apolloParam = searchParams.get('apollo')
+    let currentApollo: Record<string, any> = {}
+    try {
+      if (apolloParam) {
+        currentApollo = JSON.parse(apolloParam)
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+    
+    // Only update if filters actually changed
+    const apolloStr = JSON.stringify(apolloFilters)
+    const currentApolloStr = JSON.stringify(currentApollo)
+    if (apolloStr !== currentApolloStr) {
+      const timeoutId = setTimeout(() => {
+        updateUrlParams(selectedFilters, searchTerm, viewTypeSelector, sortBy, currentPage, apolloFilters)
+      }, 300) // Debounce by 300ms
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [apolloFilters, selectedFilters, searchTerm, viewTypeSelector, sortBy, currentPage, updateUrlParams, searchParams])
+
+  // Parse all URL params on mount and when they change
   useEffect(() => {
     try {
+      // Parse view
       const viewParam = searchParams.get('view')
-      if (viewParam === 'map') {
-        setViewTypeSelector('map')
+      if (viewParam && ['table', 'map'].includes(viewParam)) {
+        setViewTypeSelector(viewParam as 'table' | 'map')
       }
+      
+      // Parse search
       const searchParam = searchParams.get('search')
-      if (searchParam) {
+      if (searchParam !== null) {
         setSearchTerm(searchParam)
+      }
+      
+      // Parse sort
+      const sortParam = searchParams.get('sort')
+      if (sortParam) {
+        setSortBy(sortParam)
+      }
+      
+      // Parse page
+      const pageParam = searchParams.get('page')
+      if (pageParam) {
+        const pageNum = parseInt(pageParam, 10)
+        if (!isNaN(pageNum) && pageNum > 0) {
+          setCurrentPage(pageNum)
+        }
+      }
+      
+      // Parse Apollo filters
+      const apolloParam = searchParams.get('apollo')
+      if (apolloParam) {
+        try {
+          const parsed = JSON.parse(apolloParam)
+          if (typeof parsed === 'object' && parsed !== null) {
+            setApolloFilters(parsed)
+          }
+        } catch (e) {
+          console.warn('Failed to parse Apollo filters from URL:', e)
+        }
+      }
+      
+      // Parse meta filters
+      const metaParam = searchParams.get('meta')
+      if (metaParam) {
+        const metaFilters = metaParam.split(',').filter(f => 
+          ['high_value', 'price_drop', 'new_listings'].includes(f)
+        ) as FilterType[]
+        if (metaFilters.length > 0) {
+          setSelectedFilters(prev => {
+            const newSet = new Set(prev)
+            // Remove existing meta filters
+            newSet.delete('high_value')
+            newSet.delete('price_drop')
+            newSet.delete('new_listings')
+            // Add URL meta filters
+            metaFilters.forEach(f => newSet.add(f))
+            return newSet
+          })
+        }
       }
     } catch (error) {
       console.error('Error accessing search params:', error)
     }
   }, [searchParams])
+
+  // Helper to update URL params when filters change
+  const updateUrlParams = useCallback((filters: Set<FilterType>, search?: string, view?: string, sort?: string, page?: number, apolloFilters?: Record<string, any>) => {
+    const params = new URLSearchParams()
+    
+    // Add filter param (only if not 'all')
+    const primaryCategory = getPrimaryCategory(filters)
+    if (primaryCategory !== 'all') {
+      params.set('filter', primaryCategory)
+    }
+    
+    // Add meta filters
+    const metaFilters = Array.from(filters).filter(f => !['all', 'expired', 'probate', 'fsbo', 'frbo', 'imports', 'trash', 'foreclosure'].includes(f))
+    if (metaFilters.length > 0) {
+      params.set('meta', metaFilters.join(','))
+    }
+    
+    // Add search
+    if (search) {
+      params.set('search', search)
+    }
+    
+    // Add view
+    if (view) {
+      params.set('view', view)
+    }
+    
+    // Add sort
+    if (sort) {
+      params.set('sort', sort)
+    }
+    
+    // Add page
+    if (page && page > 1) {
+      params.set('page', page.toString())
+    }
+    
+    // Add Apollo filters (serialize to JSON for complex objects)
+    if (apolloFilters && Object.keys(apolloFilters).length > 0) {
+      try {
+        params.set('apollo', JSON.stringify(apolloFilters))
+      } catch (e) {
+        console.warn('Failed to serialize Apollo filters:', e)
+      }
+    }
+    
+    // Update URL without page reload
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`
+    router.replace(newUrl, { scroll: false })
+  }, [router])
 
   const toggleFilter = (filterKey: FilterType) => {
     setSelectedFilters(prev => {
@@ -533,11 +707,14 @@ function ProspectEnrichInner() {
         }
       }
       
+      // Update URL params
+      updateUrlParams(newSet, searchTerm, viewTypeSelector, sortBy, currentPage, apolloFilters)
+      
       return newSet
     })
   }
   
-  // Handle filter from URL query parameter - sync with URL
+  // Handle primary category filter from URL query parameter - sync with URL
   useEffect(() => {
     const filterParam = searchParams.get('filter')
     const validFilters: FilterType[] = ['expired', 'probate', 'fsbo', 'frbo', 'imports', 'trash', 'foreclosure']
@@ -545,14 +722,29 @@ function ProspectEnrichInner() {
     if (filterParam && validFilters.includes(filterParam as FilterType)) {
       // Set the filter from URL
       const filterType = filterParam as FilterType
-      if (!selectedFilters.has(filterType) || selectedFilters.size !== 1) {
-        setSelectedFilters(new Set<FilterType>([filterType]))
+      const currentPrimary = getPrimaryCategory(selectedFilters)
+      if (currentPrimary !== filterType) {
+        // Only update if different to avoid loops
+        setSelectedFilters(prev => {
+          const newSet = new Set<FilterType>()
+          newSet.add(filterType)
+          // Preserve meta filters from URL (handled in other useEffect)
+          return newSet
+        })
       }
-    } else if (!filterParam) {
-      // No filter in URL means "All Prospects"
-      if (!selectedFilters.has('all') || selectedFilters.size !== 1) {
-        setSelectedFilters(new Set<FilterType>(['all']))
-      }
+    } else if (!filterParam && getPrimaryCategory(selectedFilters) !== 'all') {
+      // No filter in URL means "All Prospects" - but only update if not already 'all'
+      // This prevents clearing meta filters that might be in URL
+      setSelectedFilters(prev => {
+        const newSet = new Set<FilterType>(['all'])
+        // Preserve meta filters
+        prev.forEach(f => {
+          if (['high_value', 'price_drop', 'new_listings'].includes(f)) {
+            newSet.add(f)
+          }
+        })
+        return newSet
+      })
     }
   }, [searchParams])
 
@@ -562,6 +754,11 @@ function ProspectEnrichInner() {
     setStatusFilter('all')
     setPriceRange({ min: '', max: '' })
     setSelectedIds(new Set())
+    setApolloFilters({})
+    setCurrentPage(1)
+    
+    // Clear URL params
+    router.replace(window.location.pathname, { scroll: false })
   }
 
   const handleExportCSV = () => {
@@ -595,24 +792,11 @@ function ProspectEnrichInner() {
     a.click()
   }
 
-  // Calculate filter counts - fetch from separate tables
-  const [filterCounts, setFilterCounts] = useState<Record<FilterType, number>>({
-    all: 0,
-    expired: 0,
-    probate: 0,
-    fsbo: 0,
-    frbo: 0,
-    imports: 0,
-    trash: 0,
-    foreclosure: 0,
-    high_value: 0,
-    price_drop: 0,
-    new_listings: 0
-  })
-
   // Fetch counts from each table separately to ensure accurate counts
   useEffect(() => {
     const fetchCounts = async () => {
+      if (!profile?.id) return
+      
       try {
         const counts: Record<FilterType, number> = {
           all: 0,
@@ -647,7 +831,7 @@ function ProspectEnrichInner() {
           }
         }))
         
-        // Calculate "all" count as sum of all category tables
+        // Calculate "all" count - deduplicate by listing_id to avoid double-counting
         const allTables = [
           DEFAULT_LISTINGS_TABLE,
           'expired_listings',
@@ -659,36 +843,55 @@ function ProspectEnrichInner() {
           'foreclosure_listings'
         ]
         
-        let allCount = 0
+        // Fetch all listing_ids from all tables and deduplicate
+        const allListingIds = new Set<string>()
         await Promise.all(allTables.map(async (tableName) => {
           try {
-            const { count } = await supabase
+            const { data } = await supabase
               .from(tableName)
-              .select('*', { count: 'exact', head: true })
-            allCount += count || 0
+              .select('listing_id')
+              .limit(100000) // Large limit to get all IDs
+            
+            if (data) {
+              data.forEach(item => {
+                if (item.listing_id) {
+                  allListingIds.add(item.listing_id)
+                }
+              })
+            }
           } catch (e) {
             // Table might not exist yet - ignore
-            console.warn(`Table ${tableName} not found or error counting:`, e)
+            console.warn(`Table ${tableName} not found or error fetching IDs:`, e)
           }
         }))
         
-        counts.all = allCount
+        counts.all = allListingIds.size
 
-        // Calculate high_value, price_drop, new_listings from listings table
-        const { data: listingsData } = await supabase
-          .from('listings')
-          .select('list_price, list_price_min, created_at')
+        // Calculate high_value, price_drop, new_listings from current category table
+        const currentCategory = getPrimaryCategory(selectedFilters)
+        const categoryTableName = getTableName(currentCategory)
         
-        if (listingsData) {
-          listingsData.forEach(listing => {
+        // For meta filters, calculate from the current category table, not just 'listings'
+        const { data: categoryData } = await supabase
+          .from(categoryTableName)
+          .select('list_price, list_price_min, created_at, updated_at')
+        
+        if (categoryData) {
+          const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000)
+          const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+          
+          categoryData.forEach(listing => {
             if ((listing.list_price || 0) >= 500000) counts.high_value++
             if (listing.list_price_min && listing.list_price) {
               const drop = ((listing.list_price_min - listing.list_price) / listing.list_price_min) * 100
               if (drop > 0) counts.price_drop++
             }
-            if (listing.created_at) {
-              const daysSince = (Date.now() - new Date(listing.created_at).getTime()) / (1000 * 60 * 60 * 24)
-              if (daysSince <= 7) counts.new_listings++
+            // Check both created_at and updated_at for new listings
+            const createdTime = listing.created_at ? new Date(listing.created_at).getTime() : 0
+            const updatedTime = listing.updated_at ? new Date(listing.updated_at).getTime() : 0
+            const mostRecentTime = Math.max(createdTime, updatedTime)
+            if (mostRecentTime > 0 && mostRecentTime >= sevenDaysAgo) {
+              counts.new_listings++
             }
           })
         }
@@ -700,7 +903,10 @@ function ProspectEnrichInner() {
     }
 
     fetchCounts()
-  }, [supabase, viewType])
+    // Refresh counts periodically (every 5 minutes) and on mount
+    const interval = setInterval(fetchCounts, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [supabase, profile?.id, selectedFilters, getTableName])
 
   // Apply Apollo filters
   const applyApolloFilters = useCallback((listings: Listing[]) => {
@@ -813,8 +1019,21 @@ function ProspectEnrichInner() {
       // Has agent phone
       if (apolloFilters.agent_phone && !listing.agent_phone) return false
 
-      // Enriched
-      if (apolloFilters.enriched && !(listing.agent_email || listing.agent_phone || listing.agent_name || listing.ai_investment_score)) return false
+      // Enriched - check for any enrichment data (agent info, AI score, or additional phone numbers)
+      if (apolloFilters.enriched) {
+        const hasEnrichment = !!(
+          listing.agent_email || 
+          listing.agent_phone || 
+          listing.agent_phone_2 ||
+          listing.listing_agent_phone_2 ||
+          listing.listing_agent_phone_5 ||
+          listing.agent_name || 
+          listing.ai_investment_score ||
+          listing.last_sale_price ||
+          listing.last_sale_date
+        )
+        if (!hasEnrichment) return false
+      }
 
       // High value
       if (apolloFilters.high_value && (listing.list_price || 0) < 500000) return false
@@ -843,14 +1062,19 @@ function ProspectEnrichInner() {
         sourceListings = allListings
         break
       case 'net_new': {
-        // Net new = listings created in last 30 days, excluding saved listings and listings in lists
+        // Net new = listings created or updated in last 30 days, excluding saved listings and listings in lists
         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000)
         sourceListings = listings.filter(l => {
-          // Must have created_at date
-          if (!l.created_at) return false
+          // Check both created_at and updated_at for "new to user" listings
+          const createdTime = l.created_at ? new Date(l.created_at).getTime() : 0
+          const updatedTime = l.updated_at ? new Date(l.updated_at).getTime() : 0
+          const mostRecentTime = Math.max(createdTime, updatedTime)
           
-          // Must be created in last 30 days
-          if (new Date(l.created_at).getTime() < thirtyDaysAgo) return false
+          // Must have at least one timestamp
+          if (mostRecentTime === 0) return false
+          
+          // Must be created or updated in last 30 days
+          if (mostRecentTime < thirtyDaysAgo) return false
           
           // Exclude saved listings (in CRM contacts)
           const sourceId = l.listing_id || l.property_url
@@ -1664,93 +1888,6 @@ function ProspectEnrichInner() {
             minWidth: 0
           }}>
 
-            {/* Database Analytics View */}
-            {viewTypeSelector === 'database_analytics' && (
-              <>
-                {/* Analytics/Insights Toggle */}
-                <div style={{
-                  padding: '12px 24px',
-                  borderBottom: '1px solid #e5e7eb',
-                  display: 'flex',
-                  gap: '8px',
-                  background: '#ffffff'
-                }}>
-                  <button
-                    onClick={() => setActiveView('analytics')}
-                    style={{
-                      padding: '8px 16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      background: activeView === 'analytics' ? '#6366f1' : '#ffffff',
-                      color: activeView === 'analytics' ? '#ffffff' : '#374151',
-                      cursor: 'pointer',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      fontSize: '14px',
-                      fontWeight: activeView === 'analytics' ? 500 : 400,
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeView !== 'analytics') {
-                        e.currentTarget.style.background = '#f9fafb'
-                        e.currentTarget.style.borderColor = '#9ca3af'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeView !== 'analytics') {
-                        e.currentTarget.style.background = '#ffffff'
-                        e.currentTarget.style.borderColor = '#d1d5db'
-                      }
-                    }}
-                  >
-                    Analytics
-                  </button>
-                  <button
-                    onClick={() => setActiveView('insights')}
-                    style={{
-                      padding: '8px 16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      background: activeView === 'insights' ? '#6366f1' : '#ffffff',
-                      color: activeView === 'insights' ? '#ffffff' : '#374151',
-                      cursor: 'pointer',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      fontSize: '14px',
-                      fontWeight: activeView === 'insights' ? 500 : 400,
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeView !== 'insights') {
-                        e.currentTarget.style.background = '#f9fafb'
-                        e.currentTarget.style.borderColor = '#9ca3af'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeView !== 'insights') {
-                        e.currentTarget.style.background = '#ffffff'
-                        e.currentTarget.style.borderColor = '#d1d5db'
-                      }
-                    }}
-                  >
-                    AI Insights
-                  </button>
-                </div>
-
-                {/* Analytics Content */}
-                {activeView === 'analytics' && (
-                  <div style={{ flex: 1, overflow: 'auto', padding: '24px', background: '#ffffff' }}>
-                    <ProspectAnalytics listings={filteredListings} loading={listingsLoading} />
-                  </div>
-                )}
-
-                {/* Insights Content */}
-                {activeView === 'insights' && (
-                  <div style={{ flex: 1, overflow: 'auto', padding: '24px', background: isDark ? '#0f172a' : '#ffffff' }}>
-                    <ProspectInsights listings={filteredListings} />
-                  </div>
-                )}
-              </>
-            )}
-
             {viewTypeSelector === 'map' && (
               <div style={{ flex: 1, overflow: 'hidden' }}>
                 <MapView 
@@ -1765,13 +1902,14 @@ function ProspectEnrichInner() {
                     price_drop_percent: l.list_price_min && l.list_price 
                       ? ((l.list_price_min - l.list_price) / l.list_price_min) * 100 
                       : 0,
-                    days_on_market: l.time_listed ? parseInt(l.time_listed) : 0,
+                    days_on_market: l.time_listed ? parseInt(l.time_listed) : (l.created_at ? Math.floor((Date.now() - new Date(l.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 0),
                     url: l.property_url || '',
                     latitude: l.lat ? Number(l.lat) : undefined,
                     longitude: l.lng ? Number(l.lng) : undefined,
                     beds: l.beds || undefined,
                     sqft: l.sqft || undefined,
                     year_built: l.year_built || undefined,
+                    description: l.text || undefined,
                     agent_name: l.agent_name || undefined,
                     agent_email: l.agent_email || undefined,
                     expired: l.status?.toLowerCase().includes('expired') || false,
@@ -1783,8 +1921,8 @@ function ProspectEnrichInner() {
               </div>
             )}
 
-            {/* Table/Cards View - Apollo.io Contact List */}
-            {(viewTypeSelector === 'table' || viewTypeSelector === 'cards') && (
+            {/* Table View - Apollo.io Contact List */}
+            {viewTypeSelector === 'table' && (
               <>
                 {/* Bulk Actions Bar - Shows when items are selected */}
                 {selectedIds.size > 0 && (

@@ -82,15 +82,31 @@ interface MapLead {
 
 // Helper function to transform Listing to MapLead
 function transformListingToLead(listing: Listing): MapLead {
+  // Calculate price drop percentage
+  let priceDropPercent = 0
+  if (listing.list_price_min && listing.list_price && listing.list_price_min > listing.list_price) {
+    priceDropPercent = ((listing.list_price_min - listing.list_price) / listing.list_price_min) * 100
+  }
+
+  // Calculate days on market
+  let daysOnMarket = 0
+  if (listing.time_listed) {
+    daysOnMarket = parseInt(listing.time_listed) || 0
+  } else if (listing.created_at) {
+    const createdDate = new Date(listing.created_at)
+    const now = new Date()
+    daysOnMarket = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
   return {
-    id: listing.listing_id,
+    id: listing.listing_id || listing.property_url || '',
     address: listing.street || 'Address not available',
     city: listing.city || '',
     state: listing.state || '',
     zip: listing.zip_code || '',
     price: listing.list_price || 0,
-    price_drop_percent: 0,
-    days_on_market: 0,
+    price_drop_percent: priceDropPercent,
+    days_on_market: daysOnMarket,
     url: listing.property_url || '',
     latitude: listing.lat ? Number(listing.lat) : undefined,
     longitude: listing.lng ? Number(listing.lng) : undefined,
@@ -98,12 +114,12 @@ function transformListingToLead(listing: Listing): MapLead {
     beds: listing.beds ?? undefined,
     sqft: listing.sqft ?? undefined,
     year_built: listing.year_built ?? undefined,
-    description: undefined,
+    description: listing.text || undefined,
     agent_name: listing.agent_name ?? undefined,
     agent_email: listing.agent_email ?? undefined,
     primary_photo: undefined,
     expired: !listing.active,
-    geo_source: null,
+    geo_source: listing.listing_source_name || null,
     owner_email: undefined,
     enrichment_confidence: null
   }

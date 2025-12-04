@@ -12,8 +12,8 @@ import {
 
 interface ApolloActionBarProps {
   title: string
-  viewType: 'database_analytics' | 'table' | 'cards' | 'map'
-  onViewChange: (view: 'database_analytics' | 'table' | 'cards' | 'map') => void
+  viewType: 'table' | 'map'
+  onViewChange: (view: 'table' | 'map') => void
   searchQuery: string
   onSearchChange: (query: string) => void
   filtersVisible: boolean
@@ -123,8 +123,6 @@ export default function ApolloActionBar({
             }}
           >
             <option value="table">Table</option>
-            <option value="database_analytics">Database Analytics</option>
-            <option value="cards">Cards</option>
             <option value="map">Map</option>
           </select>
           <ChevronDown style={{

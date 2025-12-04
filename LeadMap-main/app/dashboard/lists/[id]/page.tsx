@@ -28,6 +28,12 @@ const DEFAULT_PROPERTY_COLUMNS = [
   'agent_name',   // Agent Name (150px)
   'agent_email',  // Agent Email (180px)
   'agent_phone',  // Agent Phone (130px)
+  'agent_phone_2',           // Agent Phone 2 (130px)
+  'listing_agent_phone_2',   // Listing Agent Phone 2 (160px)
+  'listing_agent_phone_5',   // Listing Agent Phone 5 (160px)
+  'year_built',   // Year Built (100px)
+  'last_sale_price',  // Last Sale Price (130px)
+  'last_sale_date',   // Last Sale Date (130px)
   'actions'       // Actions (130px)
 ] as const
 
@@ -2026,6 +2032,120 @@ export default function ListDetailPage() {
                       Agent Phone
                   </span>
                 </div>
+                  {/* Agent Phone 2 */}
+                  {visibleColumns.includes('agent_phone_2') && (
+                    <div style={{ 
+                      flex: '0 0 130px', 
+                      marginRight: '24px',
+                      minWidth: 0
+                    }}>
+                    <span style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Agent Phone 2
+                    </span>
+                  </div>
+                  )}
+                  {/* Listing Agent Phone 2 */}
+                  {visibleColumns.includes('listing_agent_phone_2') && (
+                    <div style={{ 
+                      flex: '0 0 160px', 
+                      marginRight: '24px',
+                      minWidth: 0
+                    }}>
+                    <span style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Listing Agent Phone 2
+                    </span>
+                  </div>
+                  )}
+                  {/* Listing Agent Phone 5 */}
+                  {visibleColumns.includes('listing_agent_phone_5') && (
+                    <div style={{ 
+                      flex: '0 0 160px', 
+                      marginRight: '24px',
+                      minWidth: 0
+                    }}>
+                    <span style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Listing Agent Phone 5
+                    </span>
+                  </div>
+                  )}
+                  {/* Year Built */}
+                  {visibleColumns.includes('year_built') && (
+                    <div style={{ 
+                      flex: '0 0 100px', 
+                      marginRight: '24px',
+                      minWidth: 0
+                    }}>
+                    <span style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Year Built
+                    </span>
+                  </div>
+                  )}
+                  {/* Last Sale Price */}
+                  {visibleColumns.includes('last_sale_price') && (
+                    <div style={{ 
+                      flex: '0 0 130px', 
+                      marginRight: '24px',
+                      minWidth: 0
+                    }}>
+                    <span style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Last Sale Price
+                    </span>
+                  </div>
+                  )}
+                  {/* Last Sale Date */}
+                  {visibleColumns.includes('last_sale_date') && (
+                    <div style={{ 
+                      flex: '0 0 130px', 
+                      marginRight: '24px',
+                      minWidth: 0
+                    }}>
+                    <span style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Last Sale Date
+                    </span>
+                  </div>
+                  )}
                   {/* Actions */}
                   <div style={{ 
                     flexShrink: 0, 

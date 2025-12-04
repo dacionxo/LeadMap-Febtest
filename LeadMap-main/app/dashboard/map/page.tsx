@@ -28,6 +28,7 @@ interface Listing {
   zip_code?: string
   price?: number
   list_price?: number
+  list_price_min?: number
   latitude?: number
   longitude?: number
   lat?: number
@@ -36,13 +37,21 @@ interface Listing {
   beds?: number
   baths?: number
   sqft?: number
+  year_built?: number
   expired?: boolean
   geo_source?: string | null
+  listing_source_name?: string | null
   owner_email?: string
   enrichment_confidence?: number | null
   primary_photo?: string
   url?: string
   property_url?: string
+  text?: string
+  description?: string
+  agent_name?: string
+  agent_email?: string
+  time_listed?: string
+  created_at?: string
 }
 
 export default function MapPage() {
@@ -180,23 +189,43 @@ export default function MapPage() {
       // If we have city/state/zip but no street address, show location info
       const locationInfo = [city, state, zip].filter(val => hasValue(val)).join(', ')
       
+      // Calculate price drop percentage
+      let priceDropPercent = 0
+      if (listing.list_price_min && listing.list_price && listing.list_price_min > listing.list_price) {
+        priceDropPercent = ((listing.list_price_min - listing.list_price) / listing.list_price_min) * 100
+      }
+
+      // Calculate days on market
+      let daysOnMarket = 0
+      if (listing.time_listed) {
+        daysOnMarket = parseInt(listing.time_listed) || 0
+      } else if (listing.created_at) {
+        const createdDate = new Date(listing.created_at)
+        const now = new Date()
+        daysOnMarket = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+      }
+
       return {
-        id: listing.listing_id,
+        id: listing.listing_id || listing.property_url || '',
         address: address || (locationInfo ? `Property in ${locationInfo}` : 'Address not available'),
         city: city,
         state: state,
         zip: zip,
         price: listing.price || listing.list_price || 0,
-        price_drop_percent: 0,
-        days_on_market: 0,
+        price_drop_percent: priceDropPercent,
+        days_on_market: daysOnMarket,
         url: listing.url || listing.property_url || '',
-        latitude: listing.latitude || listing.lat,
-        longitude: listing.longitude || listing.lng,
+        latitude: listing.latitude || (listing.lat ? Number(listing.lat) : undefined),
+        longitude: listing.longitude || (listing.lng ? Number(listing.lng) : undefined),
         property_type: listing.property_type,
         beds: listing.beds,
         sqft: listing.sqft,
+        year_built: listing.year_built,
+        description: listing.text || listing.description,
+        agent_name: listing.agent_name,
+        agent_email: listing.agent_email,
         expired: listing.expired,
-        geo_source: listing.geo_source,
+        geo_source: listing.geo_source || listing.listing_source_name,
         owner_email: listing.owner_email,
         enrichment_confidence: listing.enrichment_confidence,
         primary_photo: listing.primary_photo

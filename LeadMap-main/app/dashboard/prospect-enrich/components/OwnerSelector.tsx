@@ -47,8 +47,11 @@ export default function OwnerSelector({ supabase, value, onChange }: OwnerSelect
         return
       }
 
+      // Store user in a const to ensure TypeScript knows it's defined
+      const currentUser = user
+
       // Set current user ID
-      setCurrentUserId(user.id)
+      setCurrentUserId(currentUser.id)
 
       // Try to get users from users table
       const { data, error } = await supabase
@@ -60,22 +63,22 @@ export default function OwnerSelector({ supabase, value, onChange }: OwnerSelect
         console.error('Error loading users:', error)
         // Fallback: use current user from auth
         const currentUserData: User = {
-          id: user.id,
-          name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-          email: user.email || '',
-          avatar_url: user.user_metadata?.avatar_url || null
+          id: currentUser.id,
+          name: currentUser.user_metadata?.name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+          email: currentUser.email || '',
+          avatar_url: currentUser.user_metadata?.avatar_url || null
         }
         setUsers([currentUserData])
       } else {
         // Ensure current user is in the list
-        const currentUserInList = data?.find(u => u.id === user.id)
+        const currentUserInList = data?.find(u => u.id === currentUser.id)
         if (!currentUserInList && data) {
           // Add current user if not in list
           const currentUserData: User = {
-            id: user.id,
-            name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-            email: user.email || '',
-            avatar_url: user.user_metadata?.avatar_url || null
+            id: currentUser.id,
+            name: currentUser.user_metadata?.name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+            email: currentUser.email || '',
+            avatar_url: currentUser.user_metadata?.avatar_url || null
           }
           setUsers([currentUserData, ...data])
         } else {

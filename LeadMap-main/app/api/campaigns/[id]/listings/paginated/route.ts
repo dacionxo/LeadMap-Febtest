@@ -159,7 +159,7 @@ export async function GET(
         }
 
         // Also try querying by property_url (in case listing_id is actually a URL)
-        const urlListingIds = listingIds.filter(id => id.includes('http') || id.includes('://'))
+        const urlListingIds = listingIds.filter((id: string) => id.includes('http') || id.includes('://'))
         if (urlListingIds.length > 0) {
           const { data: urlListings, error: urlError } = await supabase
             .from(tableName)

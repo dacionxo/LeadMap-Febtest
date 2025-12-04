@@ -1,4 +1,4 @@
-import type { EmailTemplate, Listing, ProbateLead } from '@/types'
+import type { EmailTemplate, Listing, ProbateLead, TemplateFolder, TemplateVersion, TemplateStats } from '@/types'
 import { renderTemplate as renderTemplateEngine, renderSubject as renderSubjectEngine, previewTemplate, extractTemplateVariables, validateTemplateVariables, type TemplateContext, type TemplateOptions } from '@/lib/email/template-engine'
 
 /**
@@ -73,7 +73,7 @@ export const testEmailTemplate = (request: TestTemplateRequest) =>
  * Template Versions API
  */
 export const getTemplateVersions = (templateId: string) =>
-  authedFetch(`/api/email-templates/${templateId}/versions`).then(r => r.json()) as Promise<{ versions: any[] }>
+  authedFetch(`/api/email-templates/${templateId}/versions`).then(r => r.json()) as Promise<{ versions: TemplateVersion[] }>
 
 export const restoreTemplateVersion = (templateId: string, version: number, changeNotes?: string) =>
   authedFetch(`/api/email-templates/${templateId}/versions`, {
@@ -88,14 +88,14 @@ export const getTemplateStats = (templateId: string, version?: number) => {
   const url = version
     ? `/api/email-templates/${templateId}/stats?version=${version}`
     : `/api/email-templates/${templateId}/stats`
-  return authedFetch(url).then(r => r.json()) as Promise<{ stats: any[] }>
+  return authedFetch(url).then(r => r.json()) as Promise<{ stats: TemplateStats[] }>
 }
 
 /**
  * Template Folders API
  */
 export const listTemplateFolders = () =>
-  authedFetch('/api/template-folders').then(r => r.json()) as Promise<{ folders: any[] }>
+  authedFetch('/api/template-folders').then(r => r.json()) as Promise<{ folders: TemplateFolder[] }>
 
 export const createTemplateFolder = (folder: { name: string; path: string; parent_folder_id?: string; scope?: string }) =>
   authedFetch('/api/template-folders', {

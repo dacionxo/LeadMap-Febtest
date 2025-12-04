@@ -59,30 +59,30 @@ export default function OwnerSelector({ supabase, value, onChange }: OwnerSelect
         .select('id, name, email, avatar_url')
         .order('name', { ascending: true })
 
-      if (error) {
+      // Create current user data object
+      const currentUserData: User = {
+        id: currentUser.id,
+        name: currentUser.user_metadata?.name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+        email: currentUser.email || '',
+        avatar_url: currentUser.user_metadata?.avatar_url || null
+      }
+
+      // Only log error if it has actual content (message or code)
+      if (error && (error.message || error.code || error.hint)) {
         console.error('Error loading users:', error)
-        // Fallback: use current user from auth
-        const currentUserData: User = {
-          id: currentUser.id,
-          name: currentUser.user_metadata?.name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
-          email: currentUser.email || '',
-          avatar_url: currentUser.user_metadata?.avatar_url || null
-        }
+      }
+
+      // If there's an error or no data, use current user as fallback
+      if (error || !data || data.length === 0) {
         setUsers([currentUserData])
       } else {
         // Ensure current user is in the list
-        const currentUserInList = data?.find(u => u.id === currentUser.id)
-        if (!currentUserInList && data) {
+        const currentUserInList = data.find(u => u.id === currentUser.id)
+        if (!currentUserInList) {
           // Add current user if not in list
-          const currentUserData: User = {
-            id: currentUser.id,
-            name: currentUser.user_metadata?.name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
-            email: currentUser.email || '',
-            avatar_url: currentUser.user_metadata?.avatar_url || null
-          }
           setUsers([currentUserData, ...data])
         } else {
-          setUsers(data || [])
+          setUsers(data)
         }
       }
     } catch (err) {

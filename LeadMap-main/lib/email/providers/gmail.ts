@@ -4,7 +4,7 @@
  */
 
 import { Mailbox, EmailPayload, SendResult } from '../types'
-import { decryptMailboxTokens } from '../encryption'
+import { decryptMailboxTokens, encryptMailboxTokens } from '../encryption'
 
 /**
  * Decrypt mailbox tokens for use
@@ -24,12 +24,16 @@ function getDecryptedMailbox(mailbox: Mailbox): Mailbox {
   }
 }
 
-export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
+export async function gmailSend(
+  mailbox: Mailbox, 
+  email: EmailPayload,
+  supabase?: any
+): Promise<SendResult> {
   try {
     // Decrypt tokens if encrypted
     const decryptedMailbox = getDecryptedMailbox(mailbox)
     
-    // Check if token needs refresh
+    // --- 1. Compute initial access token as you already do ---
     let accessToken = decryptedMailbox.access_token
     if (decryptedMailbox.token_expires_at && decryptedMailbox.refresh_token) {
       const expiresAt = new Date(decryptedMailbox.token_expires_at)
@@ -37,7 +41,6 @@ export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<
       const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
 
       if (expiresAt < fiveMinutesFromNow) {
-        // Token is expired or about to expire, refresh it
         const refreshed = await refreshGmailToken(decryptedMailbox)
         if (!refreshed.success || !refreshed.accessToken) {
           return {
@@ -46,6 +49,36 @@ export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<
           }
         }
         accessToken = refreshed.accessToken
+        
+        // Save refreshed token to database if supabase is available
+        if (supabase && mailbox.id) {
+          try {
+            const encrypted = encryptMailboxTokens({
+              access_token: refreshed.accessToken,
+              refresh_token: null, // Keep existing refresh token
+              smtp_password: null
+            })
+            
+            const expiresInSeconds = refreshed.expiresIn || 3600 // Default to 1 hour
+            const newExpiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString()
+            
+            await supabase
+              .from('mailboxes')
+              .update({
+                access_token: encrypted.access_token || refreshed.accessToken,
+                token_expires_at: newExpiresAt,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', mailbox.id)
+            
+            console.log('Saved refreshed Gmail token to database', {
+              mailbox_id: mailbox.id
+            })
+          } catch (error: any) {
+            console.error('Failed to save refreshed token to database:', error)
+            // Continue anyway - token is valid for this send
+          }
+        }
       }
     }
 
@@ -69,34 +102,106 @@ export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<
       references: email.references
     })
 
-    // Send via Gmail API
-    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        raw: message
+    // Helper to actually send
+    const sendOnce = async (token: string) => {
+      return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw: message })
       })
-    })
+    }
 
+    // --- 2. First attempt ---
+    let response = await sendOnce(accessToken)
+
+    // --- 3. If 401 and we *can* refresh, try once more ---
+    if (response.status === 401 && decryptedMailbox.refresh_token) {
+      console.warn('Gmail send returned 401, attempting token refresh and retry', {
+        mailbox_id: mailbox.id,
+        mailbox_email: mailbox.email
+      })
+
+      const refreshed = await refreshGmailToken(decryptedMailbox)
+      if (refreshed.success && refreshed.accessToken) {
+        console.log('Gmail token refreshed successfully, retrying send', {
+          mailbox_id: mailbox.id
+        })
+        accessToken = refreshed.accessToken
+        
+        // Save refreshed token to database if supabase is available
+        if (supabase && mailbox.id) {
+          try {
+            const encrypted = encryptMailboxTokens({
+              access_token: refreshed.accessToken,
+              refresh_token: null, // Keep existing refresh token
+              smtp_password: null
+            })
+            
+            const expiresInSeconds = refreshed.expiresIn || 3600 // Default to 1 hour
+            const newExpiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString()
+            
+            await supabase
+              .from('mailboxes')
+              .update({
+                access_token: encrypted.access_token || refreshed.accessToken,
+                token_expires_at: newExpiresAt,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', mailbox.id)
+            
+            console.log('Saved refreshed Gmail token to database after 401 retry', {
+              mailbox_id: mailbox.id
+            })
+          } catch (error: any) {
+            console.error('Failed to save refreshed token to database:', error)
+            // Continue anyway - token is valid for this send
+          }
+        }
+        
+        response = await sendOnce(refreshed.accessToken)
+      } else {
+        console.error('Gmail token refresh failed during 401 retry', {
+          mailbox_id: mailbox.id,
+          error: refreshed.error
+        })
+      }
+    }
+
+    // --- 4. Handle response as before ---
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error?.message || `Gmail API error: ${response.status} ${response.statusText}`
-      
-      // Check for specific error codes
+      const errorMessage =
+        errorData.error?.message ||
+        `Gmail API error: ${response.status} ${response.statusText}`
+
+      // Enhanced error logging for 401 failures
       if (response.status === 401) {
+        console.error('Gmail authentication failed after retry', {
+          mailbox_id: mailbox.id,
+          mailbox_email: mailbox.email,
+          error_data: errorData,
+          error_code: errorData.error?.code,
+          error_message: errorData.error?.message,
+          error_description: errorData.error_description,
+          has_refresh_token: !!decryptedMailbox.refresh_token
+        })
+
         return {
           success: false,
           error: 'Gmail authentication expired. Please reconnect your mailbox.'
         }
       }
 
-      return {
-        success: false,
-        error: errorMessage
-      }
+      console.error('Gmail send failed', {
+        mailbox_id: mailbox.id,
+        status: response.status,
+        error_data: errorData
+      })
+
+      return { success: false, error: errorMessage }
     }
 
     const data = await response.json()
@@ -105,6 +210,12 @@ export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<
       providerMessageId: data.id
     }
   } catch (error: any) {
+    console.error('Gmail send exception', {
+      error: error.message,
+      stack: error.stack,
+      mailbox_id: mailbox.id,
+      mailbox_email: mailbox.email
+    })
     return {
       success: false,
       error: error.message || 'Failed to send email via Gmail'
@@ -112,59 +223,93 @@ export async function gmailSend(mailbox: Mailbox, email: EmailPayload): Promise<
   }
 }
 
-export async function refreshGmailToken(mailbox: Mailbox): Promise<{ success: boolean; accessToken?: string; error?: string }> {
+export async function refreshGmailToken(mailbox: Mailbox): Promise<{ 
+  success: boolean
+  accessToken?: string
+  expiresIn?: number
+  error?: string 
+}> {
   // Decrypt refresh token if encrypted
   const decryptedMailbox = getDecryptedMailbox(mailbox)
   
-  if (!decryptedMailbox.refresh_token) {
+  const refreshToken = decryptedMailbox.refresh_token
+  if (!refreshToken) {
     return {
       success: false,
-      error: 'Refresh token is missing'
+      error: 'Missing Gmail refresh token'
+    }
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    return {
+      success: false,
+      error: 'Gmail OAuth client not configured (GOOGLE_CLIENT_ID/SECRET missing)'
     }
   }
 
   try {
-    // Use client_id and client_secret from environment
-    const clientId = process.env.GOOGLE_CLIENT_ID
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-
-    if (!clientId || !clientSecret) {
-      return {
-        success: false,
-        error: 'Google OAuth credentials not configured'
-      }
-    }
-
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: decryptedMailbox.refresh_token,
-        grant_type: 'refresh_token',
-      })
+    const params = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+    const resp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    })
+
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({} as any))
+      const msg =
+        data.error_description ||
+        data.error ||
+        `Failed to refresh Gmail token (${resp.status})`
+
+      console.error('Gmail token refresh failed:', {
+        status: resp.status,
+        error: data.error,
+        error_description: data.error_description,
+        mailbox_id: mailbox.id,
+        mailbox_email: mailbox.email
+      })
+
+      return { success: false, error: msg }
+    }
+
+    const data = await resp.json()
+    const newAccessToken = data.access_token as string | undefined
+    const expiresIn = data.expires_in as number | undefined
+
+    if (!newAccessToken) {
+      console.error('Gmail token refresh response missing access_token', {
+        response_keys: Object.keys(data),
+        mailbox_id: mailbox.id
+      })
       return {
         success: false,
-        error: errorData.error_description || 'Failed to refresh Gmail token'
+        error: 'Gmail token refresh response did not include access_token'
       }
     }
 
-    const data = await response.json()
-    
-    // Return both access token and expiration for caller to save
+    // Return token and expiration info for callers to persist
     return {
       success: true,
-      accessToken: data.access_token
-      // Note: expires_in is returned by Google but we track expiration via token_expires_at in mailbox
+      accessToken: newAccessToken,
+      expiresIn: expiresIn || 3600 // Default to 1 hour if not provided
     }
   } catch (error: any) {
+    console.error('Gmail token refresh exception:', {
+      error: error.message,
+      stack: error.stack,
+      mailbox_id: mailbox.id,
+      mailbox_email: mailbox.email
+    })
     return {
       success: false,
       error: error.message || 'Failed to refresh Gmail token'

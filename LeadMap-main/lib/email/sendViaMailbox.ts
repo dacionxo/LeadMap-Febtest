@@ -97,7 +97,7 @@ export async function sendViaMailbox(
           // OAuth-based providers (Gmail/Outlook) or SMTP mailboxes
           switch (mailbox.provider) {
             case 'gmail':
-              sendResult = await gmailSend(mailbox, email)
+              sendResult = await gmailSend(mailbox, email, supabase)
               break
             
             case 'outlook':

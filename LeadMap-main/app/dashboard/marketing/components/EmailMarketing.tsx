@@ -43,6 +43,7 @@ import {
 } from 'recharts'
 import UniboxWrapper from './UniboxWrapper'
 import EmailTemplates from './EmailTemplates'
+import ComposeEmail from './ComposeEmail'
 import type { EmailTemplate } from '@/types'
 
 interface Mailbox {
@@ -91,7 +92,7 @@ interface EmailStats {
 
 function EmailMarketingContent() {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'unibox' | 'templates' | 'analytics'>('campaigns')
+  const [activeTab, setActiveTab] = useState<'compose-email' | 'campaigns' | 'unibox' | 'templates' | 'analytics'>('campaigns')
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([])
   const [selectedMailbox, setSelectedMailbox] = useState<string | null>(null)
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
@@ -420,7 +421,7 @@ function EmailMarketingContent() {
           </p>
         </div>
         <button
-          onClick={() => window.location.href = '/dashboard/marketing/campaigns/new'}
+          onClick={() => window.location.href = '/dashboard/email/campaigns/new'}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -455,6 +456,7 @@ function EmailMarketingContent() {
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-1">
           {[
+            { id: 'compose-email', label: 'Compose Email' },
             { id: 'campaigns', label: 'Campaigns' },
             { id: 'unibox', label: 'Unibox' },
             { id: 'templates', label: 'Templates' },
@@ -476,6 +478,9 @@ function EmailMarketingContent() {
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'compose-email' && (
+        <ComposeEmail />
+      )}
       {activeTab === 'campaigns' && (
         <EmailCampaigns emails={emails} />
       )}
@@ -1289,7 +1294,7 @@ function EmailCampaigns({ emails }: { emails: Email[] }) {
                 Create Folder
               </button>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => window.location.href = '/dashboard/email/campaigns/new'}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
@@ -1424,7 +1429,7 @@ function EmailCampaigns({ emails }: { emails: Email[] }) {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No Campaigns</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Create New Campaign</p>
                 <button
-                  onClick={() => window.location.href = '/dashboard/marketing/campaigns/new'}
+                  onClick={() => window.location.href = '/dashboard/email/campaigns/new'}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
                 >
                   <Plus className="w-5 h-5" />
@@ -1443,7 +1448,7 @@ function EmailCampaigns({ emails }: { emails: Email[] }) {
           campaignType={activeCampaignType}
           onNavigateToBuilder={() => {
             setShowCreateModal(false)
-            window.location.href = '/dashboard/marketing/campaigns/new'
+            window.location.href = '/dashboard/email/campaigns/new'
           }}
         />
       )}

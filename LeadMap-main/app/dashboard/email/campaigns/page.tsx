@@ -179,7 +179,6 @@ export default function CampaignsPage() {
         newSet.delete(campaignId)
         return newSet
       })
-      setOpenDropdown(null)
     } catch (err: any) {
       alert(err.message || 'Failed to delete campaign')
     } finally {

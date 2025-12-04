@@ -279,3 +279,55 @@ export async function add_to_list(
   }
 }
 
+/**
+ * Save listings to a campaign from Prospect & Enrich
+ * @param supabase - Supabase client instance
+ * @param userId - User ID
+ * @param campaignId - Campaign ID to save listings to
+ * @param listingIds - Array of listing IDs to save
+ */
+export async function saveListingsToCampaign(
+  supabase: any,
+  userId: string,
+  campaignId: string,
+  listingIds: string[]
+) {
+  if (!userId || !campaignId || !listingIds || listingIds.length === 0) {
+    throw new Error('Missing required parameters: userId, campaignId, and listingIds are required')
+  }
+
+  // Verify campaign belongs to user
+  const { data: campaign, error: campaignError } = await supabase
+    .from('campaigns')
+    .select('id, user_id')
+    .eq('id', campaignId)
+    .eq('user_id', userId)
+    .single()
+
+  if (campaignError || !campaign) {
+    throw new Error('Campaign not found or does not belong to user')
+  }
+
+  // Prepare rows for upsert
+  const rows = listingIds.map((listingId) => ({
+    user_id: userId,
+    campaign_id: campaignId,
+    listing_id: listingId,
+  }))
+
+  // Upsert to campaign_listings (prevents duplicates)
+  const { error } = await supabase
+    .from('campaign_listings')
+    .upsert(rows, { 
+      onConflict: 'campaign_id,listing_id',
+      ignoreDuplicates: false // Update existing if needed
+    })
+
+  if (error) {
+    console.error('Error saving listings to campaign:', error)
+    throw new Error(`Failed to save listings to campaign: ${error.message}`)
+  }
+
+  return { success: true, count: listingIds.length }
+}
+

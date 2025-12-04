@@ -80,8 +80,9 @@ async function sendViaNodemailer(
       bcc: payload.bcc,
       replyTo: payload.replyTo,
       headers: {
-        'In-Reply-To': payload.inReplyTo,
-        'References': payload.references
+        ...(payload.headers || {}),
+        ...(payload.inReplyTo ? { 'In-Reply-To': payload.inReplyTo } : {}),
+        ...(payload.references ? { 'References': payload.references } : {})
       }
     })
 

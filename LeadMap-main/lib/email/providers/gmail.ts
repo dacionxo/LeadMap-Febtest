@@ -98,6 +98,7 @@ export async function gmailSend(
       cc: email.cc,
       bcc: email.bcc,
       replyTo: email.replyTo,
+      headers: email.headers,
       inReplyTo: email.inReplyTo,
       references: email.references
     })
@@ -328,6 +329,7 @@ function createGmailMimeMessage(
     replyTo?: string
     inReplyTo?: string
     references?: string
+    headers?: Record<string, string>
   }
 ): string {
   // Create a proper MIME message
@@ -358,6 +360,13 @@ function createGmailMimeMessage(
 
   if (options?.references) {
     headers.push(`References: ${options.references}`)
+  }
+
+  // Add custom headers (e.g., List-Unsubscribe)
+  if (options?.headers) {
+    for (const [key, value] of Object.entries(options.headers)) {
+      headers.push(`${key}: ${value}`)
+    }
   }
 
   headers.push(

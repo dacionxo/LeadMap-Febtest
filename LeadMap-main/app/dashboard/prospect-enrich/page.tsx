@@ -20,6 +20,7 @@ import LeadDetailModal from './components/LeadDetailModal'
 import ImportLeadsModal from './components/ImportLeadsModal'
 import VirtualizedListingsTable from './components/VirtualizedListingsTable'
 import AddToListModal from './components/AddToListModal'
+import AddToCampaignModal from './components/AddToCampaignModal'
 import { useProspectData, Listing, FilterType, getPrimaryCategory } from './hooks/useProspectData'
 import dynamic from 'next/dynamic'
 
@@ -122,6 +123,7 @@ function ProspectEnrichInner() {
   const [showLeadModal, setShowLeadModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showAddToListModal, setShowAddToListModal] = useState(false)
+  const [showAddToCampaignModal, setShowAddToCampaignModal] = useState(false)
   const [useVirtualizedTable, setUseVirtualizedTable] = useState(true) // Enable virtualized table by default
   const [remoteListingsCount, setRemoteListingsCount] = useState(0)
   
@@ -278,6 +280,11 @@ function ProspectEnrichInner() {
       console.error('Error adding to list:', error)
       alert(error.message || 'Failed to add listings to list')
     }
+  }
+
+  const handleBulkAddToCampaign = async () => {
+    // This will be handled by the modal itself
+    // The modal will call saveListingsToCampaign
   }
 
   const handleRemoveFromCrm = async (lead: Listing) => {
@@ -1872,6 +1879,31 @@ function ProspectEnrichInner() {
                       >
                         Add to Lists
                       </button>
+                      <button
+                        onClick={() => setShowAddToCampaignModal(true)}
+                        style={{
+                          padding: '6px 16px',
+                          border: isDark ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          background: isDark ? 'rgba(30, 41, 59, 0.8)' : '#ffffff',
+                          color: isDark ? '#e2e8f0' : '#374151',
+                          cursor: 'pointer',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          fontSize: '14px',
+                          fontWeight: 400,
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = isDark ? 'rgba(99, 102, 241, 0.2)' : '#f9fafb'
+                          e.currentTarget.style.borderColor = isDark ? 'rgba(99, 102, 241, 0.5)' : '#9ca3af'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = isDark ? 'rgba(30, 41, 59, 0.8)' : '#ffffff'
+                          e.currentTarget.style.borderColor = isDark ? 'rgba(99, 102, 241, 0.3)' : '#d1d5db'
+                        }}
+                      >
+                        Add to Campaigns
+                      </button>
                     </div>
                   </div>
                 )}
@@ -2856,6 +2888,24 @@ function ProspectEnrichInner() {
             selectedCount={selectedIds.size}
             onAddToList={handleBulkAddToList}
             onClose={() => setShowAddToListModal(false)}
+            isDark={isDark}
+          />
+        )}
+
+        {/* Add to Campaigns Modal */}
+        {showAddToCampaignModal && profile?.id && (
+          <AddToCampaignModal
+            supabase={supabase}
+            profileId={profile.id}
+            selectedListings={listings.filter(l => selectedIds.has(l.listing_id || ''))}
+            onClose={() => {
+              setShowAddToCampaignModal(false)
+              setSelectedIds(new Set()) // Clear selection after adding
+            }}
+            onSuccess={() => {
+              // Refresh data if needed
+              fetchCrmContacts(selectedFilters)
+            }}
             isDark={isDark}
           />
         )}

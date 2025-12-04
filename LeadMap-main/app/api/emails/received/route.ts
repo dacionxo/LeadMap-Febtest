@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { detectAndLinkReply } from '@/lib/email/reply-detection'
 
 /**
  * GET /api/emails/received
@@ -173,6 +174,30 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('Error inserting received email:', insertError)
       throw insertError
+    }
+
+    // Detect if this is a reply to a campaign email
+    try {
+      const replyDetection = await detectAndLinkReply(supabase, {
+        fromEmail,
+        toEmail,
+        subject,
+        inReplyTo: in_reply_to || undefined,
+        references: undefined, // Could extract from email headers if needed
+        messageId: raw_message_id || undefined,
+        threadId: thread_id || undefined
+      })
+
+      if (replyDetection.isReply) {
+        console.log('Reply detected for campaign:', {
+          emailId: email.id,
+          originalEmailId: replyDetection.sentEmailId,
+          campaignRecipientId: replyDetection.campaignRecipientId
+        })
+      }
+    } catch (replyError) {
+      // Don't fail the email insertion if reply detection fails
+      console.error('Error detecting reply:', replyError)
     }
 
     return NextResponse.json({ email }, { status: 201 })

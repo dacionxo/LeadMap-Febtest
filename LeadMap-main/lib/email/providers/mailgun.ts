@@ -37,6 +37,12 @@ export async function mailgunSend(
     if (payload.replyTo) formData.append('h:Reply-To', payload.replyTo)
     if (payload.inReplyTo) formData.append('h:In-Reply-To', payload.inReplyTo)
     if (payload.references) formData.append('h:References', payload.references)
+    // Add custom headers (e.g., List-Unsubscribe)
+    if (payload.headers) {
+      for (const [key, value] of Object.entries(payload.headers)) {
+        formData.append(`h:${key}`, value)
+      }
+    }
 
     const response = await fetch(
       `https://api.mailgun.net/v3/${domain}/messages`,

@@ -159,6 +159,8 @@ export function parseGmailMessage(message: GmailMessage): {
   receivedAt: string
   threadId: string
   messageId: string
+  inReplyTo?: string
+  references?: string
 } {
   // Extract headers
   const headers = message.payload.headers
@@ -207,6 +209,11 @@ export function parseGmailMessage(message: GmailMessage): {
     ? new Date(dateHeader).toISOString() 
     : new Date(parseInt(message.internalDate)).toISOString()
 
+  // Extract reply headers
+  const inReplyTo = getHeader('In-Reply-To') || undefined
+  const referencesHeader = getHeader('References') || ''
+  const references = referencesHeader ? referencesHeader.split(/\s+/).filter(Boolean).join(' ') : undefined
+
   return {
     fromEmail,
     fromName,
@@ -215,7 +222,9 @@ export function parseGmailMessage(message: GmailMessage): {
     html: html || message.snippet,
     receivedAt,
     threadId: message.threadId,
-    messageId: message.id
+    messageId: message.id,
+    inReplyTo,
+    references
   }
 }
 

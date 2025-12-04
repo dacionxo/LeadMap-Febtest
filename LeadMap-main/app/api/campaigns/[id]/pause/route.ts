@@ -69,7 +69,17 @@ export async function POST(
 
     if (updateError) {
       console.error('Campaign pause error:', updateError)
-      return NextResponse.json({ error: 'Failed to pause campaign' }, { status: 500 })
+      // Check if it's a column that doesn't exist error
+      if (updateError.message?.includes('column') && updateError.message?.includes('does not exist')) {
+        return NextResponse.json({ 
+          error: 'Database schema error. Please run the migration to add the paused_at column.',
+          details: updateError.message 
+        }, { status: 500 })
+      }
+      return NextResponse.json({ 
+        error: 'Failed to pause campaign',
+        details: updateError.message || 'Unknown error'
+      }, { status: 500 })
     }
 
     return NextResponse.json({

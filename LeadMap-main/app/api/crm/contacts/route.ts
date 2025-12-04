@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('contacts')
-      .select('id, email, first_name, last_name, name, created_at')
+      .select('id, email, first_name, last_name, name, address, street, city, state, zip_code, company, phone, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(limit)

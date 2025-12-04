@@ -86,12 +86,22 @@ async function sendViaNodemailer(
     await transporter.verify()
 
     // Send mail
-    const info = await transporter.sendMail({
+    const mailOptions: any = {
       from: `"${fromName}" <${fromEmail}>`,
       to: email.to,
       subject: email.subject,
-      html: email.html
-    })
+      html: email.html,
+      headers: {
+        ...(email.headers || {}),
+        ...(email.inReplyTo ? { 'In-Reply-To': email.inReplyTo } : {}),
+        ...(email.references ? { 'References': email.references } : {})
+      }
+    }
+    if (email.cc) mailOptions.cc = email.cc
+    if (email.bcc) mailOptions.bcc = email.bcc
+    if (email.replyTo) mailOptions.replyTo = email.replyTo
+    
+    const info = await transporter.sendMail(mailOptions)
 
     return {
       success: true,

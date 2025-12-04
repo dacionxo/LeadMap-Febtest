@@ -27,7 +27,7 @@ export async function GET(
     // Get campaign schedule settings
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
-      .select('id, name, start_at, timezone, send_window_start, send_window_end, send_days_of_week')
+      .select('id, name, start_at, end_at, timezone, send_window_start, send_window_end, send_days_of_week')
       .eq('id', campaignId)
       .eq('user_id', user.id)
       .single()
@@ -40,6 +40,7 @@ export async function GET(
       schedule: {
         name: campaign.name,
         start_at: campaign.start_at,
+        end_at: campaign.end_at,
         timezone: campaign.timezone || 'UTC',
         send_window_start: campaign.send_window_start || '09:00:00',
         send_window_end: campaign.send_window_end || '17:00:00',
@@ -89,6 +90,7 @@ export async function PATCH(
     const {
       schedule_name,
       start_at,
+      end_at,
       timezone,
       send_window_start,
       send_window_end,
@@ -113,6 +115,17 @@ export async function PATCH(
         updates.status = 'scheduled'
       } else if (start_at && new Date(start_at) <= new Date() && existingCampaign.status === 'scheduled') {
         updates.status = 'draft'
+      }
+    }
+
+    // Update end_at
+    if (end_at !== undefined) {
+      updates.end_at = end_at || null // Allow clearing end_at by passing null
+      
+      // If end_at is in the past, mark campaign as completed
+      if (end_at && new Date(end_at) < new Date() && existingCampaign.status === 'running') {
+        updates.status = 'completed'
+        updates.completed_at = new Date().toISOString()
       }
     }
 
@@ -151,6 +164,15 @@ export async function PATCH(
       updates.send_days_of_week = validDays.sort()
     }
 
+    // Check if there are any updates to make
+    if (Object.keys(updates).length === 1 && updates.updated_at) {
+      // Only updated_at was set, which means no actual schedule changes
+      return NextResponse.json({ 
+        campaign: existingCampaign,
+        message: 'No changes to save' 
+      })
+    }
+
     // Update campaign
     const { data: campaign, error: updateError } = await supabase
       .from('campaigns')
@@ -162,7 +184,17 @@ export async function PATCH(
 
     if (updateError) {
       console.error('Schedule update error:', updateError)
-      return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 })
+      // Check if it's a column that doesn't exist error
+      if (updateError.message?.includes('column') && updateError.message?.includes('does not exist')) {
+        return NextResponse.json({ 
+          error: 'Database schema error. Please run the migration to add the end_at column.',
+          details: updateError.message 
+        }, { status: 500 })
+      }
+      return NextResponse.json({ 
+        error: 'Failed to update schedule',
+        details: updateError.message || 'Unknown error'
+      }, { status: 500 })
     }
 
     return NextResponse.json({ 

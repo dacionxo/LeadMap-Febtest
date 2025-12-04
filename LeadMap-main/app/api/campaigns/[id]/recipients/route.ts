@@ -38,7 +38,7 @@ export async function GET(
       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
     }
 
-    // Get all recipients for this campaign
+    // Get all recipients for this campaign with address data from contacts/listings
     const { data: recipients, error: recipientsError } = await supabase
       .from('campaign_recipients')
       .select('*')
@@ -50,7 +50,67 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch recipients' }, { status: 500 })
     }
 
-    return NextResponse.json({ recipients: recipients || [] })
+    // Enrich recipients with address data from contacts or listings
+    const enrichedRecipients = await Promise.all(
+      (recipients || []).map(async (recipient: any) => {
+        let address_street = null
+        let address_city = null
+        let address_state = null
+        let address_zip = null
+
+        // Try to get address from contact
+        if (recipient.contact_id) {
+          const { data: contact } = await supabase
+            .from('contacts')
+            .select('address, street, city, state, zip_code')
+            .eq('id', recipient.contact_id)
+            .single()
+
+          if (contact) {
+            address_street = contact.street || contact.address || null
+            address_city = contact.city || null
+            address_state = contact.state || null
+            address_zip = contact.zip_code || null
+          }
+        }
+
+        // If no address from contact, try to get from listing
+        if (!address_street && !address_city && recipient.listing_id) {
+          const listingTables = ['listings', 'expired_listings', 'probate_leads', 'fsbo_leads', 'frbo_leads']
+          
+          for (const table of listingTables) {
+            try {
+              const { data: listing } = await supabase
+                .from(table)
+                .select('street, address, city, state, zip_code')
+                .eq('listing_id', recipient.listing_id)
+                .single()
+
+              if (listing) {
+                address_street = listing.street || listing.address || null
+                address_city = listing.city || null
+                address_state = listing.state || null
+                address_zip = listing.zip_code || null
+                break
+              }
+            } catch (tableError) {
+              // Table might not exist, continue
+              continue
+            }
+          }
+        }
+
+        return {
+          ...recipient,
+          address_street: address_street,
+          address_city: address_city,
+          address_state: address_state,
+          address_zip: address_zip
+        }
+      })
+    )
+
+    return NextResponse.json({ recipients: enrichedRecipients })
   } catch (error) {
     console.error('Recipients GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -71,16 +131,42 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify campaign belongs to user
+    // Verify campaign belongs to user and get max_new_leads_per_day setting
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
-      .select('id, send_strategy')
+      .select('id, send_strategy, max_new_leads_per_day')
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
     if (campaignError || !campaign) {
       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    }
+
+    // Check max_new_leads_per_day limit if enabled
+    if (campaign.max_new_leads_per_day) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      // Count recipients added today
+      const { data: todayRecipients, error: countError } = await supabase
+        .from('campaign_recipients')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', id)
+        .gte('created_at', today.toISOString())
+        .lt('created_at', tomorrow.toISOString())
+
+      const todayCount = todayRecipients || 0
+      if (todayCount >= campaign.max_new_leads_per_day) {
+        return NextResponse.json({
+          error: `Daily limit of ${campaign.max_new_leads_per_day} new leads reached. Please try again tomorrow.`,
+          added: 0,
+          skipped: 0,
+          dailyLimitReached: true
+        }, { status: 400 })
+      }
     }
 
     const body = await request.json()

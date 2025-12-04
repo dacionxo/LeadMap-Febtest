@@ -13,7 +13,8 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  MapPin
 } from 'lucide-react'
 
 interface CampaignRecipient {
@@ -22,6 +23,11 @@ interface CampaignRecipient {
   first_name: string | null
   last_name: string | null
   company: string | null
+  address: string | null
+  address_street: string | null
+  address_city: string | null
+  address_state: string | null
+  address_zip: string | null
   status: string
   last_sent_at: string | null
   replied: boolean
@@ -77,7 +83,9 @@ export default function LeadsTabContent({
         r.email.toLowerCase().includes(query) ||
         (r.first_name && r.first_name.toLowerCase().includes(query)) ||
         (r.last_name && r.last_name.toLowerCase().includes(query)) ||
-        (r.company && r.company.toLowerCase().includes(query))
+        (r.address_street && r.address_street.toLowerCase().includes(query)) ||
+        (r.address_city && r.address_city.toLowerCase().includes(query)) ||
+        (r.address_state && r.address_state.toLowerCase().includes(query))
       )
     }
 
@@ -298,7 +306,7 @@ export default function LeadsTabContent({
                     )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Company</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Address</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Flags</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Sent</th>
@@ -343,10 +351,32 @@ export default function LeadsTabContent({
                             : '-'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {recipient.company || '-'}
-                        </div>
+                      <td className="px-6 py-4">
+                        {recipient.address_street || recipient.address_city ? (
+                          <div className="flex flex-col gap-1">
+                            {recipient.address_street && (
+                              <div className="flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {recipient.address_street}
+                                </span>
+                              </div>
+                            )}
+                            {(recipient.address_city || recipient.address_state || recipient.address_zip) && (
+                              <div className="pl-5 text-xs text-gray-600 dark:text-gray-400">
+                                {[recipient.address_city, recipient.address_state, recipient.address_zip]
+                                  .filter(Boolean)
+                                  .join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        ) : recipient.address ? (
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {recipient.address}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-400 dark:text-gray-500">-</div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(recipient.status)}

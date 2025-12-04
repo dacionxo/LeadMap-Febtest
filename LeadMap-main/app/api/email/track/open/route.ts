@@ -68,6 +68,31 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // Update variant assignment if this is a split test email
+        if (emailId) {
+          try {
+            const { data: email } = await supabase
+              .from('emails')
+              .select('campaign_step_id, campaign_recipient_id')
+              .eq('id', emailId)
+              .single()
+
+            if (email?.campaign_step_id && email?.campaign_recipient_id) {
+              await supabase
+                .from('campaign_recipient_variant_assignments')
+                .update({
+                  was_opened: true,
+                  opened_at: new Date().toISOString()
+                })
+                .eq('step_id', email.campaign_step_id)
+                .eq('recipient_id', email.campaign_recipient_id)
+            }
+          } catch (err) {
+            // Ignore errors - variant assignments table might not exist
+            console.warn('Failed to update variant assignment for open:', err)
+          }
+        }
+
         // Record event in unified email_events table
         if (emailId) {
           try {

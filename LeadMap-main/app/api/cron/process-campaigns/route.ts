@@ -69,6 +69,29 @@ async function runCronJob(request: NextRequest) {
     // Process each campaign
     for (const campaign of activeCampaigns) {
       try {
+        // Check if campaign has passed its end date
+        if (campaign.end_at) {
+          const endDate = new Date(campaign.end_at)
+          if (now > endDate) {
+            // Campaign has ended, mark as completed
+            await supabase
+              .from('campaigns')
+              .update({ 
+                status: 'completed',
+                completed_at: now.toISOString()
+              })
+              .eq('id', campaign.id)
+            
+            results.push({
+              campaign_id: campaign.id,
+              campaign_name: campaign.name,
+              status: 'completed',
+              reason: 'Campaign end date has passed'
+            })
+            continue
+          }
+        }
+
         // Check campaign throttle
         const throttleCheck = await checkCampaignThrottle(campaign.id, supabase)
         if (!throttleCheck.allowed) {

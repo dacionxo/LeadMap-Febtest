@@ -42,8 +42,9 @@ export async function resendSend(
       bcc: payload.bcc,
       reply_to: payload.replyTo,
       headers: {
-        'In-Reply-To': payload.inReplyTo,
-        'References': payload.references
+        ...(payload.headers || {}),
+        ...(payload.inReplyTo ? { 'In-Reply-To': payload.inReplyTo } : {}),
+        ...(payload.references ? { 'References': payload.references } : {})
       }
     })
 

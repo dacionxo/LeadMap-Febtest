@@ -8,6 +8,7 @@ import { refreshOutlookToken } from '@/lib/email/providers/outlook'
 import { decryptMailboxTokens, encryptMailboxTokens } from '@/lib/email/encryption'
 import { recordSentEvent, recordFailedEvent, logEmailFailure } from '@/lib/email/event-tracking'
 import { getUserEmailSettings, appendComplianceFooter, getUnsubscribeUrl } from '@/lib/email/email-settings'
+import { extractEmailProvider, calculateTimeGap } from '@/lib/email/campaign-advanced-features'
 
 /**
  * Email Processing Scheduler
@@ -95,14 +96,14 @@ async function runCronJob(request: NextRequest) {
       })
     }
 
-    // Fetch campaigns for emails that have campaign_id
+    // Fetch campaigns for emails that have campaign_id (including advanced options)
     const campaignIds = Array.from(new Set(queuedEmails.map((e: any) => e.campaign_id).filter(Boolean)))
     const campaignsMap = new Map<string, any>()
     
     if (campaignIds.length > 0) {
       const { data: campaigns } = await supabase
         .from('campaigns')
-        .select('id, status, user_id')
+        .select('id, status, user_id, time_gap_min, time_gap_random, prioritize_new_leads, provider_matching_enabled, unsubscribe_link_header')
         .in('id', campaignIds)
       
       if (campaigns) {
@@ -253,9 +254,34 @@ async function runCronJob(request: NextRequest) {
         emails.length
       )
 
+      // Sort emails based on prioritize_new_leads setting
+      // If enabled, prioritize newer recipients (by created_at)
+      const campaignForSorting = emails[0]?.campaign_id ? campaignsMap.get(emails[0].campaign_id) : null
+      if (campaignForSorting?.prioritize_new_leads) {
+        // Sort by recipient created_at (newest first)
+        // We need to fetch recipient data for sorting
+        const recipientIds = emails.map((e: any) => e.campaign_recipient_id).filter(Boolean)
+        if (recipientIds.length > 0) {
+          const { data: recipients } = await supabase
+            .from('campaign_recipients')
+            .select('id, created_at')
+            .in('id', recipientIds)
+          
+          if (recipients) {
+            const recipientMap = new Map(recipients.map((r: any) => [r.id, r.created_at]))
+            emails.sort((a: any, b: any) => {
+              const aCreated = recipientMap.get(a.campaign_recipient_id) || a.created_at
+              const bCreated = recipientMap.get(b.campaign_recipient_id) || b.created_at
+              return new Date(bCreated).getTime() - new Date(aCreated).getTime() // Newest first
+            })
+          }
+        }
+      }
+
       // Process emails up to the limit
       const emailsToProcess = emails.slice(0, remaining)
       let processed = 0
+      let lastSentTime = 0 // Track last send time for time gap logic
 
       for (const email of emailsToProcess) {
         try {
@@ -371,29 +397,40 @@ async function runCronJob(request: NextRequest) {
               continue
             }
             
-            // Check if email has hard bounced
-            const { data: hasBounced } = await supabase
-              .rpc('has_email_bounced', {
-                p_user_id: campaignData.user_id,
-                p_email: email.to_email.toLowerCase()
-              })
-            
-            if (hasBounced) {
-              await supabase
-                .from('emails')
-                .update({ 
-                  status: 'failed',
-                  error: 'Email has hard bounced'
+            // Check if email has hard bounced (unless allow_risky_emails is enabled)
+            const { data: campaignSettings } = await supabase
+              .from('campaigns')
+              .select('allow_risky_emails')
+              .eq('id', email.campaign_id)
+              .single()
+
+            const allowRisky = campaignSettings?.allow_risky_emails || false
+
+            if (!allowRisky) {
+              // Check if email has hard bounced
+              const { data: hasBounced } = await supabase
+                .rpc('has_email_bounced', {
+                  p_user_id: campaignData.user_id,
+                  p_email: email.to_email.toLowerCase()
                 })
-                .eq('id', email.id)
               
-              if (email.campaign_recipient_id) {
+              if (hasBounced) {
                 await supabase
-                  .from('campaign_recipients')
-                  .update({ bounced: true, status: 'bounced' })
-                  .eq('id', email.campaign_recipient_id)
+                  .from('emails')
+                  .update({ 
+                    status: 'failed',
+                    error: 'Email has hard bounced'
+                  })
+                  .eq('id', email.id)
+                
+                if (email.campaign_recipient_id) {
+                  await supabase
+                    .from('campaign_recipients')
+                    .update({ bounced: true, status: 'bounced' })
+                    .eq('id', email.campaign_recipient_id)
+                }
+                continue
               }
-              continue
             }
           }
 
@@ -402,7 +439,7 @@ async function runCronJob(request: NextRequest) {
           const processedSubject = substituteTemplateVariables(email.subject || '', variables)
           let processedHtml = substituteTemplateVariables(email.html || '', variables)
 
-          // For campaign emails, append compliance footer (with fallback on error)
+          // For campaign emails, append compliance footer and apply tracking
           if (email.campaign_id) {
             let emailSettings
             try {
@@ -419,19 +456,143 @@ async function runCronJob(request: NextRequest) {
             }
             const unsubscribeUrl = getUnsubscribeUrl(email.user_id, email.campaign_recipient_id || undefined)
             processedHtml = appendComplianceFooter(processedHtml, emailSettings, unsubscribeUrl)
+
+            // Get campaign tracking settings
+            const { data: campaignSettings } = await supabase
+              .from('campaigns')
+              .select('open_tracking_enabled, link_tracking_enabled')
+              .eq('id', email.campaign_id)
+              .single()
+
+            // Apply tracking if enabled
+            if (campaignSettings) {
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+              
+              // Only add tracking if at least one tracking method is enabled
+              if (campaignSettings.open_tracking_enabled || campaignSettings.link_tracking_enabled) {
+                const { addEmailTracking } = await import('@/lib/email/tracking-urls')
+                
+                // Build tracking params
+                const trackingParams: any = {
+                  emailId: email.id,
+                  recipientId: email.campaign_recipient_id || undefined,
+                  campaignId: email.campaign_id,
+                  baseUrl
+                }
+
+                // Conditionally apply tracking based on settings
+                let trackedHtml = processedHtml
+                
+                // Apply open tracking if enabled
+                if (campaignSettings.open_tracking_enabled) {
+                  const { injectTrackingPixel, generateOpenTrackingUrl } = await import('@/lib/email/tracking-urls')
+                  const pixelUrl = generateOpenTrackingUrl(trackingParams)
+                  trackedHtml = injectTrackingPixel(trackedHtml, pixelUrl)
+                }
+                
+                // Apply link tracking if enabled
+                if (campaignSettings.link_tracking_enabled) {
+                  const { replaceLinksWithTracking, generateClickTrackingUrl } = await import('@/lib/email/tracking-urls')
+                  const urlGenerator = (url: string) => generateClickTrackingUrl({
+                    ...trackingParams,
+                    originalUrl: url
+                  })
+                  trackedHtml = replaceLinksWithTracking(trackedHtml, urlGenerator)
+                }
+                
+                processedHtml = trackedHtml
+              }
+            }
+          }
+
+          // Apply time gap logic if enabled
+          const campaign = email.campaign_id ? campaignsMap.get(email.campaign_id) : null
+          if (campaign && (campaign.time_gap_min || campaign.time_gap_random)) {
+            const timeGap = calculateTimeGap(
+              campaign.time_gap_min || 0,
+              campaign.time_gap_random || 0
+            )
+            const timeSinceLastSend = Date.now() - lastSentTime
+            if (timeSinceLastSend < timeGap) {
+              const delayNeeded = timeGap - timeSinceLastSend
+              // Reschedule email for later instead of sending now
+              await supabase
+                .from('emails')
+                .update({
+                  scheduled_at: new Date(Date.now() + delayNeeded).toISOString(),
+                  status: 'queued'
+                })
+                .eq('id', email.id)
+              continue // Skip this email for now
+            }
+          }
+
+          // Provider matching: Match sender/recipient email providers if enabled
+          let selectedMailbox = mailbox
+          if (campaign?.provider_matching_enabled) {
+            const recipientProvider = extractEmailProvider(email.to_email)
+            const senderProvider = extractEmailProvider(mailbox.email)
+            
+            // If providers don't match, try to find a matching mailbox
+            if (recipientProvider !== senderProvider && recipientProvider !== 'other') {
+              // Get campaign mailboxes
+              const { data: campaignMailboxes } = await supabase
+                .from('campaign_mailboxes')
+                .select('mailbox_id')
+                .eq('campaign_id', email.campaign_id)
+              
+              if (campaignMailboxes && campaignMailboxes.length > 0) {
+                const mailboxIds = campaignMailboxes.map((m: any) => m.mailbox_id)
+                const { data: availableMailboxes } = await supabase
+                  .from('mailboxes')
+                  .select('*')
+                  .in('id', mailboxIds)
+                  .eq('active', true)
+                
+                if (availableMailboxes) {
+                  // Find mailbox with matching provider
+                  const matchingMailbox = availableMailboxes.find((m: any) => {
+                    const mProvider = extractEmailProvider(m.email)
+                    return mProvider === recipientProvider
+                  })
+                  
+                  if (matchingMailbox) {
+                    selectedMailbox = matchingMailbox as Mailbox
+                    console.log(`Provider matching: Using ${recipientProvider} mailbox for ${email.to_email}`)
+                  }
+                }
+              }
+            }
           }
 
           // Send email
-          const fromName = mailbox.from_name || mailbox.display_name
-          const fromEmail = mailbox.from_email || mailbox.email
+          const fromName = selectedMailbox.from_name || selectedMailbox.display_name
+          const fromEmail = selectedMailbox.from_email || selectedMailbox.email
 
-          const sendResult = await sendViaMailbox(mailbox, {
+          // Add unsubscribe link header if enabled
+          const headers: Record<string, string> = {}
+          if (campaign?.unsubscribe_link_header) {
+            const unsubscribeUrl = getUnsubscribeUrl(
+              email.user_id || campaign?.user_id || '',
+              email.campaign_recipient_id || undefined
+            )
+            headers['List-Unsubscribe'] = `<${unsubscribeUrl}>`
+            headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+          }
+
+          const sendResult = await sendViaMailbox(selectedMailbox, {
             to: email.to_email,
             subject: processedSubject,
             html: processedHtml,
             fromName,
-            fromEmail
+            fromEmail,
+            headers: Object.keys(headers).length > 0 ? headers : undefined
           }, supabase)
+          
+          // Update last sent time for time gap logic
+          if (sendResult.success) {
+            lastSentTime = Date.now()
+          }
 
           if (sendResult.success) {
             // Update email record
@@ -443,6 +604,26 @@ async function runCronJob(request: NextRequest) {
                 provider_message_id: sendResult.providerMessageId
               })
               .eq('id', email.id)
+
+            // Update variant assignment if this is a split test email
+            if (email.campaign_step_id && email.campaign_recipient_id) {
+              const { data: assignment } = await supabase
+                .from('campaign_recipient_variant_assignments')
+                .select('id')
+                .eq('step_id', email.campaign_step_id)
+                .eq('recipient_id', email.campaign_recipient_id)
+                .single()
+
+              if (assignment) {
+                await supabase
+                  .from('campaign_recipient_variant_assignments')
+                  .update({
+                    email_id: email.id,
+                    sent_at: now.toISOString()
+                  })
+                  .eq('id', assignment.id)
+              }
+            }
 
             // Record 'sent' event in unified email_events table
             // Get user_id from email or campaign
@@ -637,24 +818,48 @@ async function scheduleNextStep(
   currentStepId: string
 ) {
   try {
+    // Get campaign to check campaign-level stop_on_reply
+    const { data: campaign } = await supabase
+      .from('campaigns')
+      .select('stop_on_reply')
+      .eq('id', campaignId)
+      .single()
+
     // Get current step
     const { data: currentStep } = await supabase
       .from('campaign_steps')
-      .select('step_number, delay_hours, stop_on_reply')
+      .select('step_number, delay_hours, delay_days, stop_on_reply')
       .eq('id', currentStepId)
       .single()
 
     if (!currentStep) return
 
-    // Check if recipient has replied (stop_on_reply)
-    if (currentStep.stop_on_reply) {
-      const { data: recipient } = await supabase
-        .from('campaign_recipients')
-        .select('replied')
-        .eq('id', recipientId)
-        .single()
+    // Check if recipient has replied
+    const { data: recipient } = await supabase
+      .from('campaign_recipients')
+      .select('replied, status')
+      .eq('id', recipientId)
+      .single()
 
-      if (recipient?.replied) {
+    if (!recipient) return
+
+    // Check if recipient has replied
+    if (recipient.replied) {
+      // Check if we should stop (campaign-level setting takes precedence, then step-level)
+      const campaignStopOnReply = campaign?.stop_on_reply !== false // Default to true if not set
+      const stepStopOnReply = currentStep.stop_on_reply !== false // Default to true if not set
+      
+      // If either campaign or step has stop_on_reply enabled, don't schedule next step
+      if (campaignStopOnReply || stepStopOnReply) {
+        // Mark recipient as stopped/completed
+        await supabase
+          .from('campaign_recipients')
+          .update({ 
+            status: 'stopped',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', recipientId)
+        
         // Don't schedule next step
         return
       }
@@ -686,9 +891,12 @@ async function scheduleNextStep(
 
     if (!recipient) return
 
-    // Calculate scheduled time
-    const delayMs = currentStep.delay_hours * 60 * 60 * 1000
-    const scheduledAt = new Date(Date.now() + delayMs)
+    // Calculate scheduled time using both delay_days and delay_hours
+    // Use delay_days from the current step (the step that was just sent)
+    const delayDays = currentStep.delay_days || 0
+    const delayHours = currentStep.delay_hours || 0
+    const totalDelayMs = (delayDays * 24 * 60 * 60 * 1000) + (delayHours * 60 * 60 * 1000)
+    const scheduledAt = new Date(Date.now() + totalDelayMs)
 
     // Get campaign mailbox
     const campaign = recipient.campaign as any
@@ -709,18 +917,198 @@ async function scheduleNextStep(
 
     if (!campaignData) return
 
-    // Substitute template variables for next step
+    // Check for split testing and get variant
+    let variantId: string | null = null
+    let emailSubject = nextStep.subject || ''
+    let emailHtml = nextStep.html || ''
+    
+    // Check if split test is enabled for this step
+    const { data: splitTest } = await supabase
+      .from('campaign_step_split_tests')
+      .select('id, distribution_method, is_enabled')
+      .eq('step_id', nextStep.id)
+      .eq('is_enabled', true)
+      .single()
+
+    if (splitTest) {
+      // Check if recipient already has a variant assignment
+      const { data: existingAssignment } = await supabase
+        .from('campaign_recipient_variant_assignments')
+        .select('variant_id')
+        .eq('step_id', nextStep.id)
+        .eq('recipient_id', recipientId)
+        .single()
+
+      if (existingAssignment) {
+        variantId = existingAssignment.variant_id
+      } else {
+        // Get variant based on distribution method
+        const { data: variants } = await supabase
+          .from('campaign_step_variants')
+          .select('id, variant_number')
+          .eq('step_id', nextStep.id)
+          .eq('is_active', true)
+          .order('variant_number', { ascending: true })
+
+        if (variants && variants.length > 0) {
+          if (splitTest.distribution_method === 'equal') {
+            // Equal distribution - round-robin based on existing assignments
+            const { data: assignments } = await supabase
+              .from('campaign_recipient_variant_assignments')
+              .select('variant_id')
+              .eq('step_id', nextStep.id)
+
+            // Count assignments per variant
+            const variantCounts = new Map<string, number>()
+            variants.forEach((v: any) => variantCounts.set(v.id, 0))
+            assignments?.forEach((a: any) => {
+              const current = variantCounts.get(a.variant_id) || 0
+              variantCounts.set(a.variant_id, current + 1)
+            })
+
+            // Select variant with least assignments
+            let minCount = Infinity
+            let selectedVariant = variants[0]
+            variants.forEach((v: any) => {
+              const count = variantCounts.get(v.id) || 0
+              if (count < minCount) {
+                minCount = count
+                selectedVariant = v
+              }
+            })
+            variantId = selectedVariant.id
+          } else if (splitTest.distribution_method === 'percentage') {
+            // Percentage-based distribution
+            const { data: distributions } = await supabase
+              .from('campaign_variant_distributions')
+              .select('variant_id, send_percentage')
+              .eq('split_test_id', splitTest.id)
+              .order('send_percentage', { ascending: false })
+
+            if (distributions && distributions.length > 0) {
+              // Calculate total percentage
+              const totalPercentage = distributions.reduce((sum: number, d: any) => sum + (d.send_percentage || 0), 0)
+              
+              // Get existing assignments to calculate current distribution
+              const { data: assignments } = await supabase
+                .from('campaign_recipient_variant_assignments')
+                .select('variant_id')
+                .eq('step_id', nextStep.id)
+
+              const variantCounts = new Map<string, number>()
+              distributions.forEach((d: any) => variantCounts.set(d.variant_id, 0))
+              assignments?.forEach((a: any) => {
+                const current = variantCounts.get(a.variant_id) || 0
+                variantCounts.set(a.variant_id, current + 1)
+              })
+
+              // Find variant that needs more recipients based on percentage
+              const totalAssigned = assignments?.length || 0
+              let selectedVariant = distributions[0]
+              let minRatio = Infinity
+
+              distributions.forEach((d: any) => {
+                const currentCount = variantCounts.get(d.variant_id) || 0
+                const targetCount = totalAssigned > 0 
+                  ? Math.floor((d.send_percentage / totalPercentage) * totalAssigned)
+                  : 0
+                const ratio = targetCount > 0 ? currentCount / targetCount : 0
+                
+                if (ratio < minRatio) {
+                  minRatio = ratio
+                  selectedVariant = d
+                }
+              })
+
+              variantId = selectedVariant.variant_id
+            } else {
+              // Fallback to first variant
+              variantId = variants[0].id
+            }
+          } else {
+            // Default to first variant
+            variantId = variants[0].id
+          }
+
+          // Create variant assignment
+          if (variantId) {
+            await supabase
+              .from('campaign_recipient_variant_assignments')
+              .insert({
+                campaign_id: campaignId,
+                step_id: nextStep.id,
+                recipient_id: recipientId,
+                variant_id: variantId,
+                user_id: campaignData.user_id,
+                assignment_method: splitTest.distribution_method === 'equal' ? 'round_robin' : 'weighted_random'
+              })
+          }
+        }
+      }
+
+      // Get variant content if variant is assigned
+      if (variantId) {
+        const { data: variant } = await supabase
+          .from('campaign_step_variants')
+          .select('subject, html')
+          .eq('id', variantId)
+          .single()
+
+        if (variant) {
+          emailSubject = variant.subject || emailSubject
+          emailHtml = variant.html || emailHtml
+        }
+      }
+    }
+
+    // Substitute template variables
     const recipientData = {
       email: recipient.email,
       firstName: recipient.first_name,
       lastName: recipient.last_name,
     }
     const variables = extractRecipientVariables(recipientData)
-    const processedSubject = substituteTemplateVariables(nextStep.subject || '', variables)
-    const processedHtml = substituteTemplateVariables(nextStep.html || '', variables)
+    const processedSubject = substituteTemplateVariables(emailSubject, variables)
+    let processedHtml = substituteTemplateVariables(emailHtml, variables)
+
+    // Get campaign tracking settings and apply tracking before saving
+    const { data: campaignSettings } = await supabase
+      .from('campaigns')
+      .select('open_tracking_enabled, link_tracking_enabled')
+      .eq('id', campaignId)
+      .single()
+
+    // Apply tracking if enabled (we'll use a temporary email ID, then update after insert)
+    if (campaignSettings && (campaignSettings.open_tracking_enabled || campaignSettings.link_tracking_enabled)) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      
+      // Apply open tracking if enabled
+      if (campaignSettings.open_tracking_enabled) {
+        const { injectTrackingPixel, generateOpenTrackingUrl } = await import('@/lib/email/tracking-urls')
+        // We'll use recipientId and campaignId for now, emailId will be added after insert
+        const pixelUrl = generateOpenTrackingUrl({
+          recipientId,
+          campaignId,
+          baseUrl
+        })
+        processedHtml = injectTrackingPixel(processedHtml, pixelUrl)
+      }
+      
+      // Apply link tracking if enabled
+      if (campaignSettings.link_tracking_enabled) {
+        const { replaceLinksWithTracking, generateClickTrackingUrl } = await import('@/lib/email/tracking-urls')
+        const urlGenerator = (url: string) => generateClickTrackingUrl({
+          originalUrl: url,
+          recipientId,
+          campaignId,
+          baseUrl
+        })
+        processedHtml = replaceLinksWithTracking(processedHtml, urlGenerator)
+      }
+    }
 
     // Create email record for next step
-    await supabase
+    const { data: emailRecord } = await supabase
       .from('emails')
       .insert({
         user_id: campaignData.user_id,
@@ -735,6 +1123,22 @@ async function scheduleNextStep(
         scheduled_at: scheduledAt.toISOString(),
         direction: 'sent' // Explicitly mark as sent email
       })
+      .select()
+      .single()
+
+    // Note: Tracking URLs are already applied with recipientId and campaignId
+    // The email ID will be added when the email is actually sent in process-emails route
+    // This is fine because tracking URLs work with just recipientId and campaignId
+
+    // Update variant assignment with email_id if variant was assigned
+    if (variantId && emailRecord) {
+      await supabase
+        .from('campaign_recipient_variant_assignments')
+        .update({ email_id: emailRecord.id })
+        .eq('step_id', nextStep.id)
+        .eq('recipient_id', recipientId)
+        .eq('variant_id', variantId)
+    }
   } catch (error) {
     console.error('Error scheduling next step:', error)
   }

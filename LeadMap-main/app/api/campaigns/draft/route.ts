@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       .from('campaigns')
       .insert({
         user_id: user.id,
+        owner_id: user.id, // Default owner to the logged-in user
         mailbox_id: mailboxId,
         name: name.trim(),
         description: '',

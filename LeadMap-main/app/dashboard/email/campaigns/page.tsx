@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '../../components/DashboardLayout'
 import { 
@@ -11,7 +11,9 @@ import {
   Zap,
   ChevronDown,
   Download,
-  MoreVertical
+  Trash2,
+  Tag,
+  X
 } from 'lucide-react'
 
 interface Campaign {
@@ -29,6 +31,7 @@ interface Campaign {
   reply_count?: number
   open_count?: number
   opportunities?: number
+  tags?: string[]
 }
 
 export default function CampaignsPage() {
@@ -39,6 +42,9 @@ export default function CampaignsPage() {
   const [statusFilter, setStatusFilter] = useState('All statuses')
   const [sortOrder, setSortOrder] = useState('Newest first')
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set())
+  const [editingTags, setEditingTags] = useState<string | null>(null)
+  const [tagInput, setTagInput] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchCampaigns()
@@ -150,6 +156,142 @@ export default function CampaignsPage() {
     return value.toString()
   }
 
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeleting(true)
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete campaign')
+      }
+
+      // Remove from local state
+      setCampaigns(prev => prev.filter(c => c.id !== campaignId))
+      setSelectedCampaigns(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(campaignId)
+        return newSet
+      })
+      setOpenDropdown(null)
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete campaign')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedCampaigns.size === 0) return
+    
+    if (!confirm(`Are you sure you want to delete ${selectedCampaigns.size} campaign(s)? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setDeleting(true)
+      const deletePromises = Array.from(selectedCampaigns).map(campaignId =>
+        fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' })
+      )
+
+      const results = await Promise.allSettled(deletePromises)
+      const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok))
+
+      if (failed.length > 0) {
+        alert(`Failed to delete ${failed.length} campaign(s)`)
+      }
+
+      // Refresh campaigns
+      await fetchCampaigns()
+      setSelectedCampaigns(new Set())
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete campaigns')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleStartTagging = (campaignId: string) => {
+    const campaign = campaigns.find(c => c.id === campaignId)
+    setEditingTags(campaignId)
+    setTagInput(campaign?.tags?.join(', ') || '')
+  }
+
+  const handleBulkTag = async () => {
+    if (selectedCampaigns.size === 0) return
+
+    // For bulk tagging, we'll tag all selected campaigns with the same tags
+    // First, get tags from the first selected campaign or use empty
+    const firstCampaign = campaigns.find(c => selectedCampaigns.has(c.id))
+    const initialTags = firstCampaign?.tags?.join(', ') || ''
+    
+    // Prompt user for tags
+    const tagsInput = prompt('Enter tags (comma-separated):', initialTags)
+    if (tagsInput === null) return // User cancelled
+
+    const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean)
+
+    try {
+      const updatePromises = Array.from(selectedCampaigns).map(campaignId =>
+        fetch(`/api/campaigns/${campaignId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags })
+        })
+      )
+
+      const results = await Promise.allSettled(updatePromises)
+      const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok))
+
+      if (failed.length > 0) {
+        alert(`Failed to update tags for ${failed.length} campaign(s)`)
+      } else {
+        // Refresh campaigns
+        await fetchCampaigns()
+        setSelectedCampaigns(new Set())
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to update tags')
+    }
+  }
+
+  const handleSaveTags = async (campaignId: string) => {
+    try {
+      const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
+      
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update tags')
+      }
+
+      // Update local state
+      setCampaigns(prev => prev.map(c => 
+        c.id === campaignId ? { ...c, tags } : c
+      ))
+      setEditingTags(null)
+      setTagInput('')
+    } catch (err: any) {
+      alert(err.message || 'Failed to update tags')
+    }
+  }
+
+  const handleCancelTagging = () => {
+    setEditingTags(null)
+    setTagInput('')
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -212,6 +354,27 @@ export default function CampaignsPage() {
             <Download className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
 
+          {/* Bulk Actions */}
+          {selectedCampaigns.size > 0 && (
+            <>
+              <button
+                onClick={handleBulkDelete}
+                disabled={deleting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete ({selectedCampaigns.size})
+              </button>
+              <button
+                onClick={handleBulkTag}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                <Tag className="w-4 h-4" />
+                Add Tags ({selectedCampaigns.size})
+              </button>
+            </>
+          )}
+
           {/* Add New Button */}
           <button
             onClick={() => router.push('/dashboard/email/campaigns/new')}
@@ -266,7 +429,7 @@ export default function CampaignsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">CLICK</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">REPLIED</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">OPPORTUNITIES</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">TAGS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -286,10 +449,10 @@ export default function CampaignsPage() {
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4">
                           <button
                             onClick={() => router.push(`/dashboard/email/campaigns/${campaign.id}`)}
-                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
+                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-left"
                           >
                             {campaign.name}
                           </button>
@@ -312,13 +475,55 @@ export default function CampaignsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                           {formatMetric(campaign.opportunities, isDraft)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                            title="More options"
-                          >
-                            <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                          </button>
+                        <td className="px-6 py-4">
+                          {editingTags === campaign.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={tagInput}
+                                onChange={(e) => setTagInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveTags(campaign.id)
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelTagging()
+                                  }
+                                }}
+                                placeholder="tag1, tag2, tag3"
+                                className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleSaveTags(campaign.id)}
+                                className="p-1 text-green-600 hover:text-green-700"
+                                title="Save"
+                              >
+                                <Tag className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={handleCancelTagging}
+                                className="p-1 text-gray-600 hover:text-gray-700"
+                                title="Cancel"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {campaign.tags && campaign.tags.length > 0 ? (
+                                campaign.tags.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-gray-400 italic">No tags</span>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )

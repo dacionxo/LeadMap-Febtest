@@ -783,7 +783,7 @@ export default function EmailTemplates({
 
                 <div>
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Body (supports {{variables}}, conditionals, loops)
+                    Body (supports {'{{variables}}'}, conditionals, loops)
                   </label>
                   <textarea
                     value={editingTemplate.body}

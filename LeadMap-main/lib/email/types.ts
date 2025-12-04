@@ -36,6 +36,7 @@ export interface EmailPayload {
   replyTo?: string  // Message-ID to reply to
   references?: string  // Space-separated Message-IDs for threading
   inReplyTo?: string  // Message-ID this is replying to
+  headers?: Record<string, string>  // Custom email headers (e.g., List-Unsubscribe)
 }
 
 export interface SendResult {

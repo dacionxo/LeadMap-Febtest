@@ -246,6 +246,8 @@ export async function POST(request: NextRequest) {
             received_at: emailData.receivedAt,
             raw_message_id: emailData.messageId,
             thread_id: emailData.threadId,
+            in_reply_to: emailData.inReplyTo,
+            references: emailData.references,
           })
         })
 

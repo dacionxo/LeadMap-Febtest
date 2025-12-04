@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '../../../components/DashboardLayout'
 import SequencesTabContent from './components/SequencesTab'
@@ -13,6 +13,7 @@ import ActivityFeed from './components/ActivityFeed'
 import { 
   Loader2,
   Play,
+  Pause,
   Share2,
   Settings,
   ChevronDown,
@@ -77,6 +78,26 @@ interface Campaign {
   send_window_start?: string
   send_window_end?: string
   send_days_of_week?: number[]
+  end_at?: string | null
+  // CRM
+  owner_id?: string | null
+  tags?: string[]
+  // Sending Pattern
+  time_gap_min?: number
+  time_gap_random?: number
+  max_new_leads_per_day?: number | null
+  prioritize_new_leads?: boolean
+  // Auto Optimize A/B Testing
+  auto_optimize_split_test?: boolean
+  split_test_winning_metric?: string
+  // Provider Matching
+  provider_matching_enabled?: boolean
+  esp_routing_rules?: any[]
+  // Email Compliance
+  stop_company_on_reply?: boolean
+  stop_on_auto_reply?: boolean
+  unsubscribe_link_header?: boolean
+  allow_risky_emails?: boolean
 }
 
 interface AnalyticsStats {
@@ -132,6 +153,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const [recipientSearchQuery, setRecipientSearchQuery] = useState('')
   const [scheduleData, setScheduleData] = useState<any>(null)
   const [scheduleLoading, setScheduleLoading] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -285,12 +307,110 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to resume campaign')
+        const errorMessage = data.error || 'Failed to resume campaign'
+        const errorDetails = data.details ? `\n\nDetails: ${data.details}` : ''
+        throw new Error(`${errorMessage}${errorDetails}`)
       }
 
+      const result = await response.json()
       await fetchCampaign()
+      
+      // Show success message
+      alert(result.message || 'Campaign resumed successfully!')
     } catch (err: any) {
-      alert(err.message || 'Failed to resume campaign')
+      console.error('Resume campaign error:', err)
+      const errorMessage = err.message || 'Failed to resume campaign'
+      alert(errorMessage)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handlePause = async () => {
+    if (!campaign || !campaignId) return
+
+    try {
+      setActionLoading(true)
+      const response = await fetch(`/api/campaigns/${campaignId}/pause`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        const errorMessage = data.error || 'Failed to pause campaign'
+        const errorDetails = data.details ? `\n\nDetails: ${data.details}` : ''
+        throw new Error(`${errorMessage}${errorDetails}`)
+      }
+
+      const result = await response.json()
+      await fetchCampaign()
+      
+      // Show success message
+      alert(result.message || 'Campaign paused successfully!')
+    } catch (err: any) {
+      console.error('Pause campaign error:', err)
+      const errorMessage = err.message || 'Failed to pause campaign'
+      alert(errorMessage)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleDownloadCSV = async () => {
+    if (!campaign || !campaignId) {
+      alert('Campaign not found')
+      return
+    }
+
+    try {
+      setActionLoading(true)
+      setShowDropdown(false)
+      
+      // Fetch all recipients from the API
+      const response = await fetch(`/api/campaigns/${campaignId}/recipients`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch recipients')
+      }
+
+      const data = await response.json()
+      const allRecipients = data.recipients || []
+
+      if (allRecipients.length === 0) {
+        alert('No recipients to export')
+        return
+      }
+
+      // Create CSV content
+      const csv = [
+        ['Email', 'First Name', 'Last Name', 'Company', 'Status', 'Replied', 'Bounced', 'Unsubscribed', 'Last Sent', 'Created'].join(','),
+        ...allRecipients.map((r: CampaignRecipient) => [
+          r.email,
+          r.first_name || '',
+          r.last_name || '',
+          r.company || '',
+          r.status,
+          r.replied ? 'Yes' : 'No',
+          r.bounced ? 'Yes' : 'No',
+          r.unsubscribed ? 'Yes' : 'No',
+          r.last_sent_at ? new Date(r.last_sent_at).toLocaleDateString() : '',
+          new Date(r.created_at).toLocaleDateString()
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+
+      // Create and download the file
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const campaignName = campaign.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+      a.download = `${campaignName}-recipients-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      console.error('Error exporting CSV:', err)
+      alert(err.message || 'Failed to export CSV')
     } finally {
       setActionLoading(false)
     }
@@ -314,17 +434,58 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   }
 
   const calculateProgress = () => {
-    if (!campaign) return 100
-    // For draft campaigns, show 100% if they have steps configured
+    if (!campaign) return 0
+    
+    // For draft campaigns, calculate completion based on setup requirements
     if (campaign.status === 'draft') {
-      return campaign.steps.length > 0 ? 100 : 0
+      let completion = 0
+      
+      // 1. Campaign name (required) - 20%
+      if (campaign.name && campaign.name.trim().length > 0) {
+        completion += 20
+      }
+      
+      // 2. Mailbox selection (required) - 20%
+      if (campaign.mailbox_id) {
+        completion += 20
+      }
+      
+      // 3. At least one step/sequence with content (required) - 30%
+      if (campaign.steps && campaign.steps.length > 0) {
+        // Check if at least one step has valid content
+        // A step is valid if it has a subject (not empty or placeholder) and html content
+        const hasValidSteps = campaign.steps.some((step: any) => {
+          const hasValidSubject = step.subject && 
+            step.subject.trim() !== '' && 
+            step.subject !== '<Empty subject>' &&
+            step.subject.trim() !== 'Empty subject'
+          const hasValidContent = step.html && step.html.trim() !== ''
+          return hasValidSubject && hasValidContent
+        })
+        if (hasValidSteps) {
+          completion += 30
+        }
+      }
+      
+      // 4. At least one recipient (required) - 30%
+      if (campaign.stats && campaign.stats.total_recipients > 0) {
+        completion += 30
+      }
+      
+      return Math.min(completion, 100) // Cap at 100%
     }
+    
     // For active campaigns, calculate based on sent/recipients
-    if (campaign.stats.total_recipients > 0) {
+    if (campaign.stats && campaign.stats.total_recipients > 0) {
       return Math.round((campaign.stats.total_sent / campaign.stats.total_recipients) * 100)
     }
+    
     return 0
   }
+
+  // Calculate progress - must be before early returns to maintain hook order
+  const progress = useMemo(() => calculateProgress(), [campaign])
+  const isDraft = campaign?.status === 'draft'
 
   if (loading) {
     return (
@@ -345,9 +506,6 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
       </DashboardLayout>
     )
   }
-
-  const progress = calculateProgress()
-  const isDraft = campaign.status === 'draft'
 
   return (
     <DashboardLayout>
@@ -390,11 +548,11 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             </div>
             {isDraft && (
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">100%</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{progress}%</span>
                 <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-green-500 transition-all duration-300"
-                    style={{ width: '100%' }}
+                    style={{ width: `${progress}%` }}
                   />
                 </div>
               </div>
@@ -403,19 +561,54 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-3">
-            {isDraft && (
+            {(campaign.status === 'paused' || campaign.status === 'draft') && (
               <button
                 onClick={handleResume}
                 disabled={actionLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
               >
                 <Play className="w-4 h-4" />
-                {actionLoading ? 'Resuming...' : 'Resume campaign'}
+                {actionLoading 
+                  ? (campaign.status === 'draft' ? 'Starting...' : 'Resuming...') 
+                  : (campaign.status === 'draft' ? 'Start campaign' : 'Resume campaign')
+                }
               </button>
             )}
-            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-              <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </button>
+            {(campaign.status === 'running' || campaign.status === 'scheduled') && (
+              <button
+                onClick={handlePause}
+                disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                <Pause className="w-4 h-4" />
+                {actionLoading ? 'Pausing...' : 'Pause campaign'}
+              </button>
+            )}
+            <div className="relative">
+              <button 
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </button>
+              {showDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowDropdown(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                    <button
+                      onClick={handleDownloadCSV}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Download CSV
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -522,6 +715,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             initialSchedule={scheduleData || {
               name: campaign?.name,
               start_at: campaign?.start_at,
+              end_at: campaign?.end_at,
               timezone: campaign?.timezone,
               send_window_start: campaign?.send_window_start,
               send_window_end: campaign?.send_window_end,
@@ -609,7 +803,26 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               hourly_cap: campaign?.hourly_cap,
               total_cap: campaign?.total_cap,
               warmup_enabled: campaign?.warmup_enabled,
-              warmup_schedule: campaign?.warmup_schedule
+              warmup_schedule: campaign?.warmup_schedule,
+              // CRM
+              owner_id: campaign?.owner_id,
+              tags: campaign?.tags,
+              // Sending Pattern
+              time_gap_min: campaign?.time_gap_min,
+              time_gap_random: campaign?.time_gap_random,
+              max_new_leads_per_day: campaign?.max_new_leads_per_day,
+              prioritize_new_leads: campaign?.prioritize_new_leads,
+              // Auto Optimize A/B Testing
+              auto_optimize_split_test: campaign?.auto_optimize_split_test,
+              split_test_winning_metric: campaign?.split_test_winning_metric,
+              // Provider Matching
+              provider_matching_enabled: campaign?.provider_matching_enabled,
+              esp_routing_rules: campaign?.esp_routing_rules,
+              // Email Compliance
+              stop_company_on_reply: campaign?.stop_company_on_reply,
+              stop_on_auto_reply: campaign?.stop_on_auto_reply,
+              unsubscribe_link_header: campaign?.unsubscribe_link_header,
+              allow_risky_emails: campaign?.allow_risky_emails
             }}
             onUpdate={fetchCampaign}
           />

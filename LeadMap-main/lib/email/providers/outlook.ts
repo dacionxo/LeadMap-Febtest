@@ -66,7 +66,7 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
       }
     }
 
-    const message = {
+    const message: any = {
       message: {
         subject: email.subject,
         body: {
@@ -82,6 +82,14 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
           }
         ]
       }
+    }
+
+    // Add custom headers (e.g., List-Unsubscribe) if provided
+    if (email.headers && Object.keys(email.headers).length > 0) {
+      message.message.internetMessageHeaders = Object.entries(email.headers).map(([name, value]) => ({
+        name,
+        value
+      }))
     }
 
     // Send via Microsoft Graph API

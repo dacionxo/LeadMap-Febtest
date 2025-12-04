@@ -56,6 +56,7 @@ const MapComponent: React.FC<{
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [infoWindow, setInfoWindow] = useState<google.maps.InfoWindow | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializedRef = useRef(false);
 
   // Function to get marker color based on lead type
   const getMarkerColor = (lead: Lead) => {
@@ -85,22 +86,8 @@ const MapComponent: React.FC<{
   };
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || isInitializedRef.current || map) return;
     
-    // Clean up existing map if it exists (for remounting)
-    if (map) {
-      // Clear all markers
-      markers.forEach(marker => marker.setMap(null));
-      setMarkers([]);
-      // Close info window
-      if (infoWindow) {
-        infoWindow.close();
-      }
-      // Map instance will be cleaned up by React
-      setMap(null);
-      setInfoWindow(null);
-    }
-
     // Check if google.maps is available
     if (typeof window === 'undefined' || !window.google || !window.google.maps) {
       console.error('Google Maps API not loaded');
@@ -163,6 +150,7 @@ const MapComponent: React.FC<{
 
       setMap(mapInstance);
       onMapReady(mapInstance);
+      isInitializedRef.current = true;
       
       // Clear timeout on success
       if (initTimeoutRef.current) {
@@ -198,7 +186,8 @@ const MapComponent: React.FC<{
         clearTimeout(initTimeoutRef.current);
       }
     };
-  }, [onMapReady, onError, map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!map || !leads.length) return;

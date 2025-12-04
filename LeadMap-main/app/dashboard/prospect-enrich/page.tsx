@@ -230,6 +230,58 @@ function ProspectEnrichInner() {
     }
   }
 
+  const handleSaveProspect = async (listing: Listing, saved: boolean) => {
+    if (!profile?.id) return
+    
+    try {
+      const sourceId = listing.listing_id || listing.property_url
+      if (!sourceId) {
+        console.error('Cannot save: missing listing_id and property_url')
+        return
+      }
+
+      if (saved) {
+        // Save the listing
+        const currentCategory = getPrimaryCategory(selectedFilters)
+        await add_to_list(supabase, profile.id, sourceId, listing, undefined, currentCategory)
+      } else {
+        // Unsave the listing (remove from contacts)
+        // Check both listing_id and property_url since source_id could be either
+        const possibleIds = [sourceId]
+        if (listing.listing_id && listing.listing_id !== sourceId) {
+          possibleIds.push(listing.listing_id)
+        }
+        if (listing.property_url && listing.property_url !== sourceId) {
+          possibleIds.push(listing.property_url)
+        }
+
+        // Find and delete any contact matching any of these IDs
+        // Use filter to check multiple source_id values
+        const { data: existingContacts } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('user_id', profile.id)
+          .eq('source', 'listing')
+          .in('source_id', possibleIds.filter(id => id)) // Filter out empty strings
+
+        if (existingContacts && existingContacts.length > 0) {
+          const contactIds = existingContacts.map(c => c.id)
+          await supabase
+            .from('contacts')
+            .delete()
+            .in('id', contactIds)
+            .eq('user_id', profile.id)
+        }
+      }
+      
+      // Refresh the CRM contacts to update the saved state
+      await fetchCrmContacts(selectedFilters)
+    } catch (error) {
+      console.error('Error toggling save status:', error)
+      alert('Failed to update save status')
+    }
+  }
+
   const handleBulkAddToList = async (listId: string) => {
     if (!profile?.id || selectedIds.size === 0) return
 

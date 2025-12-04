@@ -667,7 +667,7 @@ export default function VirtualizedListingsTable({
                   columns={columns}
                   onAction={onAction}
                   onClick={() => onListingClick?.(listing)}
-                  isSaved={crmContactIds.has(listing.listing_id)}
+                  isSaved={crmContactIds.has(listing.listing_id) || (listing.property_url ? crmContactIds.has(listing.property_url) : false)}
                   onSave={onSave}
                   isDark={isDark}
                   category={category}

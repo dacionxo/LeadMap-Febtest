@@ -35,6 +35,7 @@ interface Listing {
   agent_name?: string | null
   agent_email?: string | null
   agent_phone?: string | null
+  text?: string | null
   photos?: string | null
   photos_json?: any
   other?: any

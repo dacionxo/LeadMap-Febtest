@@ -382,43 +382,6 @@ function ProspectEnrichInner() {
     }
   }
 
-  const handleSaveProspect = async (lead: Listing, saved: boolean) => {
-    if (!profile?.id) return
-    
-    try {
-      const sourceId = lead.listing_id || lead.property_url
-      if (!sourceId) return
-
-      // Get the current category from selected filters
-      const currentCategory = getPrimaryCategory(selectedFilters)
-
-      if (saved) {
-        // Use add_to_list which now handles category
-        await add_to_list(supabase, profile.id, sourceId, lead, undefined, currentCategory)
-      } else {
-        // Remove from saved (delete contact)
-        const { error } = await supabase
-          .from('contacts')
-          .delete()
-          .eq('user_id', profile.id)
-          .eq('source', 'listing')
-          .eq('source_id', sourceId)
-
-        if (error) {
-          console.error('Error unsaving prospect:', error)
-          alert('Failed to unsave prospect')
-          return
-        }
-      }
-
-      // Refresh the lists
-      await fetchCrmContacts(selectedFilters)
-    } catch (error) {
-      console.error('Error toggling save status:', error)
-      alert('Failed to update prospect')
-    }
-  }
-
   const handleBulkSave = async (listId?: string) => {
     if (selectedIds.size === 0) return
     

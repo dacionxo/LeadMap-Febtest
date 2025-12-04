@@ -1731,7 +1731,7 @@ function ComposeEmailModal({
         ...composeData,
         templateId,
         subject: template.subject,
-        html: template.html,
+        html: template.body, // EmailTemplate uses 'body' not 'html'
       })
     }
   }

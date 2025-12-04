@@ -460,6 +460,10 @@ function ProspectEnrichInner() {
       
       setSelectedIds(new Set())
       const skippedCount = selectedListings.length - unsavedListings.length
+      
+      // Refresh CRM contacts after bulk save
+      await fetchCrmContacts(selectedFilters)
+      
       if (skippedCount > 0) {
         alert(`Saved ${successCount} prospect${successCount > 1 ? 's' : ''}${skippedCount > 0 ? ` (${skippedCount} already saved)` : ''}`)
       } else {

@@ -64,9 +64,10 @@ interface MapViewProps {
   isActive: boolean;
   listings: Lead[];
   loading: boolean;
+  onStreetViewListingClick?: (leadId: string) => void; // NEW: Callback to open property details modal
 }
 
-const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading }) => {
+const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading, onStreetViewListingClick }) => {
   const [useGoogleMaps, setUseGoogleMaps] = useState<boolean | null>(null);
   const [googleMapsFailed, setGoogleMapsFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -103,7 +104,7 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading }) => {
       } else {
         // No Mapbox token either, but still try Google Maps (might recover)
         console.warn('No Mapbox token available, attempting Google Maps despite previous failure');
-        setUseGoogleMaps(true);
+      setUseGoogleMaps(true);
         setGoogleMapsFailed(false); // Reset failure state to retry
       }
     }
@@ -256,6 +257,7 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading }) => {
         listings={listings}
         loading={loading}
         onError={handleGoogleMapsError}
+        onStreetViewListingClick={onStreetViewListingClick}
       />
     );
   }
@@ -264,13 +266,13 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading }) => {
   if (!useGoogleMaps || googleMapsFailed) {
     const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
     if (mapboxToken) {
-      return (
-        <MapboxViewFallback
-          key={`mapbox-${mapKey}`}
-          isActive={isActive}
-          listings={listings}
-          loading={loading}
-        />
+  return (
+    <MapboxViewFallback
+      key={`mapbox-${mapKey}`}
+      isActive={isActive}
+      listings={listings}
+      loading={loading}
+    />
       );
     } else {
       // No Mapbox token - show error message

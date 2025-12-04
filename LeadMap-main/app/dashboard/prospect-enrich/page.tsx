@@ -1912,7 +1912,7 @@ function ProspectEnrichInner() {
                 <MapView 
                   isActive={true}
                   listings={filteredListings.map(l => ({
-                    id: l.listing_id,
+                    id: l.listing_id || l.property_url || '',
                     address: l.street || 'Address not available',
                     city: l.city || '',
                     state: l.state || '',
@@ -1935,7 +1935,17 @@ function ProspectEnrichInner() {
                     geo_source: l.listing_source_name || null,
                     enrichment_confidence: null
                   }))} 
-                  loading={listingsLoading} 
+                  loading={listingsLoading}
+                  onStreetViewListingClick={(leadId) => {
+                    // Find the listing by listing_id or property_url
+                    const listing = filteredListings.find(
+                      l => (l.listing_id || l.property_url) === leadId
+                    );
+                    if (listing) {
+                      setSelectedListingId(listing.listing_id || listing.property_url || null);
+                      setShowLeadModal(true);
+                    }
+                  }}
                 />
               </div>
             )}

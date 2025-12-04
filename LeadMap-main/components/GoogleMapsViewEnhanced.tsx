@@ -43,11 +43,12 @@ interface GoogleMapsViewEnhancedProps {
   listings: Lead[];
   loading: boolean;
   onError?: () => void;
+  onStreetViewListingClick?: (leadId: string) => void; // NEW: Callback to open property details modal
 }
 
 const MapComponent: React.FC<{ 
   leads: Lead[]; 
-  onStreetViewClick: (lat: number, lng: number, address: string) => void;
+  onStreetViewClick: (lead: Lead) => void; // CHANGED: Pass full Lead object
   onMapReady: (map: google.maps.Map) => void;
   onError?: () => void;
 }> = ({ leads, onStreetViewClick, onMapReady, onError }) => {
@@ -290,7 +291,7 @@ const MapComponent: React.FC<{
               const btn = document.getElementById(`street-view-btn-${lead.id}`);
               if (btn) {
                 btn.addEventListener('click', () => {
-                  onStreetViewClick(lead.latitude!, lead.longitude!, address);
+                  onStreetViewClick(lead); // CHANGED: Pass full Lead object
                 });
               }
             });
@@ -348,7 +349,7 @@ const render = (status: Status, onError?: () => void): React.ReactElement => {
   }
 };
 
-const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActive, listings, loading, onError }) => {
+const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActive, listings, loading, onError, onStreetViewListingClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -361,40 +362,35 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
     mapInstanceRef.current = map;
   }, []);
 
-  // Handle Street View click - opens Street View for the selected location - memoized
-  const handleStreetViewClick = useCallback((lat: number, lng: number, address: string) => {
-    if (!mapInstanceRef.current) return
+  // Existing inline Street View helper (kept for fallback if needed)
+  const openInlineStreetView = useCallback((lat: number, lng: number) => {
+    if (!mapInstanceRef.current) return;
 
     try {
-      // Get the Street View service
-      const panorama = mapInstanceRef.current.getStreetView()
-      
-      // Set position and make visible
-      panorama.setPosition({ lat, lng })
-      panorama.setPov({ heading: 0, pitch: 0 })
-      panorama.setVisible(true)
-      
-      // Link the map and Street View
-      mapInstanceRef.current.setStreetView(panorama)
-      
-      // Listen for status changes
-      google.maps.event.addListenerOnce(panorama, 'status_changed', () => {
-        const status = panorama.getStatus()
-        if (status !== 'OK') {
-          // If Street View is not available, open in new tab as fallback
-          const encodedLocation = encodeURIComponent(`${lat},${lng}`)
-          const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${encodedLocation}&heading=0&pitch=0&fov=90`
-          window.open(url, '_blank')
-        }
-      })
-    } catch (error) {
-      console.error('Error opening Street View:', error)
-      // Fallback: open in new tab
-      const encodedLocation = encodeURIComponent(`${lat},${lng}`)
-      const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${encodedLocation}&heading=0&pitch=0&fov=90`
-      window.open(url, '_blank')
+      const panorama = mapInstanceRef.current.getStreetView();
+      panorama.setPosition({ lat, lng });
+      panorama.setPov({ heading: 0, pitch: 0 });
+      panorama.setVisible(true);
+      mapInstanceRef.current.setStreetView(panorama);
+    } catch (err) {
+      console.error('Error opening inline Street View', err);
     }
   }, []);
+
+  // NEW: Central handler for Street View clicks from MapComponent
+  const handleStreetViewClickFromMap = useCallback(
+    (lead: Lead) => {
+      // 1) Let parent open the modal if provided
+      if (onStreetViewListingClick) {
+        onStreetViewListingClick(lead.id);
+      }
+      // 2) Optionally also open inline Street View (commented out to prefer modal only)
+      // if (lead.latitude && lead.longitude) {
+      //   openInlineStreetView(lead.latitude, lead.longitude);
+      // }
+    },
+    [onStreetViewListingClick]
+  );
 
   // Search for addresses using Google Places API
   const searchAddress = async (query: string) => {
@@ -595,7 +591,7 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
       <Wrapper apiKey={GOOGLE_MAPS_API_KEY} render={(status) => render(status, onError)}>
         <MapComponent 
           leads={listings} 
-          onStreetViewClick={handleStreetViewClick}
+          onStreetViewClick={handleStreetViewClickFromMap}
           onMapReady={handleMapReady}
           onError={onError}
         />

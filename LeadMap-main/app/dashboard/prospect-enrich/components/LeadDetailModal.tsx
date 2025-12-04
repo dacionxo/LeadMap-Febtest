@@ -1375,9 +1375,9 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
 
     // ✅ Ensure Maps JS is ready - retry if not available yet
     if (typeof window === 'undefined' || !window.google?.maps) {
-      // Try again in 200ms, but cap the number of attempts (20 attempts = 4 seconds max)
-      if (apiReadyAttempt < 20) {
-        const id = window.setTimeout(() => setApiReadyAttempt(a => a + 1), 200)
+      // Try again in 100ms (faster retry), but cap the number of attempts (30 attempts = 3 seconds max)
+      if (apiReadyAttempt < 30) {
+        const id = window.setTimeout(() => setApiReadyAttempt(a => a + 1), 100)
         return () => window.clearTimeout(id)
       }
       setError('Google Maps API not loaded')
@@ -1465,7 +1465,7 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
           // Update position if panorama already exists
           panoramaInstanceRef.current.setPosition(position)
           setIsLoading(false)
-        }
+    }
       } catch (err: any) {
         console.error('Error initializing Street View:', err)
         if (!cancelled) {
@@ -1498,8 +1498,8 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
     
     if (lat && lng && googleMapsApiKey) {
       const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=640x480&markers=color:red%7C${lat},${lng}&key=${googleMapsApiKey}`
-      return (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    return (
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
           <img
             src={staticMapUrl}
             alt="Property location"
@@ -1532,61 +1532,61 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {/* Loading state */}
       {isLoading && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f3f4f6',
-          zIndex: 1
-        }}>
           <div style={{
-            textAlign: 'center',
-            color: '#6b7280',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f3f4f6',
+            zIndex: 1
           }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              border: '3px solid #e5e7eb',
-              borderTop: '3px solid #3b82f6',
-              borderRadius: '50%',
-              margin: '0 auto 12px',
-              animation: 'spin 1s linear infinite'
-            }}></div>
-            <div>Loading Street View...</div>
+              textAlign: 'center',
+              color: '#6b7280',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '3px solid #e5e7eb',
+                borderTop: '3px solid #3b82f6',
+                borderRadius: '50%',
+                margin: '0 auto 12px',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              <div>Loading Street View...</div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Error state */}
       {error && !isLoading && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f3f4f6',
-          color: '#6b7280',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '14px',
-          textAlign: 'center',
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f3f4f6',
+            color: '#6b7280',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontSize: '14px',
+            textAlign: 'center',
           padding: '20px',
           zIndex: 1
-        }}>
+          }}>
           <div>
             <MapPin size={48} style={{ marginBottom: '12px', opacity: 0.5 }} />
             <div>{error}</div>
           </div>
-        </div>
+      </div>
       )}
 
       {/* Street View container */}
@@ -1596,7 +1596,7 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
           width: '100%',
           height: '100%',
           minHeight: '400px'
-        }}
+      }}
       />
     </div>
   )

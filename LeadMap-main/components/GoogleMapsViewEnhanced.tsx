@@ -103,9 +103,9 @@ const MapComponent: React.FC<{
     
     // ✅ Safety: only proceed once Maps JS is loaded
     if (typeof window === 'undefined' || !window.google || !window.google.maps) {
-      // Try again in 200ms, but cap the number of attempts (20 attempts = 4 seconds max)
-      if (mapInitAttempt < 20) {
-        const id = window.setTimeout(() => setMapInitAttempt(a => a + 1), 200);
+      // Try again in 100ms (faster retry), but cap the number of attempts (30 attempts = 3 seconds max)
+      if (mapInitAttempt < 30) {
+        const id = window.setTimeout(() => setMapInitAttempt(a => a + 1), 100);
         return () => window.clearTimeout(id);
       }
       console.error('Google Maps API not available after waiting');

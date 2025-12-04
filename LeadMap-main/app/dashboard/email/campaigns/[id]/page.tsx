@@ -819,7 +819,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               prioritize_new_leads: campaign?.prioritize_new_leads,
               // Auto Optimize A/B Testing
               auto_optimize_split_test: campaign?.auto_optimize_split_test,
-              split_test_winning_metric: campaign?.split_test_winning_metric,
+              split_test_winning_metric: (campaign?.split_test_winning_metric && 
+                ['open_rate', 'click_rate', 'reply_rate', 'conversion_rate'].includes(campaign.split_test_winning_metric))
+                ? campaign.split_test_winning_metric as 'open_rate' | 'click_rate' | 'reply_rate' | 'conversion_rate'
+                : undefined,
               // Provider Matching
               provider_matching_enabled: campaign?.provider_matching_enabled,
               esp_routing_rules: campaign?.esp_routing_rules,

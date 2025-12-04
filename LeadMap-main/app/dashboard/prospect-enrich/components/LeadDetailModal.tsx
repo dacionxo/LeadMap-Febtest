@@ -1414,6 +1414,13 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
           return
         }
 
+        // Ensure the container element exists
+        if (!panoramaRef.current) {
+          setError('Street View container not available')
+          setIsLoading(false)
+          return
+        }
+
         // Create or update Street View panorama
         if (!panoramaInstanceRef.current) {
           panoramaInstanceRef.current = new google.maps.StreetViewPanorama(panoramaRef.current, {

@@ -54,7 +54,7 @@ export async function GET(
     }
 
     // Get emails for each step
-    const stepIds = steps.map(s => s.id)
+    const stepIds = steps.map((s: { id: string }) => s.id)
     let emailsQuery = supabase
       .from('emails')
       .select('id, campaign_step_id, to_email, sent_at, opened_at, clicked_at, status')

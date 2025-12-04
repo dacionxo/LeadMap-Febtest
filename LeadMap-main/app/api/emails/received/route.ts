@@ -179,8 +179,8 @@ export async function POST(request: NextRequest) {
     // Detect if this is a reply to a campaign email
     try {
       const replyDetection = await detectAndLinkReply(supabase, {
-        fromEmail,
-        toEmail,
+        fromEmail: from_email,
+        toEmail: to_email,
         subject,
         inReplyTo: in_reply_to || undefined,
         references: undefined, // Could extract from email headers if needed

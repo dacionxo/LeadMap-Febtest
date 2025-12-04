@@ -213,14 +213,27 @@ const MapComponent: React.FC<{
 
     const newMarkers: google.maps.Marker[] = [];
 
+    // Separate leads with coordinates from those needing geocoding
+    const leadsWithCoords: Lead[] = [];
+    const leadsNeedingGeocode: Lead[] = [];
+
     leads.forEach((lead) => {
       if (lead.latitude && lead.longitude) {
-        const marker = new window.google.maps.Marker({
-          position: { lat: lead.latitude, lng: lead.longitude },
-          map: map,
-          title: `${lead.address}, ${lead.city}, ${lead.state}`,
-          icon: getMarkerIcon(lead)
-        });
+        leadsWithCoords.push(lead);
+      } else if (lead.address && (lead.city || lead.state)) {
+        // Only geocode if we have at least address and city/state
+        leadsNeedingGeocode.push(lead);
+      }
+    });
+
+    // Create markers for leads with coordinates (fast path)
+    leadsWithCoords.forEach((lead) => {
+      const marker = new window.google.maps.Marker({
+        position: { lat: lead.latitude!, lng: lead.longitude! },
+        map: map,
+        title: `${lead.address}, ${lead.city}, ${lead.state}`,
+        icon: getMarkerIcon(lead)
+      });
 
         marker.addListener('click', () => {
           if (infoWindow) {

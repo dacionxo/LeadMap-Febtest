@@ -1392,16 +1392,27 @@ function StreetViewPanorama({ listing }: { listing: Listing | null }) {
         setIsLoading(true)
         setError(null)
 
-        // Get coordinates - prefer lat/lng from listing, otherwise geocode address
+        // Get coordinates - ALWAYS prefer stored lat/lng from database first
+        // Only geocode as a fallback if coordinates are missing
         let position: { lat: number; lng: number } | null = null
 
-        if (listing.lat && listing.lng) {
+        // Priority 1: Use stored lat/lng from database (fastest path)
+        if (listing.lat != null && listing.lng != null) {
           position = {
             lat: Number(listing.lat),
             lng: Number(listing.lng)
           }
-        } else {
-          // Geocode address
+        } 
+        // Priority 2: Check for latitude/longitude fields (for probate_leads compatibility)
+        else if (listing.latitude != null && listing.longitude != null) {
+          position = {
+            lat: Number(listing.latitude),
+            lng: Number(listing.longitude)
+          }
+        }
+        // Priority 3: Fallback to geocoding (only if no stored coordinates)
+        else {
+          // Geocode address as last resort
           const address = buildAddressString(listing)
           if (address) {
             try {

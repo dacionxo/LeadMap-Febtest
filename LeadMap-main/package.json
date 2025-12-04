@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "backfill-geocodes": "tsx scripts/backfill-geocodes.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",

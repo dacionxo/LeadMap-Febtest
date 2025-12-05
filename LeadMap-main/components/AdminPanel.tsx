@@ -350,9 +350,9 @@ export default function AdminPanel() {
 
         {/* Tab Content */}
         {activeTab === 'upload' && (
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Upload Section */}
-            <div className="card">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Upload Section */}
+          <div className="card">
             <h2 className="text-xl font-semibold text-white mb-4">Upload Leads</h2>
             
             <div className="space-y-4">
@@ -480,74 +480,74 @@ export default function AdminPanel() {
 
         {activeTab === 'templates' && (
           <div>
-            <div className="card">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-white">Email Templates</h2>
-                <button
-                  onClick={() => {
-                    setEditingTemplate(null)
-                    setTemplateForm({ title: '', body: '', category: '' })
-                    setShowTemplateModal(true)
-                  }}
-                  className="btn-primary flex items-center"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Template
-                </button>
-              </div>
-
-              {templatesLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-400">Loading templates...</p>
-                </div>
-              ) : templates.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400">No email templates yet</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Create your first template to get started
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {templates.map((template) => (
-                    <div key={template.id} className="flex items-start justify-between p-3 bg-gray-800 rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="text-white font-medium">{template.title}</h3>
-                        <p className="text-sm text-gray-400 mt-1">
-                          {template.category || 'Uncategorized'}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-                          {template.body}
-                        </p>
-                      </div>
-                      <div className="flex space-x-2 ml-4">
-                        <button
-                          onClick={() => handleEditTemplate(template)}
-                          className="p-2 text-blue-500 hover:bg-blue-900/20 rounded transition-colors"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTemplate(template.id)}
-                          className="p-2 text-red-500 hover:bg-red-900/20 rounded transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-white">Email Templates</h2>
+              <button
+                onClick={() => {
+                  setEditingTemplate(null)
+                  setTemplateForm({ title: '', body: '', category: '' })
+                  setShowTemplateModal(true)
+                }}
+                className="btn-primary flex items-center"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Template
+              </button>
             </div>
+
+            {templatesLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading templates...</p>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">No email templates yet</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Create your first template to get started
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {templates.map((template) => (
+                  <div key={template.id} className="flex items-start justify-between p-3 bg-gray-800 rounded-lg">
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium">{template.title}</h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {template.category || 'Uncategorized'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                        {template.body}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => handleEditTemplate(template)}
+                        className="p-2 text-blue-500 hover:bg-blue-900/20 rounded transition-colors"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTemplate(template.id)}
+                        className="p-2 text-red-500 hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
         )}
 
         {activeTab === 'probate' && (
           <div>
-            <div className="card">
-              <h2 className="text-xl font-semibold text-white mb-4">Probate Leads Upload</h2>
+          <div className="card">
+            <h2 className="text-xl font-semibold text-white mb-4">Probate Leads Upload</h2>
             
             <div className="space-y-4">
               <div>
@@ -596,7 +596,7 @@ export default function AdminPanel() {
               </button>
             </div>
           </div>
-          </div>
+        </div>
         )}
 
         {activeTab === 'analytics' && (

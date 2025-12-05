@@ -18,6 +18,12 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local or .env
+config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), '.env') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -81,20 +87,51 @@ async function geocodeWithGoogle(address: string): Promise<{ lat: number; lng: n
 
     const res = await fetch(url);
     if (!res.ok) {
-      console.warn(`Google geocoding failed: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      console.warn(`Google geocoding HTTP error: ${res.status} ${res.statusText}`, errorText);
       return null;
     }
 
     const data = await res.json();
 
-    if (data.status !== 'OK' || !data.results?.length) {
+    // Handle different Google API response statuses
+    if (data.status === 'OK' && data.results?.length) {
+      const location = data.results[0].geometry.location;
+      return { lat: location.lat, lng: location.lng };
+    } else if (data.status === 'ZERO_RESULTS') {
+      // This is expected for some addresses - not an error
+      return null;
+    } else if (data.status === 'OVER_QUERY_LIMIT') {
+      console.error(`⚠️  Google API quota exceeded. Status: ${data.status}`);
+      console.error(`   Error message: ${data.error_message || 'No error message'}`);
+      throw new Error('Google API quota exceeded - please wait before retrying');
+    } else if (data.status === 'REQUEST_DENIED') {
+      const errorMsg = data.error_message || 'Unknown error';
+      console.error(`❌ Google API request denied. Status: ${data.status}`);
+      console.error(`   Error message: ${errorMsg}`);
+      
+      // If it's an invalid API key, provide helpful guidance
+      if (errorMsg.includes('invalid') || errorMsg.includes('API key')) {
+        console.error('\n💡 API Key Issue Detected:');
+        console.error('   1. Check that NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env.local is correct');
+        console.error('   2. Verify the API key has Geocoding API enabled in Google Cloud Console');
+        console.error('   3. Check API key restrictions (should allow server-side usage)');
+        console.error('   4. Ensure billing is enabled for your Google Cloud project\n');
+      }
+      
+      throw new Error(`Google API request denied: ${errorMsg}`);
+    } else if (data.status === 'INVALID_REQUEST') {
+      console.warn(`⚠️  Invalid request for address: ${address}`);
+      console.warn(`   Status: ${data.status}, Error: ${data.error_message || 'No error message'}`);
+      return null;
+    } else {
+      console.warn(`⚠️  Google geocoding returned status: ${data.status}`);
+      console.warn(`   Address: ${address}`);
+      console.warn(`   Error message: ${data.error_message || 'No error message'}`);
       return null;
     }
-
-    const location = data.results[0].geometry.location;
-    return { lat: location.lat, lng: location.lng };
-  } catch (error) {
-    console.error('Google geocoding error:', error);
+  } catch (error: any) {
+    console.error(`❌ Google geocoding error for "${address}":`, error.message || error);
     return null;
   }
 }
@@ -136,7 +173,7 @@ function buildAddress(row: any): string {
 /**
  * Backfill geocodes for a specific table
  */
-async function backfillTable(table: string, primaryKey: string = 'listing_id'): Promise<void> {
+async function backfillTable(table: string, primaryKey: string = 'listing_id'): Promise<{ success: boolean; error?: string }> {
   console.log(`\n📊 Backfilling ${table}...`);
 
   let offset = 0;
@@ -144,6 +181,7 @@ async function backfillTable(table: string, primaryKey: string = 'listing_id'): 
   let totalProcessed = 0;
   let totalUpdated = 0;
   let totalFailed = 0;
+  let criticalError: string | null = null;
 
   while (true) {
     // Get rows missing coordinates
@@ -183,7 +221,8 @@ async function backfillTable(table: string, primaryKey: string = 'listing_id'): 
       try {
         const coords = await geocodeAddress(address);
         if (!coords) {
-          console.warn(`   ⚠️  Could not geocode: ${address}`);
+          // Only log as warning if it's not a critical API error
+          // (critical errors will be logged in geocodeWithGoogle)
           totalFailed++;
           continue;
         }
@@ -216,8 +255,16 @@ async function backfillTable(table: string, primaryKey: string = 'listing_id'): 
 
         // Respect rate limits (150ms delay = ~6.6 requests/second)
         await new Promise((r) => setTimeout(r, 150));
-      } catch (e) {
-        console.error(`   ❌ Geocode error for ${address}:`, e);
+      } catch (error: any) {
+        // Check if this is a critical error that should stop processing
+        if (error.message?.includes('API request denied') || 
+            error.message?.includes('quota exceeded') ||
+            error.message?.includes('invalid')) {
+          criticalError = error.message;
+          console.error(`\n❌ Critical API error detected. Stopping processing for ${table}.`);
+          break;
+        }
+        console.error(`   ❌ Geocode error for ${address}:`, error.message || error);
         totalFailed++;
       }
     }
@@ -234,6 +281,40 @@ async function backfillTable(table: string, primaryKey: string = 'listing_id'): 
   console.log(`   Processed: ${totalProcessed}`);
   console.log(`   Updated: ${totalUpdated}`);
   console.log(`   Failed: ${totalFailed}`);
+  
+  if (criticalError) {
+    return { success: false, error: criticalError };
+  }
+  
+  return { success: true };
+}
+
+/**
+ * Test the geocoding API with a sample address
+ */
+async function testGeocodingAPI(): Promise<boolean> {
+  console.log('🧪 Testing geocoding API...');
+  const testAddress = '1600 Amphitheatre Parkway, Mountain View, CA';
+  
+  try {
+    const result = await geocodeAddress(testAddress);
+    if (result) {
+      console.log(`✅ Geocoding API test successful: ${testAddress} -> (${result.lat}, ${result.lng})\n`);
+      return true;
+    } else {
+      console.error('❌ Geocoding API test failed: No results returned');
+      return false;
+    }
+  } catch (error: any) {
+    console.error('❌ Geocoding API test failed:', error.message || error);
+    console.error('\n💡 Troubleshooting tips:');
+    console.error('   1. Verify your API key is correct in .env.local');
+    console.error('   2. Ensure the Geocoding API is enabled in Google Cloud Console');
+    console.error('   3. Check API key restrictions (IP, referrer, etc.)');
+    console.error('   4. Verify billing is enabled for your Google Cloud project');
+    console.error('   5. If using Mapbox, ensure NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN is set\n');
+    return false;
+  }
 }
 
 /**
@@ -242,6 +323,13 @@ async function backfillTable(table: string, primaryKey: string = 'listing_id'): 
 async function main() {
   console.log('🚀 Starting geocoding backfill...\n');
   console.log(`Using provider: ${mapboxToken ? 'Mapbox' : 'Google Maps'}\n`);
+
+  // Test the API before processing
+  const apiTestPassed = await testGeocodingAPI();
+  if (!apiTestPassed) {
+    console.error('❌ API test failed. Please fix the API configuration before continuing.');
+    process.exit(1);
+  }
 
   const tables = [
     { name: 'listings', primaryKey: 'listing_id' },
@@ -256,9 +344,20 @@ async function main() {
 
   for (const table of tables) {
     try {
-      await backfillTable(table.name, table.primaryKey);
-    } catch (error) {
-      console.error(`❌ Error processing table ${table.name}:`, error);
+      const result = await backfillTable(table.name, table.primaryKey);
+      if (!result.success && result.error) {
+        console.error(`\n❌ Stopping backfill due to critical error: ${result.error}`);
+        console.error(`   Please fix the API configuration and try again.`);
+        break;
+      }
+    } catch (error: any) {
+      console.error(`❌ Error processing table ${table.name}:`, error.message || error);
+      // If it's a critical API error, stop processing
+      if (error.message?.includes('API request denied') || 
+          error.message?.includes('quota exceeded')) {
+        console.error(`\n❌ Stopping backfill due to critical API error.`);
+        break;
+      }
     }
   }
 

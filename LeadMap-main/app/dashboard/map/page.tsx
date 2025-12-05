@@ -204,7 +204,7 @@ export default function MapPage() {
         const now = new Date()
         daysOnMarket = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
       }
-
+      
       return {
         id: listing.listing_id || listing.property_url || '',
         address: address || (locationInfo ? `Property in ${locationInfo}` : 'Address not available'),

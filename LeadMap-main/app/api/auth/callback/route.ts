@@ -1,4 +1,4 @@
-import { getRouteHandlerClient, getServiceRoleClient } from '../../../lib/supabase-singleton'
+import { getRouteHandlerClient, getServiceRoleClient } from '@/lib/supabase-singleton'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {

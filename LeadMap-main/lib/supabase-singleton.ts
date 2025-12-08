@@ -7,6 +7,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+// Note: cookies() is dynamically imported to avoid issues in client components
 
 // Client-side singleton (browser)
 let clientComponentClient: ReturnType<typeof createClientComponentClient> | null = null

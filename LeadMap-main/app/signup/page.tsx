@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerComponentClient } from '../lib/supabase-singleton'
+import { getServerComponentClient } from '@/lib/supabase-singleton'
 import SignUpPage from '@/components/SignUpPage'
 
 // Force dynamic rendering to prevent static generation issues with cookies

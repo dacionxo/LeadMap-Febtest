@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient } from '../../../../lib/supabase-singleton'
+import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { refreshGoogleAccessToken } from '@/lib/google-calendar-sync'
 
 export const runtime = 'nodejs'

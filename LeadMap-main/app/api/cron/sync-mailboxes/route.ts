@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient } from '../../../lib/supabase-singleton'
+import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { syncGmailMessages } from '@/lib/email/unibox/gmail-connector'
 import { syncOutlookMessages, refreshOutlookToken } from '@/lib/email/unibox/outlook-connector'
 import { refreshGmailToken } from '@/lib/email/providers/gmail-watch'

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient } from '../../../lib/supabase-singleton'
+import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { sendViaMailbox, checkMailboxLimits } from '@/lib/email/sendViaMailbox'
 
 /**

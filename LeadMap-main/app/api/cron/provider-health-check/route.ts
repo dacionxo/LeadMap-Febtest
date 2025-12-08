@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient } from '../../../lib/supabase-singleton'
+import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { checkProviderHealth } from '@/lib/email/providers/health-monitor'
 import { decrypt } from '@/lib/email/encryption'
 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { User, SupabaseClient } from '@supabase/supabase-js'
-import { getClientComponentClient } from '../lib/supabase-singleton'
+import { getClientComponentClient } from '@/lib/supabase-singleton'
 import { PageStateProvider } from './contexts/PageStateContext'
 
 interface UserProfile {

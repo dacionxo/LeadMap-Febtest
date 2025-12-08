@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRouteHandlerClient, getServiceRoleClient } from '../../../lib/supabase-singleton'
+import { getRouteHandlerClient, getServiceRoleClient } from '@/lib/supabase-singleton'
 
 export async function POST(request: NextRequest) {
   try {

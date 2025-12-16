@@ -66,7 +66,7 @@ async function runCronJob(request: NextRequest) {
             const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000)
 
             if (expiresAt < fiveMinutesFromNow) {
-              const refreshResult = await refreshGmailToken(mailbox.refresh_token)
+              const refreshResult = await refreshGmailToken(mailbox.refresh_token as string)
               if (refreshResult.success && refreshResult.accessToken) {
                 accessToken = refreshResult.accessToken
                 
@@ -89,7 +89,7 @@ async function runCronJob(request: NextRequest) {
             const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000)
 
             if (expiresAt < fiveMinutesFromNow) {
-              const refreshResult = await refreshOutlookToken(mailbox.refresh_token)
+              const refreshResult = await refreshOutlookToken(mailbox.refresh_token as string)
               if (refreshResult.success && refreshResult.accessToken) {
                 accessToken = refreshResult.accessToken
                 

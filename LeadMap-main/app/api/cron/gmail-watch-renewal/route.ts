@@ -73,7 +73,7 @@ async function runCronJob(request: NextRequest) {
 
         if (!accessToken && mailbox.refresh_token) {
           // Token is missing, try to refresh
-          const refreshResult = await refreshGmailToken(mailbox.refresh_token)
+          const refreshResult = await refreshGmailToken(mailbox.refresh_token as string)
           if (refreshResult.success && refreshResult.accessToken) {
             accessToken = refreshResult.accessToken
             
@@ -104,7 +104,7 @@ async function runCronJob(request: NextRequest) {
 
           if (expiresAt < fiveMinutesFromNow) {
             // Refresh token
-            const refreshResult = await refreshGmailToken(mailbox.refresh_token)
+            const refreshResult = await refreshGmailToken(mailbox.refresh_token as string)
             if (refreshResult.success && refreshResult.accessToken) {
               accessToken = refreshResult.accessToken
               
@@ -142,7 +142,7 @@ async function runCronJob(request: NextRequest) {
         const watchResult = await setupGmailWatch({
           mailboxId: mailbox.id,
           accessToken,
-          refreshToken: mailbox.refresh_token || undefined,
+          refreshToken: (mailbox.refresh_token as string) || undefined,
           webhookUrl: `${baseUrl}/api/webhooks/gmail`,
         })
 

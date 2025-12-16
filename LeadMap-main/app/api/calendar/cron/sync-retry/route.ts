@@ -356,17 +356,24 @@ async function retryEventSync(
     // Retry pushing to Google Calendar
     const syncResult = await pushEventToGoogleCalendar(event, accessToken, calendarId)
 
-    if (syncResult.success && syncResult.externalEventId) {
-      // Update sync status to 'synced'
+    if (syncResult.success) {
+      // Sync was successful - update database even if externalEventId is missing
+      // (externalEventId might be missing in edge cases, but sync still succeeded)
+      const updateData: any = {
+        sync_status: 'synced',
+        last_synced_at: new Date().toISOString(),
+        external_calendar_id: calendarId,
+      }
+
+      // Only update external_event_id if we received it
+      if (syncResult.externalEventId) {
+        updateData.external_event_id = syncResult.externalEventId
+      }
+
       const updateResult = await executeUpdateOperation(
         supabase,
         'calendar_events',
-        {
-          sync_status: 'synced',
-          last_synced_at: new Date().toISOString(),
-          external_event_id: syncResult.externalEventId,
-          external_calendar_id: calendarId,
-        },
+        updateData,
         (query) => (query as any).eq('id', event.id),
         {
           operation: 'update_sync_status',
@@ -386,7 +393,9 @@ async function retryEventSync(
         eventId: event.id,
         title: event.title,
         status: 'success',
-        message: 'Event synced successfully',
+        message: syncResult.externalEventId 
+          ? 'Event synced successfully' 
+          : 'Event synced successfully (external ID not returned)',
         externalEventId: syncResult.externalEventId,
       }
     } else {

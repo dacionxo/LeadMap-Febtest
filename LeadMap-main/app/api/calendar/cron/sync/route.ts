@@ -281,29 +281,64 @@ async function fetchGoogleCalendarEvents(
   timeMax: Date
 ): Promise<GoogleCalendarEvent[] | null> {
   try {
-    const googleCalendarUrl = new URL(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
-    )
-    googleCalendarUrl.searchParams.set('timeMin', timeMin.toISOString())
-    googleCalendarUrl.searchParams.set('timeMax', timeMax.toISOString())
-    googleCalendarUrl.searchParams.set('singleEvents', 'true')
-    googleCalendarUrl.searchParams.set('orderBy', 'startTime')
-    googleCalendarUrl.searchParams.set('maxResults', '250')
+    // Fetch all events with pagination support
+    // Google Calendar API returns max 2500 events per page, use pagination to get all
+    const allGoogleEvents: GoogleCalendarEvent[] = []
+    let pageToken: string | null = null
+    let hasMorePages = true
+    let pageCount = 0
+    const maxPages = 10 // Safety limit to prevent infinite loops
 
-    const eventsResponse = await fetch(googleCalendarUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    while (hasMorePages && pageCount < maxPages) {
+      pageCount++
+      const googleCalendarUrl = new URL(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
+      )
+      googleCalendarUrl.searchParams.set('timeMin', timeMin.toISOString())
+      googleCalendarUrl.searchParams.set('timeMax', timeMax.toISOString())
+      googleCalendarUrl.searchParams.set('singleEvents', 'true')
+      googleCalendarUrl.searchParams.set('orderBy', 'startTime')
+      googleCalendarUrl.searchParams.set('maxResults', '2500') // Google Calendar API limit per page
+      
+      if (pageToken) {
+        googleCalendarUrl.searchParams.set('pageToken', pageToken)
+      }
 
-    if (!eventsResponse.ok) {
-      const errorText = await eventsResponse.text()
-      console.error(`[Calendar Sync] Failed to fetch events from Google Calendar: ${errorText}`)
-      return null
+      const eventsResponse = await fetch(googleCalendarUrl.toString(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      if (!eventsResponse.ok) {
+        const errorText = await eventsResponse.text()
+        console.error(`[Calendar Sync] Failed to fetch events from Google Calendar (page ${pageCount}): ${errorText}`)
+        
+        // If this is not the first page, return what we have so far
+        if (allGoogleEvents.length > 0) {
+          console.warn(`[Calendar Sync] Fetched ${allGoogleEvents.length} events before pagination error`)
+          return allGoogleEvents
+        }
+        
+        return null
+      }
+
+      const googleEventsData = await eventsResponse.json()
+      const pageEvents = googleEventsData.items || []
+      allGoogleEvents.push(...pageEvents)
+
+      // Check if there are more pages
+      pageToken = googleEventsData.nextPageToken || null
+      hasMorePages = !!pageToken
+
+      console.log(`[Calendar Sync] Fetched page ${pageCount}: ${pageEvents.length} events (total: ${allGoogleEvents.length})`)
     }
 
-    const googleEventsData = await eventsResponse.json()
-    return googleEventsData.items || []
+    if (hasMorePages && pageCount >= maxPages) {
+      console.warn(`[Calendar Sync] Reached max pages limit (${maxPages}), may have more events to fetch`)
+    }
+
+    return allGoogleEvents
   } catch (error) {
     console.error('[Calendar Sync] Error fetching Google Calendar events:', error)
     return null

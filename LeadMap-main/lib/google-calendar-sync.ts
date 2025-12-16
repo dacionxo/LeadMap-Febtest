@@ -196,9 +196,13 @@ export async function pushEventToGoogleCalendar(
 
     const googleEventData = await response.json()
 
+    // Google Calendar API should always return an id, but handle edge cases
+    // For updates (PUT), the id might be in the response or we use the existing external_event_id
+    const eventId = googleEventData.id || (isUpdate ? event.external_event_id : null)
+
     return {
       success: true,
-      externalEventId: googleEventData.id,
+      externalEventId: eventId || undefined, // Return undefined instead of null for consistency
     }
   } catch (error: any) {
     console.error('Error pushing event to Google Calendar:', error)

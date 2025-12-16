@@ -32,18 +32,22 @@ export async function GET(req: NextRequest) {
       }
     )
 
-    // Get all tokens (we need to compare hashes)
-    const { data: allTokens, error: tokensError } = await supabaseAdmin
+    // Get only unexpired and unused tokens (performance optimization)
+    // Filter before fetching to avoid O(n) iteration on all tokens
+    const now = new Date().toISOString()
+    const { data: candidateTokens, error: tokensError } = await supabaseAdmin
       .from('email_verification_tokens')
       .select('*')
+      .gte('expires_at', now) // Only non-expired tokens
+      .is('used_at', null) // Only unused tokens
 
-    if (tokensError || !allTokens) {
+    if (tokensError || !candidateTokens) {
       return NextResponse.redirect(new URL('/?error=invalid_token', req.url))
     }
 
-    // Find matching token
+    // Find matching token from filtered candidates
     let matchedToken = null
-    for (const t of allTokens) {
+    for (const t of candidateTokens) {
       try {
         const isMatch = await bcrypt.compare(token, t.token_hash)
         if (isMatch) {

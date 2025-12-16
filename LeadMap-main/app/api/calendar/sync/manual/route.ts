@@ -124,36 +124,64 @@ export async function POST(request: NextRequest) {
 
         const calendarId = connection.calendar_id || 'primary'
 
-        // Fetch events from Google Calendar
-        const googleCalendarUrl = new URL(
-          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
-        )
-        googleCalendarUrl.searchParams.set('timeMin', threeMonthsAgo.toISOString())
-        googleCalendarUrl.searchParams.set('timeMax', twelveMonthsFromNow.toISOString())
-        googleCalendarUrl.searchParams.set('singleEvents', 'true')
-        googleCalendarUrl.searchParams.set('orderBy', 'startTime')
-        googleCalendarUrl.searchParams.set('maxResults', '2500')
+        // Fetch all events from Google Calendar with pagination support
+        const allGoogleEvents: any[] = []
+        let pageToken: string | null = null
+        let hasMorePages = true
+        let pageCount = 0
+        const maxPages = 10 // Safety limit
 
-        const eventsResponse = await fetch(googleCalendarUrl.toString(), {
-          headers: {
-            Authorization: `Bearer ${validAccessToken}`,
-          },
-        })
+        while (hasMorePages && pageCount < maxPages) {
+          pageCount++
+          const googleCalendarUrl = new URL(
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
+          )
+          googleCalendarUrl.searchParams.set('timeMin', threeMonthsAgo.toISOString())
+          googleCalendarUrl.searchParams.set('timeMax', twelveMonthsFromNow.toISOString())
+          googleCalendarUrl.searchParams.set('singleEvents', 'true')
+          googleCalendarUrl.searchParams.set('orderBy', 'startTime')
+          googleCalendarUrl.searchParams.set('maxResults', '2500') // Google Calendar API limit per page
+          
+          if (pageToken) {
+            googleCalendarUrl.searchParams.set('pageToken', pageToken)
+          }
 
-        if (!eventsResponse.ok) {
-          const errorText = await eventsResponse.text()
-          console.error(`Error fetching events for ${connection.email}:`, errorText)
-          syncResults.push({
-            connectionId: connection.id,
-            email: connection.email,
-            status: 'failed',
-            error: `Failed to fetch events: ${errorText}`,
+          const eventsResponse = await fetch(googleCalendarUrl.toString(), {
+            headers: {
+              Authorization: `Bearer ${validAccessToken}`,
+            },
           })
-          continue
+
+          if (!eventsResponse.ok) {
+            const errorText = await eventsResponse.text()
+            console.error(`Error fetching events for ${connection.email} (page ${pageCount}):`, errorText)
+            
+            // If this is not the first page, use what we have so far
+            if (allGoogleEvents.length > 0) {
+              console.warn(`Fetched ${allGoogleEvents.length} events before pagination error`)
+              break
+            }
+            
+            syncResults.push({
+              connectionId: connection.id,
+              email: connection.email,
+              status: 'failed',
+              error: `Failed to fetch events: ${errorText}`,
+            })
+            hasMorePages = false
+            continue
+          }
+
+          const googleEventsData = await eventsResponse.json()
+          const pageEvents = googleEventsData.items || []
+          allGoogleEvents.push(...pageEvents)
+
+          // Check if there are more pages
+          pageToken = googleEventsData.nextPageToken || null
+          hasMorePages = !!pageToken
         }
 
-        const googleEventsData = await eventsResponse.json()
-        const googleEvents = googleEventsData.items || []
+        const googleEvents = allGoogleEvents
 
         // Get user's default timezone
         const { data: userSettings } = await supabase
@@ -177,13 +205,26 @@ export async function POST(request: NextRequest) {
               continue
             }
 
-            // Check if event exists
-            const { data: existing } = await supabase
+            // Skip events without an ID (shouldn't happen, but safety check)
+            if (!googleEvent.id) {
+              skippedCount++
+              continue
+            }
+
+            // Check if event exists (handle both single() and multiple results)
+            const { data: existingData, error: existingError } = await supabase
               .from('calendar_events')
               .select('id, updated_at')
               .eq('external_event_id', googleEvent.id)
               .eq('user_id', user.id)
-              .single()
+              .maybeSingle()
+
+            // If error is not "not found", log it
+            if (existingError && existingError.code !== 'PGRST116') {
+              console.error(`Error checking existing event ${googleEvent.id}:`, existingError)
+            }
+
+            const existing = existingData || null
 
             // Parse event data
             const title = googleEvent.summary || 'Untitled Event'
@@ -263,15 +304,6 @@ export async function POST(request: NextRequest) {
             }
 
             if (existing) {
-              // Check if Google version is newer
-              const googleUpdated = googleEvent.updated ? new Date(googleEvent.updated) : null
-              const localUpdated = existing.updated_at ? new Date(existing.updated_at) : null
-
-              if (googleUpdated && localUpdated && localUpdated > googleUpdated) {
-                skippedCount++
-                continue
-              }
-
               // Update existing event
               const { id: _, ...updateData } = eventData
               const { error: updateError } = await supabase

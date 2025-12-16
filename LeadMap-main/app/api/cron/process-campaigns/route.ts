@@ -216,7 +216,7 @@ async function runCronJob(request: NextRequest) {
 
             // Determine which step to send
             const currentStepNumber = recipient.current_step_number || 0
-            const nextStep = steps.find(s => s.step_number === currentStepNumber + 1)
+            const nextStep = (steps as any[]).find((s: any) => s.step_number === currentStepNumber + 1)
 
             if (!nextStep) {
               // No more steps, mark as completed

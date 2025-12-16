@@ -73,8 +73,7 @@ async function runCronJob(request: NextRequest) {
           .single()
 
         if (mailboxError || !mailbox) {
-          await supabase
-            .from('email_queue')
+          await (supabase.from('email_queue') as any)
             .update({
               status: 'failed',
               last_error: 'Mailbox not found',
@@ -90,9 +89,8 @@ async function runCronJob(request: NextRequest) {
           continue
         }
 
-        if (!mailbox.active) {
-          await supabase
-            .from('email_queue')
+        if (!(mailbox as any).active) {
+          await (supabase.from('email_queue') as any)
             .update({
               status: 'failed',
               last_error: 'Mailbox is not active',
@@ -115,7 +113,7 @@ async function runCronJob(request: NextRequest) {
         const { data: recentEmails } = await supabase
           .from('emails')
           .select('sent_at')
-          .eq('mailbox_id', mailbox.id)
+          .eq('mailbox_id', (mailbox as any).id)
           .eq('status', 'sent')
           .not('sent_at', 'is', null)
 

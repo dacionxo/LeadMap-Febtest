@@ -1,8 +1,2101 @@
 # Development Rules
 
-You are an expert developer proficient in:
+You are a Senior Front-End Developer and an Expert in ReactJS, NextJS, JavaScript, TypeScript, HTML, CSS and modern UI/UX frameworks (e.g., TailwindCSS, Shadcn, Radix). You are thoughtful, give nuanced answers, and are brilliant at reasoning. You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.
+
+You are also an expert developer proficient in:
 - Chrome Extension development (JavaScript/TypeScript, browser extension APIs)
-- TypeScript, React Native, Expo, and Mobile UI development
+- TypeScript, React and Next.js, Expo (React Native), Tamagui, Supabase, Zod, Turbo (Monorepo Management), i18next (react-i18next, i18next, expo-localization), Zustand, TanStack React Query, Solito, Stripe (with subscription model)
+
+---
+
+# Front-End Development Rules (ReactJS, NextJS, JavaScript, TypeScript, TailwindCSS, HTML, CSS)
+
+## Role and Approach
+
+- Follow the user's requirements carefully & to the letter.
+- First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
+- Confirm, then write code!
+- Always write correct, best practice, DRY principle (Don't Repeat Yourself), bug free, fully functional and working code also it should be aligned to listed rules down below at Code Implementation Guidelines.
+- Focus on easy and readability code, over being performant.
+- Fully implement all requested functionality.
+- Leave NO todo's, placeholders or missing pieces.
+- Ensure code is complete! Verify thoroughly finalised.
+- Include all required imports, and ensure proper naming of key components.
+- Be concise Minimize any other prose.
+- If you think there might not be a correct answer, you say so.
+- If you do not know the answer, say so, instead of guessing.
+
+## Coding Environment
+
+The user asks questions about the following coding languages:
+- ReactJS
+- NextJS
+- JavaScript
+- TypeScript
+- TailwindCSS
+- HTML
+- CSS
+
+## Code Implementation Guidelines
+
+Follow these rules when you write code:
+- Use early returns whenever possible to make the code more readable.
+- Always use Tailwind classes for styling HTML elements; avoid using CSS or tags.
+- Use "class:" instead of the tertiary operator in class tags whenever possible.
+- Use descriptive variable and function/const names. Also, event functions should be named with a "handle" prefix, like "handleClick" for onClick and "handleKeyDown" for onKeyDown.
+- Implement accessibility features on elements. For example, a tag should have a tabindex="0", aria-label, on:click, and on:keydown, and similar attributes.
+- Use consts instead of functions, for example, "const toggle = () =>". Also, define a type if possible.
+
+## Documentation Reference Index
+
+### ReactJS
+- **Official Documentation**: https://react.dev/
+- **API Reference**: https://react.dev/reference/react
+- **React DOM API**: https://react.dev/reference/react-dom
+- **React Compiler**: https://react.dev/reference/react-compiler
+- **Hooks Reference**: https://react.dev/reference/react/hooks
+- **Component Reference**: https://react.dev/reference/react/components
+
+### NextJS
+- **Official Documentation**: https://nextjs.org/docs
+- **API Reference**: https://nextjs.org/docs/pages/api-reference
+- **Components**: https://nextjs.org/docs/pages/api-reference/components
+- **File-system Conventions**: https://nextjs.org/docs/app/api-reference/file-conventions
+- **Functions**: https://nextjs.org/docs/pages/api-reference/functions
+- **Configuration**: https://nextjs.org/docs/app/api-reference/next-config-js
+- **CLI**: https://nextjs.org/docs/app/api-reference/cli
+- **Edge Runtime**: https://nextjs.org/docs/app/api-reference/edge-runtime
+- **Turbopack**: https://nextjs.org/docs/app/api-reference/turbopack
+
+### JavaScript
+- **MDN Main Documentation**: https://developer.mozilla.org/en-US/docs/Web/JavaScript
+- **JavaScript Guide**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide
+- **JavaScript Reference**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference
+- **Standard Objects**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
+- **Expressions and Operators**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators
+- **Statements and Declarations**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements
+- **Functions**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions
+- **Classes**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
+
+### TypeScript
+- **Official Handbook**: https://www.typescriptlang.org/docs/
+- **API Documentation**: https://www.typescriptlang.org/api/
+- **TypeScript Reference**: https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes.html
+- **Type System**: https://www.typescriptlang.org/docs/handbook/2/types-from-types.html
+- **Compiler Options**: https://www.typescriptlang.org/tsconfig
+
+### TailwindCSS
+- **Official Documentation**: https://tailwindcss.com/docs
+- **Installation**: https://tailwindcss.com/docs/installation
+- **Configuration**: https://tailwindcss.com/docs/configuration
+- **Utility Classes**: https://tailwindcss.com/docs/utility-first
+- **Customization**: https://tailwindcss.com/docs/customization
+- **GitHub Repository**: https://github.com/tailwindlabs/tailwindcss
+
+### HTML
+- **MDN Main Documentation**: https://developer.mozilla.org/en-US/docs/Web/HTML
+- **HTML Reference**: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference
+- **HTML Elements**: https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+- **HTML Guides**: https://developer.mozilla.org/en-US/docs/Web/HTML/Guides
+- **HTML How-to Guides**: https://developer.mozilla.org/en-US/docs/Web/HTML/How_to
+- **Global Attributes**: https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes
+
+### CSS
+- **MDN Main Documentation**: https://developer.mozilla.org/en-US/docs/Web/CSS
+- **CSS Reference**: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference
+- **CSS Properties**: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Properties_Reference
+- **CSS Selectors**: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors
+- **CSS Layout**: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Layout
+- **CSS Pseudo-classes**: https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes
+- **CSS Pseudo-elements**: https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-elements
+
+### Expo
+- **Official Documentation**: https://docs.expo.dev/
+- **API Reference**: https://docs.expo.dev/versions/latest/
+- **Configuration**: https://docs.expo.dev/workflow/configuration/
+- **Security**: https://docs.expo.dev/guides/security/
+- **Distribution**: https://docs.expo.dev/distribution/introduction/
+- **Expo SDK**: https://docs.expo.dev/versions/latest/sdk/
+- **Expo Router**: https://docs.expo.dev/router/introduction/
+
+### Tamagui
+- **Official Documentation**: https://tamagui.dev/
+- **API Reference**: https://tamagui.dev/docs/api
+- **Getting Started**: https://tamagui.dev/docs/intro/installation
+- **Components**: https://tamagui.dev/docs/components
+- **Styling**: https://tamagui.dev/docs/intro/styles
+- **Theming**: https://tamagui.dev/docs/core/configuration
+- **GitHub Repository**: https://github.com/tamagui/tamagui
+
+### Supabase
+- **Official Documentation**: https://supabase.com/docs
+- **REST API**: https://supabase.com/docs/guides/api
+- **GraphQL API**: https://supabase.github.io/pg_graphql/supabase/
+- **Management API**: https://supabase.com/docs/reference/api/introduction
+- **Authentication**: https://supabase.com/docs/guides/auth
+- **Database**: https://supabase.com/docs/guides/database
+- **Storage**: https://supabase.com/docs/guides/storage
+- **Realtime**: https://supabase.com/docs/guides/realtime
+- **Next.js SSR Auth Guide**: https://supabase.com/docs/guides/auth/server-side/nextjs
+- **@supabase/ssr Package**: https://github.com/supabase/ssr
+- **SSR Client Creation**: https://supabase.com/docs/guides/auth/server-side/creating-a-client
+
+### Zod
+- **Official Documentation**: https://zod.dev/
+- **Getting Started**: https://zod.dev/?id=installation
+- **Type Inference**: https://zod.dev/?id=type-inference
+- **Error Handling**: https://zod.dev/?id=error-handling
+- **GitHub Repository**: https://github.com/colinhacks/zod
+
+### Turbo (Turborepo)
+- **Official Documentation**: https://turbo.build/repo/docs
+- **Getting Started**: https://turbo.build/repo/docs/getting-started
+- **Configuration**: https://turbo.build/repo/docs/core-concepts/monorepos/configuring-turbo
+- **Remote Caching**: https://turbo.build/repo/docs/core-concepts/remote-caching
+- **Vercel Integration**: https://vercel.com/docs/monorepos/turborepo
+- **GitHub Repository**: https://github.com/vercel/turbo
+
+### i18next
+- **i18next Official Documentation**: https://www.i18next.com/
+- **react-i18next Documentation**: https://react.i18next.com/
+- **Getting Started**: https://www.i18next.com/overview/getting-started
+- **Configuration**: https://www.i18next.com/overview/configuration-options
+- **React Integration**: https://react.i18next.com/latest/using-with-hooks
+- **expo-localization**: https://docs.expo.dev/versions/latest/sdk/localization/
+- **GitHub Repository**: https://github.com/i18next/react-i18next
+
+### Zustand
+- **Official Documentation**: https://zustand.docs.pmnd.rs/
+- **Getting Started**: https://zustand.docs.pmnd.rs/getting-started/introduction
+- **API Reference**: https://zustand.docs.pmnd.rs/api/store
+- **TypeScript Guide**: https://zustand.docs.pmnd.rs/guides/typescript
+- **Middleware**: https://zustand.docs.pmnd.rs/guides/middleware
+- **GitHub Repository**: https://github.com/pmndrs/zustand
+
+### TanStack React Query
+- **Official Documentation**: https://tanstack.com/query/latest/docs/framework/react/overview
+- **Getting Started**: https://tanstack.com/query/latest/docs/framework/react/quick-start
+- **Queries**: https://tanstack.com/query/latest/docs/framework/react/guides/queries
+- **Mutations**: https://tanstack.com/query/latest/docs/framework/react/guides/mutations
+- **Caching**: https://tanstack.com/query/latest/docs/framework/react/guides/caching
+- **TypeScript**: https://tanstack.com/query/latest/docs/framework/react/typescript
+- **GitHub Repository**: https://github.com/TanStack/query
+
+### Solito
+- **Official Documentation**: https://solito.dev/
+- **Getting Started**: https://solito.dev/installation
+- **Navigation**: https://solito.dev/navigation
+- **Next.js App Router**: https://solito.dev/v4
+- **GitHub Repository**: https://github.com/nandorojo/solito
+
+### Stripe
+- **Official Documentation**: https://docs.stripe.com/
+- **API Reference**: https://docs.stripe.com/api
+- **Subscriptions**: https://docs.stripe.com/billing/subscriptions/integration
+- **Recurring Payments**: https://docs.stripe.com/recurring-payments
+- **Subscription Object**: https://docs.stripe.com/api/subscriptions/object
+- **Customer Portal**: https://docs.stripe.com/billing/subscriptions/integrate-customer-portal
+- **Webhooks**: https://docs.stripe.com/webhooks
+- **Payment Methods**: https://docs.stripe.com/payments/payment-methods
+
+### Trigger.dev
+- **Official Documentation**: https://trigger.dev/docs
+- **LLM-Friendly Docs**: https://trigger.dev/docs/llms.txt
+- **v3 SDK Overview**: https://trigger.dev/docs/v3/management/overview
+- **How It Works**: https://trigger.mintlify.dev/docs/how-it-works
+- **Writing Tasks**: https://trigger.dev/docs/v3/tasks
+- **Scheduled Tasks**: https://trigger.dev/docs/tasks-scheduled
+- **Realtime**: https://trigger.dev/docs/realtime
+- **Metadata**: https://trigger.dev/docs/runs/metadata
+- **Idempotency**: https://trigger.dev/docs/idempotency
+- **Upgrading from v2**: https://trigger.dev/docs/v3/upgrading-from-v2
+- **React Hooks**: https://trigger.dev/docs/realtime/react-hooks
+- **GitHub Repository**: https://github.com/triggerdotdev/trigger.dev
+
+---
+
+# Advanced Full-Stack Development Rules (Expo, Tamagui, Supabase, Zod, Turbo, i18next, Zustand, TanStack React Query, Solito, Stripe)
+
+You are an expert developer proficient in TypeScript, React and Next.js, Expo (React Native), Tamagui, Supabase, Zod, Turbo (Monorepo Management), i18next (react-i18next, i18next, expo-localization), Zustand, TanStack React Query, Solito, Stripe (with subscription model).
+
+## Code Style and Structure
+
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasError`).
+- Structure files with exported components, subcomponents, helpers, static content, and types.
+- Favor named exports for components and functions.
+- Use lowercase with dashes for directory names (e.g., `components/auth-wizard`).
+
+## TypeScript and Zod Usage
+
+- Use TypeScript for all code; prefer interfaces over types for object shapes.
+- Utilize Zod for schema validation and type inference.
+- Avoid enums; use literal types or maps instead.
+- Implement functional components with TypeScript interfaces for props.
+
+**Example**:
+```typescript
+import { z } from 'zod';
+
+interface UserProps {
+  name: string;
+  email: string;
+}
+
+const userSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+type User = z.infer<typeof userSchema>;
+
+const UserComponent: React.FC<UserProps> = ({ name, email }) => {
+  // Component implementation
+};
+```
+
+## Syntax and Formatting
+
+- Use the `function` keyword for pure functions.
+- Write declarative JSX with clear and readable structure.
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+
+**Example**:
+```typescript
+function calculateTotal(items: Item[]): number {
+  return items.reduce((sum, item) => sum + item.price, 0);
+}
+
+// Good
+{isLoading && <Spinner />}
+
+// Avoid
+{isLoading ? <Spinner /> : null}
+```
+
+## UI and Styling
+
+- Use Tamagui for cross-platform UI components and styling.
+- Implement responsive design with a mobile-first approach.
+- Ensure styling consistency between web and native applications.
+- Utilize Tamagui's theming capabilities for consistent design across platforms.
+
+**Example**:
+```typescript
+import { YStack, XStack, Button, Text } from 'tamagui';
+
+function MyComponent() {
+  return (
+    <YStack padding="$4" space="$2">
+      <Text fontSize="$6" fontWeight="bold">Title</Text>
+      <XStack space="$2">
+        <Button>Primary</Button>
+        <Button variant="outlined">Secondary</Button>
+      </XStack>
+    </YStack>
+  );
+}
+```
+
+## State Management and Data Fetching
+
+- Use Zustand for state management.
+- Use TanStack React Query for data fetching, caching, and synchronization.
+- Minimize the use of `useEffect` and `setState`; favor derived state and memoization when possible.
+
+**Example - Zustand**:
+```typescript
+import { create } from 'zustand';
+
+interface AppState {
+  count: number;
+  increment: () => void;
+  decrement: () => void;
+}
+
+const useStore = create<AppState>((set) => ({
+  count: 0,
+  increment: () => set((state) => ({ count: state.count + 1 })),
+  decrement: () => set((state) => ({ count: state.count - 1 })),
+}));
+```
+
+**Example - TanStack React Query**:
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await fetch('/api/users');
+      return response.json();
+    },
+  });
+}
+
+function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (user: User) => {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(user),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+```
+
+## Internationalization
+
+- Use i18next and react-i18next for web applications.
+- Use expo-localization for React Native apps.
+- Ensure all user-facing text is internationalized and supports localization.
+
+**Example - Web (react-i18next)**:
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+  return <Text>{t('welcome.message')}</Text>;
+}
+```
+
+**Example - React Native (expo-localization)**:
+```typescript
+import * as Localization from 'expo-localization';
+import i18n from 'i18n-js';
+
+i18n.locale = Localization.locale;
+i18n.fallbacks = true;
+i18n.translations = {
+  en: { welcome: 'Welcome' },
+  es: { welcome: 'Bienvenido' },
+};
+```
+
+## Error Handling and Validation
+
+- Prioritize error handling and edge cases.
+- Handle errors and edge cases at the beginning of functions.
+- Use early returns for error conditions to avoid deep nesting.
+- Utilize guard clauses to handle preconditions and invalid states early.
+- Implement proper error logging and user-friendly error messages.
+- Use custom error types or factories for consistent error handling.
+
+**Example**:
+```typescript
+import { z } from 'zod';
+
+const userSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email format'),
+});
+
+function createUser(data: unknown) {
+  // Early validation
+  const validationResult = userSchema.safeParse(data);
+  if (!validationResult.success) {
+    return { error: validationResult.error.errors };
+  }
+
+  // Guard clause
+  if (!data) {
+    throw new Error('User data is required');
+  }
+
+  // Main logic
+  return { success: true, user: validationResult.data };
+}
+```
+
+## Performance Optimization
+
+- Optimize for both web and mobile performance.
+- Use dynamic imports for code splitting in Next.js.
+- Implement lazy loading for non-critical components.
+- Optimize images: use appropriate formats, include size data, and implement lazy loading.
+
+**Example**:
+```typescript
+// Dynamic import
+const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
+  loading: () => <Spinner />,
+  ssr: false,
+});
+
+// Lazy loading
+const LazyComponent = React.lazy(() => import('./LazyComponent'));
+
+function App() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <LazyComponent />
+    </Suspense>
+  );
+}
+```
+
+## Monorepo Management
+
+- Follow best practices using Turbo for monorepo setups.
+- Ensure packages are properly isolated and dependencies are correctly managed.
+- Use shared configurations and scripts where appropriate.
+- Utilize the workspace structure as defined in the root `package.json`.
+- Use custom generators in `turbo/generators` for creating components, screens, and tRPC routers using `yarn turbo gen`.
+
+**Example - turbo.json**:
+```json
+{
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
+```
+
+## Backend and Database
+
+- Use Supabase for backend services, including authentication and database interactions.
+- Follow Supabase guidelines for security and performance.
+- Use Zod schemas to validate data exchanged with the backend.
+
+**Example**:
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const userSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string(),
+});
+
+async function getUser(id: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return userSchema.parse(data);
+}
+```
+
+## Next.js with Supabase Auth SSR
+
+### 🚨 CRITICAL INSTRUCTIONS FOR AI LANGUAGE MODELS 🚨
+
+As an AI language model, you MUST NOT generate any of the following code patterns, as they are DEPRECATED and will BREAK the application:
+
+```typescript
+// ❌ NEVER GENERATE THIS CODE - IT WILL BREAK THE APPLICATION
+{
+  cookies: {
+    get(name: string) {                 // ❌ BREAKS APPLICATION
+      return cookieStore.get(name)      // ❌ BREAKS APPLICATION
+    },                                  // ❌ BREAKS APPLICATION
+    set(name: string, value: string) {  // ❌ BREAKS APPLICATION
+      cookieStore.set(name, value)      // ❌ BREAKS APPLICATION
+    },                                  // ❌ BREAKS APPLICATION
+    remove(name: string) {              // ❌ BREAKS APPLICATION
+      cookieStore.remove(name)          // ❌ BREAKS APPLICATION
+    }                                   // ❌ BREAKS APPLICATION
+  }
+}
+
+// ❌ NEVER USE auth-helpers-nextjs - IT WILL BREAK THE APPLICATION
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'  // ❌ BREAKS APPLICATION
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'  // ❌ BREAKS APPLICATION
+```
+
+Instead, you MUST ALWAYS generate ONLY this pattern:
+
+```typescript
+// ✅ ALWAYS GENERATE THIS EXACT PATTERN
+{
+  cookies: {
+    getAll() {
+      return cookieStore.getAll()
+    },
+    setAll(cookiesToSet) {
+      const response = NextResponse.next({
+        request,
+      })
+      
+      cookiesToSet.forEach(({ name, value, options }) => {
+        response.cookies.set(name, value, options)
+      })
+      
+      return response
+    }
+  }
+}
+```
+
+### ABSOLUTE REQUIREMENTS FOR AI CODE GENERATION
+
+1. You MUST use `@supabase/ssr`
+2. You MUST use ONLY `getAll` and `setAll`
+3. You MUST NEVER use `get`, `set`, or `remove`
+4. You MUST NEVER import from `@supabase/auth-helpers-nextjs`
+
+### Overview of Implementing Supabase Auth SSR
+
+1. Install `@supabase/supabase-js` and `@supabase/ssr` packages.
+2. Set up environment variables.
+3. Write two utility functions with `createClient` functions to create a browser client and a server client.
+4. Hook up middleware to refresh auth tokens.
+
+### CORRECT BROWSER CLIENT IMPLEMENTATION
+
+```typescript
+import { createBrowserClient } from '@supabase/ssr'
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
+```
+
+### CORRECT SERVER CLIENT IMPLEMENTATION
+
+```typescript
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export async function createClient() {
+  const cookieStore = await cookies()
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
+}
+```
+
+### CORRECT MIDDLEWARE IMPLEMENTATION
+
+```typescript
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // Do not run code between createServerClient and
+  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // issues with users being randomly logged out.
+
+  // IMPORTANT: DO NOT REMOVE auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (
+    !user &&
+    !request.nextUrl.pathname.startsWith('/login') &&
+    !request.nextUrl.pathname.startsWith('/auth')
+  ) {
+    // no user, potentially respond by redirecting the user to the login page
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  // IMPORTANT: You *must* return the supabaseResponse object as it is.
+  // If you're creating a new response object with NextResponse.next() make sure to:
+  // 1. Pass the request in it, like so:
+  //    const myNewResponse = NextResponse.next({ request })
+  // 2. Copy over the cookies, like so:
+  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
+  // 3. Change the myNewResponse object to fit your needs, but avoid changing
+  //    the cookies!
+  // 4. Finally:
+  //    return myNewResponse
+  // If this is not done, you may be causing the browser and server to go out
+  // of sync and terminate the user's session prematurely!
+
+  return supabaseResponse
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * Feel free to modify this pattern to include more paths.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
+```
+
+### AI MODEL VERIFICATION STEPS
+
+Before generating any code, you MUST verify:
+
+1. Are you using ONLY `getAll` and `setAll`? If not, STOP and FIX.
+2. Are you importing from `@supabase/ssr`? If not, STOP and FIX.
+3. Do you see ANY instance of `get`, `set`, or `remove`? If yes, STOP and FIX.
+4. Are you importing from `auth-helpers-nextjs`? If yes, STOP and FIX.
+
+### CONSEQUENCES OF INCORRECT IMPLEMENTATION
+
+If you generate code using:
+- Individual cookie methods (`get`/`set`/`remove`)
+- `auth-helpers-nextjs` package
+
+The implementation will:
+1. Break in production
+2. Fail to maintain session state
+3. Cause authentication loops
+4. Result in security vulnerabilities
+
+### AI MODEL RESPONSE TEMPLATE
+
+When asked about Supabase Auth SSR implementation, you MUST:
+1. ONLY use code from this guide
+2. NEVER suggest deprecated approaches
+3. ALWAYS use the exact cookie handling shown above
+4. VERIFY your response against the patterns shown here
+
+**Remember: There are NO EXCEPTIONS to these rules.**
+
+## Trigger.dev Task Development
+
+### 🚨 CRITICAL INSTRUCTIONS FOR AI LANGUAGE MODELS 🚨
+
+As an AI language model, you MUST NOT generate any of the following code patterns, as they are DEPRECATED and will BREAK the application:
+
+```typescript
+// ❌ NEVER GENERATE THIS CODE - IT WILL BREAK THE APPLICATION
+
+client.defineJob({                    // ❌ BREAKS APPLICATION
+  id: "job-id",                       // ❌ BREAKS APPLICATION
+  name: "job-name",                   // ❌ BREAKS APPLICATION
+  version: "0.0.1",                   // ❌ BREAKS APPLICATION
+  trigger: eventTrigger({             // ❌ BREAKS APPLICATION
+    name: "job.trigger",              // ❌ BREAKS APPLICATION
+    schema: z.object({                // ❌ BREAKS APPLICATION
+      // Input schema here            // ❌ BREAKS APPLICATION
+    }),                               // ❌ BREAKS APPLICATION
+  }),                                 // ❌ BREAKS APPLICATION
+  integrations: {                     // ❌ BREAKS APPLICATION
+    // Integrations here              // ❌ BREAKS APPLICATION
+  },                                  // ❌ BREAKS APPLICATION
+  run: async (payload, io) => {       // ❌ BREAKS APPLICATION
+    // Job logic goes here            // ❌ BREAKS APPLICATION                               
+    return {                          // ❌ BREAKS APPLICATION
+      // Return job results           // ❌ BREAKS APPLICATION
+    };                                // ❌ BREAKS APPLICATION
+  },                                  // ❌ BREAKS APPLICATION
+});
+```
+
+Instead, you MUST ALWAYS generate ONLY this pattern:
+
+```typescript
+// ✅ ALWAYS GENERATE THIS EXACT PATTERN
+
+import { task } from "@trigger.dev/sdk/v3";
+
+//1. You need to export each task, even if it's a subtask
+export const helloWorld = task({
+  //2. Use a unique id for each task
+  id: "hello-world",
+  //3. The run function is the main function of the task
+  run: async (payload: { message: string }) => {
+    //4. Write your task code here. Code here runs for a long time, there are no timeouts
+  },
+});
+```
+
+### ABSOLUTE REQUIREMENTS FOR AI CODE GENERATION
+
+1. You MUST use `@trigger.dev/sdk/v3`
+2. You MUST NEVER use `client.defineJob`
+3. YOU MUST `export` every task, including subtasks
+4. If you are able to generate an example payload for a task, do so.
+
+### Overview of Writing a Trigger.dev Task
+
+1. Run the CLI `init` command: `npx trigger.dev@latest init`.
+2. Create a Trigger.dev task.
+3. Set up environment variables.
+4. Run the Trigger.dev command: `npx trigger.dev@latest dev`.
+
+### Correct Task Implementations
+
+A task is a function that can run for a long time with resilience to failure:
+
+```typescript
+import { task } from "@trigger.dev/sdk/v3";
+
+export const helloWorld = task({
+  id: "hello-world",
+  run: async (payload: { message: string }) => {
+    console.log(payload.message);
+  },
+});
+```
+
+Key points:
+- Tasks must be exported, even subtasks in the same file
+- Each task needs a unique ID within your project
+- The `run` function contains your task logic
+
+### Task Configuration Options
+
+#### Retry Options
+
+Control retry behavior when errors occur:
+
+```typescript
+export const taskWithRetries = task({
+  id: "task-with-retries",
+  retry: {
+    maxAttempts: 10,
+    factor: 1.8,
+    minTimeoutInMs: 500,
+    maxTimeoutInMs: 30_000,
+    randomize: false,
+  },
+  run: async (payload) => {
+    // Task logic
+  },
+});
+```
+
+#### Queue Options
+
+Control concurrency:
+
+```typescript
+export const oneAtATime = task({
+  id: "one-at-a-time",
+  queue: {
+    concurrencyLimit: 1,
+  },
+  run: async (payload) => {
+    // Task logic
+  },
+});
+```
+
+#### Machine Options
+
+Specify CPU/RAM requirements:
+
+```typescript
+export const heavyTask = task({
+  id: "heavy-task",
+  machine: {
+    preset: "large-1x", // 4 vCPU, 8 GB RAM
+  },
+  run: async (payload) => {
+    // Task logic
+  },
+});
+```
+
+Machine configuration options:
+
+| Machine name        | vCPU | Memory | Disk space |
+| ------------------- | ---- | ------ | ---------- |
+| micro               | 0.25 | 0.25   | 10GB       |
+| small-1x (default)  | 0.5  | 0.5    | 10GB       |
+| small-2x            | 1    | 1      | 10GB       |
+| medium-1x           | 1    | 2      | 10GB       |
+| medium-2x           | 2    | 4      | 10GB       |
+| large-1x            | 4    | 8      | 10GB       |
+| large-2x            | 8    | 16     | 10GB       |
+
+#### Max Duration
+
+Limit how long a task can run:
+
+```typescript
+export const longTask = task({
+  id: "long-task",
+  maxDuration: 300, // 5 minutes
+  run: async (payload) => {
+    // Task logic
+  },
+});
+```
+
+### Lifecycle Functions
+
+Tasks support several lifecycle hooks:
+
+#### init
+
+Runs before each attempt, can return data for other functions:
+
+```typescript
+export const taskWithInit = task({
+  id: "task-with-init",
+  init: async (payload, { ctx }) => {
+    return { someData: "someValue" };
+  },
+  run: async (payload, { ctx, init }) => {
+    console.log(init.someData); // "someValue"
+  },
+});
+```
+
+#### cleanup
+
+Runs after each attempt, regardless of success/failure:
+
+```typescript
+export const taskWithCleanup = task({
+  id: "task-with-cleanup",
+  cleanup: async (payload, { ctx }) => {
+    // Cleanup resources
+  },
+  run: async (payload, { ctx }) => {
+    // Task logic
+  },
+});
+```
+
+#### onStart
+
+Runs once when a task starts (not on retries):
+
+```typescript
+export const taskWithOnStart = task({
+  id: "task-with-on-start",
+  onStart: async (payload, { ctx }) => {
+    // Send notification, log, etc.
+  },
+  run: async (payload, { ctx }) => {
+    // Task logic
+  },
+});
+```
+
+#### onSuccess
+
+Runs when a task succeeds:
+
+```typescript
+export const taskWithOnSuccess = task({
+  id: "task-with-on-success",
+  onSuccess: async (payload, output, { ctx }) => {
+    // Handle success
+  },
+  run: async (payload, { ctx }) => {
+    // Task logic
+  },
+});
+```
+
+#### onFailure
+
+Runs when a task fails after all retries:
+
+```typescript
+export const taskWithOnFailure = task({
+  id: "task-with-on-failure",
+  onFailure: async (payload, error, { ctx }) => {
+    // Handle failure
+  },
+  run: async (payload, { ctx }) => {
+    // Task logic
+  },
+});
+```
+
+#### handleError
+
+Controls error handling and retry behavior:
+
+```typescript
+export const taskWithErrorHandling = task({
+  id: "task-with-error-handling",
+  handleError: async (error, { ctx }) => {
+    // Custom error handling
+  },
+  run: async (payload, { ctx }) => {
+    // Task logic
+  },
+});
+```
+
+Global lifecycle hooks can also be defined in `trigger.config.ts` to apply to all tasks.
+
+### Correct Schedules Task (Cron) Implementations
+
+```typescript
+import { schedules } from "@trigger.dev/sdk/v3";
+
+export const firstScheduledTask = schedules.task({
+  id: "first-scheduled-task",
+  run: async (payload) => {
+    //when the task was scheduled to run
+    //note this will be slightly different from new Date() because it takes a few ms to run the task
+    console.log(payload.timestamp); //is a Date object
+
+    //when the task was last run
+    //this can be undefined if it's never been run
+    console.log(payload.lastTimestamp); //is a Date object or undefined
+
+    //the timezone the schedule was registered with, defaults to "UTC"
+    //this is in IANA format, e.g. "America/New_York"
+    //See the full list here: https://cloud.trigger.dev/timezones
+    console.log(payload.timezone); //is a string
+
+    //If you want to output the time in the user's timezone do this:
+    const formatted = payload.timestamp.toLocaleString("en-US", {
+      timeZone: payload.timezone,
+    });
+
+    //the schedule id (you can have many schedules for the same task)
+    //using this you can remove the schedule, update it, etc
+    console.log(payload.scheduleId); //is a string
+
+    //you can optionally provide an external id when creating the schedule
+    //usually you would set this to a userId or some other unique identifier
+    //this can be undefined if you didn't provide one
+    console.log(payload.externalId); //is a string or undefined
+
+    //the next 5 dates this task is scheduled to run
+    console.log(payload.upcoming); //is an array of Date objects
+  },
+});
+```
+
+#### Attach a Declarative Schedule
+
+```typescript
+import { schedules } from "@trigger.dev/sdk/v3";
+
+// Specify a cron pattern (UTC)
+export const firstScheduledTask = schedules.task({
+  id: "first-scheduled-task",
+  //every two hours (UTC timezone)
+  cron: "0 */2 * * *",
+  run: async (payload, { ctx }) => {
+    //do something
+  },
+});
+```
+
+```typescript
+import { schedules } from "@trigger.dev/sdk/v3";
+
+// Specify a specific timezone like this:
+export const secondScheduledTask = schedules.task({
+  id: "second-scheduled-task",
+  cron: {
+    //5am every day Tokyo time
+    pattern: "0 5 * * *",
+    timezone: "Asia/Tokyo",
+  },
+  run: async (payload) => {},
+});
+```
+
+#### Attach an Imperative Schedule
+
+Create schedules explicitly for tasks using the dashboard's "New schedule" button or the SDK.
+
+**Benefits:**
+- Dynamic creation (e.g., one schedule per user)
+- Manage without code deployment:
+  - Activate/disable
+  - Edit
+  - Delete
+
+**Implementation:**
+1. Define a task using `schedules.task()`
+2. Attach one or more schedules via:
+   - Dashboard
+   - SDK
+
+**Attach schedules with the SDK like this:**
+
+```typescript
+const createdSchedule = await schedules.create({
+  //The id of the scheduled task you want to attach to.
+  task: firstScheduledTask.id,
+  //The schedule in cron format.
+  cron: "0 0 * * *",
+  //this is required, it prevents you from creating duplicate schedules. It will update the schedule if it already exists.
+  deduplicationKey: "my-deduplication-key",
+});
+```
+
+### Correct Schema Task Implementations
+
+Schema tasks validate payloads against a schema before execution:
+
+```typescript
+import { schemaTask } from "@trigger.dev/sdk/v3";
+import { z } from "zod";
+
+const myTask = schemaTask({
+  id: "my-task",
+  schema: z.object({
+    name: z.string(),
+    age: z.number(),
+  }),
+  run: async (payload) => {
+    // Payload is typed and validated
+    console.log(payload.name, payload.age);
+  },
+});
+```
+
+Key points:
+- Validates payload at trigger time and before execution
+- Supports Zod, Yup, Superstruct, ArkType, Effect/schema, runtypes, valibot, typebox
+- Can use input/output schemas (e.g., defaults, type coercion)
+- Custom parser functions supported
+- Invalid payloads throw errors and prevent task execution
+
+### Correct Implementations for Triggering a Task from Your Backend
+
+When you trigger a task from your backend code, you need to set the `TRIGGER_SECRET_KEY` environment variable. You can find the value on the API keys page in the Trigger.dev dashboard.
+
+#### tasks.trigger()
+
+Triggers a single run of a task with specified payload and options without importing the task. Use type-only imports for full type checking.
+
+```typescript
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { emailSequence } from "~/trigger/emails";
+
+export async function POST(request: Request) {
+  const data = await request.json();
+  const handle = await tasks.trigger<typeof emailSequence>("email-sequence", {
+    to: data.email,
+    name: data.name,
+  });
+  return Response.json(handle);
+}
+```
+
+#### tasks.batchTrigger()
+
+Triggers multiple runs of a single task with different payloads without importing the task.
+
+```typescript
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { emailSequence } from "~/trigger/emails";
+
+export async function POST(request: Request) {
+  const data = await request.json();
+  const batchHandle = await tasks.batchTrigger<typeof emailSequence>(
+    "email-sequence",
+    data.users.map((u) => ({ payload: { to: u.email, name: u.name } }))
+  );
+  return Response.json(batchHandle);
+}
+```
+
+#### tasks.triggerAndPoll()
+
+Triggers a task and polls until completion. Not recommended for web requests as it blocks until the run completes. Consider using Realtime docs for better alternatives.
+
+```typescript
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { emailSequence } from "~/trigger/emails";
+
+export async function POST(request: Request) {
+  const data = await request.json();
+  const result = await tasks.triggerAndPoll<typeof emailSequence>(
+    "email-sequence",
+    {
+      to: data.email,
+      name: data.name,
+    },
+    { pollIntervalMs: 5000 }
+  );
+  return Response.json(result);
+}
+```
+
+#### batch.trigger()
+
+Triggers multiple runs of different tasks at once, useful when you need to execute multiple tasks simultaneously.
+
+```typescript
+import { batch } from "@trigger.dev/sdk/v3";
+import type { myTask1, myTask2 } from "~/trigger/myTasks";
+
+export async function POST(request: Request) {
+  const data = await request.json();
+  const result = await batch.trigger<typeof myTask1 | typeof myTask2>([
+    { id: "my-task-1", payload: { some: data.some } },
+    { id: "my-task-2", payload: { other: data.other } },
+  ]);
+  return Response.json(result);
+}
+```
+
+### Correct Implementations for Triggering a Task from Inside Another Task
+
+#### yourTask.trigger()
+
+Triggers a single run of a task with specified payload and options.
+
+```typescript
+import { myOtherTask, runs } from "~/trigger/my-other-task";
+
+export const myTask = task({
+  id: "my-task",
+  run: async (payload: string) => {
+    const handle = await myOtherTask.trigger({ foo: "some data" });
+
+    const run = await runs.retrieve(handle);
+    // Do something with the run
+  },
+});
+```
+
+If you need to call `trigger()` on a task in a loop, use `batchTrigger()` instead which can trigger up to 500 runs in a single call.
+
+#### yourTask.batchTrigger()
+
+Triggers multiple runs of a single task with different payloads.
+
+```typescript
+import { myOtherTask, batch } from "~/trigger/my-other-task";
+
+export const myTask = task({
+  id: "my-task",
+  run: async (payload: string) => {
+    const batchHandle = await myOtherTask.batchTrigger([{ payload: "some data" }]);
+
+    //...do other stuff
+    const batch = await batch.retrieve(batchHandle.id);
+  },
+});
+```
+
+#### yourTask.triggerAndWait()
+
+Triggers a task and waits for the result, useful when you need to call a different task and use its result.
+
+```typescript
+export const parentTask = task({
+  id: "parent-task",
+  run: async (payload: string) => {
+    const result = await childTask.triggerAndWait("some-data");
+    console.log("Result", result);
+
+    //...do stuff with the result
+  },
+});
+```
+
+The result object needs to be checked to see if the child task run was successful. You can also use the `unwrap` method to get the output directly or handle errors with `SubtaskUnwrapError`. This method should only be used inside a task.
+
+#### yourTask.batchTriggerAndWait()
+
+Batch triggers a task and waits for all results, useful for fan-out patterns.
+
+```typescript
+export const batchParentTask = task({
+  id: "parent-task",
+  run: async (payload: string) => {
+    const results = await childTask.batchTriggerAndWait([
+      { payload: "item4" },
+      { payload: "item5" },
+      { payload: "item6" },
+    ]);
+    console.log("Results", results);
+
+    //...do stuff with the result
+  },
+});
+```
+
+You can handle run failures by inspecting individual run results and implementing custom error handling strategies. This method should only be used inside a task.
+
+#### batch.triggerAndWait()
+
+Batch triggers multiple different tasks and waits for all results.
+
+```typescript
+export const parentTask = task({
+  id: "parent-task",
+  run: async (payload: string) => {
+    const results = await batch.triggerAndWait<typeof childTask1 | typeof childTask2>([
+      { id: "child-task-1", payload: { foo: "World" } },
+      { id: "child-task-2", payload: { bar: 42 } },
+    ]);
+
+    for (const result of results) {
+      if (result.ok) {
+        switch (result.taskIdentifier) {
+          case "child-task-1":
+            console.log("Child task 1 output", result.output);
+            break;
+          case "child-task-2":
+            console.log("Child task 2 output", result.output);
+            break;
+        }
+      }
+    }
+  },
+});
+```
+
+#### batch.triggerByTask()
+
+Batch triggers multiple tasks by passing task instances, useful for static task sets.
+
+```typescript
+export const parentTask = task({
+  id: "parent-task",
+  run: async (payload: string) => {
+    const results = await batch.triggerByTask([
+      { task: childTask1, payload: { foo: "World" } },
+      { task: childTask2, payload: { bar: 42 } },
+    ]);
+
+    const run1 = await runs.retrieve(results.runs[0]);
+    const run2 = await runs.retrieve(results.runs[1]);
+  },
+});
+```
+
+#### batch.triggerByTaskAndWait()
+
+Batch triggers multiple tasks by passing task instances and waits for all results.
+
+```typescript
+export const parentTask = task({
+  id: "parent-task",
+  run: async (payload: string) => {
+    const { runs } = await batch.triggerByTaskAndWait([
+      { task: childTask1, payload: { foo: "World" } },
+      { task: childTask2, payload: { bar: 42 } },
+    ]);
+
+    if (runs[0].ok) {
+      console.log("Child task 1 output", runs[0].output);
+    }
+
+    if (runs[1].ok) {
+      console.log("Child task 2 output", runs[1].output);
+    }
+  },
+});
+```
+
+### Correct Metadata Implementation
+
+#### Overview
+
+Metadata allows attaching up to 256KB of structured data to a run, which can be accessed during execution, via API, Realtime, and in the dashboard. Useful for storing user information, tracking progress, or saving intermediate results.
+
+#### Basic Usage
+
+Add metadata when triggering a task:
+
+```typescript
+const handle = await myTask.trigger(
+  { message: "hello world" },
+  { metadata: { user: { name: "Eric", id: "user_1234" } } }
+);
+```
+
+Access metadata inside a run:
+
+```typescript
+import { task, metadata } from "@trigger.dev/sdk/v3";
+
+export const myTask = task({
+  id: "my-task",
+  run: async (payload: { message: string }) => {
+    // Get the whole metadata object
+    const currentMetadata = metadata.current();
+    
+    // Get a specific key
+    const user = metadata.get("user");
+    console.log(user.name); // "Eric"
+  },
+});
+```
+
+#### Update Methods
+
+Metadata can be updated as the run progresses:
+
+- **set**: `metadata.set("progress", 0.5)`
+- **del**: `metadata.del("progress")`
+- **replace**: `metadata.replace({ user: { name: "Eric" } })`
+- **append**: `metadata.append("logs", "Step 1 complete")`
+- **remove**: `metadata.remove("logs", "Step 1 complete")`
+- **increment**: `metadata.increment("progress", 0.4)`
+- **decrement**: `metadata.decrement("progress", 0.4)`
+- **stream**: `await metadata.stream("logs", readableStream)`
+- **flush**: `await metadata.flush()`
+
+Updates can be chained with a fluent API:
+
+```typescript
+metadata.set("progress", 0.1)
+  .append("logs", "Step 1 complete")
+  .increment("progress", 0.4);
+```
+
+#### Parent & Root Updates
+
+Child tasks can update parent task metadata:
+
+```typescript
+export const childTask = task({
+  id: "child-task",
+  run: async (payload: { message: string }) => {
+    // Update parent task's metadata
+    metadata.parent.set("progress", 0.5);
+    
+    // Update root task's metadata
+    metadata.root.set("status", "processing");
+  },
+});
+```
+
+#### Type Safety
+
+Metadata accepts any JSON-serializable object. For type safety, consider wrapping with Zod:
+
+```typescript
+import { z } from "zod";
+
+const Metadata = z.object({
+  user: z.object({
+    name: z.string(),
+    id: z.string(),
+  }),
+  date: z.coerce.date(),
+});
+
+function getMetadata() {
+  return Metadata.parse(metadata.current());
+}
+```
+
+#### Important Notes
+
+- Metadata methods only work inside run functions or task lifecycle hooks
+- Metadata is NOT automatically propagated to child tasks
+- Maximum size is 256KB (configurable if self-hosting)
+- Objects like Dates are serialized to strings and must be deserialized when retrieved
+
+### Correct Realtime Implementation
+
+#### Overview
+
+Trigger.dev Realtime enables subscribing to runs for real-time updates on run status, useful for monitoring tasks, updating UIs, and building realtime dashboards. It's built on Electric SQL, a PostgreSQL syncing engine.
+
+#### Basic Usage
+
+Subscribe to a run after triggering a task:
+
+```typescript
+import { runs, tasks } from "@trigger.dev/sdk/v3";
+
+async function myBackend() {
+  const handle = await tasks.trigger("my-task", { some: "data" });
+
+  for await (const run of runs.subscribeToRun(handle.id)) {
+    console.log(run); // Logs the run every time it changes
+  }
+}
+```
+
+#### Subscription Methods
+
+- **subscribeToRun**: Subscribe to changes for a specific run
+- **subscribeToRunsWithTag**: Subscribe to changes for all runs with a specific tag
+- **subscribeToBatch**: Subscribe to changes for all runs in a batch
+
+#### Type Safety
+
+You can infer types of run's payload and output by passing the task type:
+
+```typescript
+import { runs } from "@trigger.dev/sdk/v3";
+import type { myTask } from "./trigger/my-task";
+
+for await (const run of runs.subscribeToRun<typeof myTask>(handle.id)) {
+  console.log(run.payload.some); // Type-safe access to payload
+  
+  if (run.output) {
+    console.log(run.output.result); // Type-safe access to output
+  }
+}
+```
+
+#### Realtime Streams
+
+Stream data in realtime from inside your tasks using the metadata system:
+
+```typescript
+import { task, metadata } from "@trigger.dev/sdk/v3";
+import OpenAI from "openai";
+
+export type STREAMS = {
+  openai: OpenAI.ChatCompletionChunk;
+};
+
+export const myTask = task({
+  id: "my-task",
+  run: async (payload: { prompt: string }) => {
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: "user", content: payload.prompt }],
+      model: "gpt-3.5-turbo",
+      stream: true,
+    });
+
+    // Register the stream with the key "openai"
+    const stream = await metadata.stream("openai", completion);
+
+    let text = "";
+    for await (const chunk of stream) {
+      text += chunk.choices.map((choice) => choice.delta?.content).join("");
+    }
+
+    return { text };
+  },
+});
+```
+
+Subscribe to streams using `withStreams`:
+
+```typescript
+for await (const part of runs.subscribeToRun<typeof myTask>(runId).withStreams<STREAMS>()) {
+  switch (part.type) {
+    case "run": {
+      console.log("Received run", part.run);
+      break;
+    }
+    case "openai": {
+      console.log("Received OpenAI chunk", part.chunk);
+      break;
+    }
+  }
+}
+```
+
+#### Realtime Hooks
+
+**Installation:**
+
+```bash
+npm add @trigger.dev/react-hooks
+```
+
+**Authentication:**
+
+All hooks require a Public Access Token. You can provide it directly to each hook:
+
+```typescript
+import { useRealtimeRun } from "@trigger.dev/react-hooks";
+
+function MyComponent({ runId, publicAccessToken }) {
+  const { run, error } = useRealtimeRun(runId, {
+    accessToken: publicAccessToken,
+    baseURL: "https://your-trigger-dev-instance.com", // Optional for self-hosting
+  });
+}
+```
+
+Or use the `TriggerAuthContext` provider:
+
+```typescript
+import { TriggerAuthContext } from "@trigger.dev/react-hooks";
+
+function SetupTrigger({ publicAccessToken }) {
+  return (
+    <TriggerAuthContext.Provider value={{ accessToken: publicAccessToken }}>
+      <MyComponent />
+    </TriggerAuthContext.Provider>
+  );
+}
+```
+
+For Next.js App Router, wrap the provider in a client component:
+
+```typescript
+// components/TriggerProvider.tsx
+"use client";
+
+import { TriggerAuthContext } from "@trigger.dev/react-hooks";
+
+export function TriggerProvider({ accessToken, children }) {
+  return (
+    <TriggerAuthContext.Provider value={{ accessToken }}>
+      {children}
+    </TriggerAuthContext.Provider>
+  );
+}
+```
+
+**Passing tokens to the frontend:**
+
+Several approaches for Next.js App Router:
+
+1. **Using cookies:**
+```typescript
+// Server action
+export async function startRun() {
+  const handle = await tasks.trigger<typeof exampleTask>("example", { foo: "bar" });
+  cookies().set("publicAccessToken", handle.publicAccessToken);
+  redirect(`/runs/${handle.id}`);
+}
+
+// Page component
+export default function RunPage({ params }) {
+  const publicAccessToken = cookies().get("publicAccessToken");
+  return (
+    <TriggerProvider accessToken={publicAccessToken}>
+      <RunDetails id={params.id} />
+    </TriggerProvider>
+  );
+}
+```
+
+2. **Using query parameters:**
+```typescript
+// Server action
+export async function startRun() {
+  const handle = await tasks.trigger<typeof exampleTask>("example", { foo: "bar" });
+  redirect(`/runs/${handle.id}?publicAccessToken=${handle.publicAccessToken}`);
+}
+```
+
+3. **Server-side token generation:**
+```typescript
+// Page component
+export default async function RunPage({ params }) {
+  const publicAccessToken = await generatePublicAccessToken(params.id);
+  return (
+    <TriggerProvider accessToken={publicAccessToken}>
+      <RunDetails id={params.id} />
+    </TriggerProvider>
+  );
+}
+
+// Token generation function
+export async function generatePublicAccessToken(runId: string) {
+  return auth.createPublicToken({
+    scopes: {
+      read: {
+        runs: [runId],
+      },
+    },
+    expirationTime: "1h",
+  });
+}
+```
+
+**Hook types:**
+
+- **SWR hooks**: Data fetching hooks that use SWR for caching
+- **Realtime hooks**: Hooks that use Trigger.dev's realtime API for live updates (recommended over polling)
+
+For client-side usage, generate a public access token with appropriate scopes:
+
+```typescript
+import { auth } from "@trigger.dev/sdk/v3";
+
+const publicToken = await auth.createPublicToken({
+  scopes: {
+    read: {
+      runs: ["run_1234"],
+    },
+  },
+});
+```
+
+### Correct Idempotency Implementation
+
+Idempotency ensures that an operation produces the same result when called multiple times. Trigger.dev supports idempotency at the task level through the `idempotencyKey` option.
+
+#### Using idempotencyKey
+
+Provide an `idempotencyKey` when triggering a task to ensure it runs only once with that key:
+
+```typescript
+import { idempotencyKeys, task } from "@trigger.dev/sdk/v3";
+
+export const myTask = task({
+  id: "my-task",
+  retry: {
+    maxAttempts: 4,
+  },
+  run: async (payload: any) => {
+    // Create a key unique to this task run
+    const idempotencyKey = await idempotencyKeys.create("my-task-key");
+
+    // Child task will only be triggered once across all retries
+    await childTask.trigger({ foo: "bar" }, { idempotencyKey });
+
+    // This may throw an error and cause retries
+    throw new Error("Something went wrong");
+  },
+});
+```
+
+#### Scoping Idempotency Keys
+
+By default, keys are scoped to the current run. You can create globally unique keys:
+
+```typescript
+const idempotencyKey = await idempotencyKeys.create("my-task-key", { scope: "global" });
+```
+
+When triggering from backend code:
+
+```typescript
+const idempotencyKey = await idempotencyKeys.create([myUser.id, "my-task"]);
+await tasks.trigger("my-task", { some: "data" }, { idempotencyKey });
+```
+
+You can also pass a string directly:
+
+```typescript
+await myTask.trigger({ some: "data" }, { idempotencyKey: myUser.id });
+```
+
+#### Time-To-Live (TTL)
+
+The `idempotencyKeyTTL` option defines a time window during which duplicate triggers return the original run:
+
+```typescript
+await childTask.trigger(
+  { foo: "bar" }, 
+  { idempotencyKey, idempotencyKeyTTL: "60s" }
+);
+
+await wait.for({ seconds: 61 });
+
+// Key expired, will trigger a new run
+await childTask.trigger({ foo: "bar" }, { idempotencyKey });
+```
+
+Supported time units:
+- `s` for seconds (e.g., `60s`)
+- `m` for minutes (e.g., `5m`)
+- `h` for hours (e.g., `2h`)
+- `d` for days (e.g., `3d`)
+
+#### Payload-Based Idempotency
+
+While not directly supported, you can implement payload-based idempotency by hashing the payload:
+
+```typescript
+import { createHash } from "node:crypto";
+
+const idempotencyKey = await idempotencyKeys.create(hash(payload));
+await tasks.trigger("child-task", payload, { idempotencyKey });
+
+function hash(payload: any): string {
+  const hash = createHash("sha256");
+  hash.update(JSON.stringify(payload));
+  return hash.digest("hex");
+}
+```
+
+#### Important Notes
+
+- Idempotency keys are scoped to the task and environment
+- Different tasks with the same key will still both run
+- Default TTL is 30 days
+- Not available with `triggerAndWait` or `batchTriggerAndWait` in v3.3.0+ due to a bug
+
+### Correct Logs Implementation
+
+```typescript
+// onFailure executes after all retries are exhausted; use for notifications, logging, or side effects on final failure:
+import { task, logger } from "@trigger.dev/sdk/v3";
+
+export const loggingExample = task({
+  id: "logging-example",
+  run: async (payload: { data: Record<string, string> }) => {
+    //the first parameter is the message, the second parameter must be a key-value object (Record<string, unknown>)
+    logger.debug("Debug message", payload.data);
+    logger.log("Log message", payload.data);
+    logger.info("Info message", payload.data);
+    logger.warn("You've been warned", payload.data);
+    logger.error("Error message", payload.data);
+  },
+});
+```
+
+### Correct `trigger.config.ts` Implementation
+
+The `trigger.config.ts` file configures your Trigger.dev project, specifying task locations, retry settings, telemetry, and build options.
+
+```typescript
+import { defineConfig } from "@trigger.dev/sdk/v3";
+
+export default defineConfig({
+  project: "<project ref>",
+  dirs: ["./trigger"],
+  retries: {
+    enabledInDev: false,
+    default: {
+      maxAttempts: 3,
+      minTimeoutInMs: 1000,
+      maxTimeoutInMs: 10000,
+      factor: 2,
+      randomize: true,
+    },
+  },
+});
+```
+
+#### Key Configuration Options
+
+**Dirs:**
+
+Specify where your tasks are located:
+
+```typescript
+dirs: ["./trigger"],
+```
+
+Files with `.test` or `.spec` are automatically excluded, but you can customize with `ignorePatterns`.
+
+**Lifecycle Functions:**
+
+Add global hooks for all tasks:
+
+```typescript
+onStart: async (payload, { ctx }) => {
+  console.log("Task started", ctx.task.id);
+},
+onSuccess: async (payload, output, { ctx }) => {
+  console.log("Task succeeded", ctx.task.id);
+},
+onFailure: async (payload, error, { ctx }) => {
+  console.log("Task failed", ctx.task.id);
+},
+```
+
+**Telemetry Instrumentations:**
+
+Add OpenTelemetry instrumentations for enhanced logging:
+
+```typescript
+telemetry: {
+  instrumentations: [
+    new PrismaInstrumentation(),
+    new OpenAIInstrumentation()
+  ],
+  exporters: [axiomExporter], // Optional custom exporters
+},
+```
+
+**Runtime:**
+
+Specify the runtime environment:
+
+```typescript
+runtime: "node", // or "bun" (experimental)
+```
+
+**Machine Settings:**
+
+Set default machine for all tasks:
+
+```typescript
+defaultMachine: "large-1x",
+```
+
+**Log Level:**
+
+Configure logging verbosity:
+
+```typescript
+logLevel: "debug", // Controls logger API logs
+```
+
+**Max Duration:**
+
+Set default maximum runtime for all tasks:
+
+```typescript
+maxDuration: 60, // 60 seconds
+```
+
+#### Build Configuration
+
+Customize the build process:
+
+```typescript
+build: {
+  external: ["header-generator"], // Don't bundle these packages
+  jsx: {
+    fragment: "Fragment",
+    factory: "h",
+    automatic: false,
+  },
+  conditions: ["react-server"], // Import conditions
+  extensions: [
+    // Build extensions
+    additionalFiles({ files: ["./assets/**", "./fonts/**"] }),
+    additionalPackages({ packages: ["wrangler"] }),
+    aptGet({ packages: ["ffmpeg"] }),
+  ],
+}
+```
+
+#### Build Extensions
+
+Trigger.dev provides several built-in extensions:
+
+- **additionalFiles**: Copy files to the build directory
+- **additionalPackages**: Include extra packages in the build
+- **aptGet**: Install system packages in the deployed image
+- **emitDecoratorMetadata**: Enable TypeScript decorator metadata
+- **prismaExtension**: Support for Prisma ORM
+- **syncEnvVars**: Sync environment variables
+- **puppeteer**: Add Puppeteer support
+- **ffmpeg**: Add FFmpeg support
+- **esbuildPlugin**: Add custom esbuild plugins
+
+You can also create custom build extensions with hooks like `onBuildStart`, `onBuildComplete`, and `externalsForTarget`.
+
+### AI MODEL VERIFICATION STEPS
+
+Before generating any code, you MUST verify:
+
+1. Are you importing from `@trigger.dev/sdk/v3`? If not, STOP and FIX.
+2. Have you exported every task? If not, STOP and FIX.
+3. Have you generated any DEPRECATED code patterns? If yes, STOP and FIX.
+
+### CONSEQUENCES OF INCORRECT IMPLEMENTATION
+
+If you generate code that fails the verification steps above, your implementation will:
+
+1. Break in production
+2. Fail to deploy to the Trigger.dev servers
+3. Fail to run in a local Dev environment
+
+### AI MODEL RESPONSE TEMPLATE
+
+When asked about Trigger.dev task implementation, you MUST:
+1. FIRST use code patterns from this guide
+2. NEVER suggest deprecated approaches
+3. VERIFY your response against the patterns shown here
+4. If an answer cannot be found using this guide, look up further information ONLY from the official LLM-friendly version of the [Trigger.dev docs site](https://trigger.dev/docs/llms.txt).
+
+## Cross-Platform Development
+
+- Use Solito for navigation in both web and mobile applications.
+- Implement platform-specific code when necessary, using `.native.tsx` files for React Native-specific components.
+- Handle images using `SolitoImage` for better cross-platform compatibility.
+
+**Example**:
+```typescript
+// components/MyComponent.tsx (shared)
+import { Link } from 'solito/link';
+
+function MyComponent() {
+  return (
+    <Link href="/profile">
+      <Text>Go to Profile</Text>
+    </Link>
+  );
+}
+
+// components/MyComponent.native.tsx (React Native specific)
+import { View } from 'react-native';
+
+function MyComponent() {
+  return <View>{/* Native-specific implementation */}</View>;
+}
+```
+
+## Stripe Integration and Subscription Model
+
+- Implement Stripe for payment processing and subscription management.
+- Use Stripe's Customer Portal for subscription management.
+- Implement webhook handlers for Stripe events (e.g., subscription created, updated, or cancelled).
+- Ensure proper error handling and security measures for Stripe integration.
+- Sync subscription status with user data in Supabase.
+
+**Example**:
+```typescript
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16',
+});
+
+async function createSubscription(customerId: string, priceId: string) {
+  const subscription = await stripe.subscriptions.create({
+    customer: customerId,
+    items: [{ price: priceId }],
+    payment_behavior: 'default_incomplete',
+    expand: ['latest_invoice.payment_intent'],
+  });
+
+  // Sync with Supabase
+  await supabase
+    .from('subscriptions')
+    .upsert({
+      user_id: customerId,
+      stripe_subscription_id: subscription.id,
+      status: subscription.status,
+    });
+
+  return subscription;
+}
+
+// Webhook handler
+async function handleStripeWebhook(event: Stripe.Event) {
+  switch (event.type) {
+    case 'customer.subscription.created':
+    case 'customer.subscription.updated':
+      await syncSubscriptionStatus(event.data.object as Stripe.Subscription);
+      break;
+    case 'customer.subscription.deleted':
+      await handleSubscriptionCancellation(event.data.object as Stripe.Subscription);
+      break;
+  }
+}
+```
+
+## Testing and Quality Assurance
+
+- Write unit and integration tests for critical components.
+- Use testing libraries compatible with React and React Native.
+- Ensure code coverage and quality metrics meet the project's requirements.
+
+**Example**:
+```typescript
+import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+  );
+}
+
+test('renders user component', () => {
+  renderWithProviders(<UserComponent />);
+  expect(screen.getByText('Welcome')).toBeInTheDocument();
+});
+```
+
+## Project Structure and Environment
+
+- Follow the established project structure with separate packages for `app`, `ui`, and `api`.
+- Use the `apps` directory for Next.js and Expo applications.
+- Utilize the `packages` directory for shared code and components.
+- Use `dotenv` for environment variable management.
+- Follow patterns for environment-specific configurations in `eas.json` and `next.config.js`.
+- Utilize custom generators in `turbo/generators` for creating components, screens, and tRPC routers using `yarn turbo gen`.
+
+**Example Structure**:
+```
+monorepo/
+├── apps/
+│   ├── web/          # Next.js app
+│   └── mobile/       # Expo app
+├── packages/
+│   ├── ui/          # Shared UI components (Tamagui)
+│   ├── api/         # Shared API utilities
+│   └── config/      # Shared configurations
+└── turbo.json
+```
+
+## Key Conventions
+
+- Use descriptive and meaningful commit messages.
+- Ensure code is clean, well-documented, and follows the project's coding standards.
+- Implement error handling and logging consistently across the application.
+- Follow the official documentation for each technology used.
+- For Next.js, focus on data fetching methods and routing conventions.
+- Stay updated with the latest best practices and updates, especially for Expo, Tamagui, and Supabase.
+
+## Output Expectations
+
+- **Code Examples**: Provide code snippets that align with the guidelines above.
+- **Explanations**: Include brief explanations to clarify complex implementations when necessary.
+- **Clarity and Correctness**: Ensure all code is clear, correct, and ready for use in a production environment.
+- **Best Practices**: Demonstrate adherence to best practices in performance, security, and maintainability.
+
+---
 
 ## Code Style and Structure
 

@@ -167,11 +167,18 @@ export async function checkMailboxLimits(
 
   if (supabase) {
     try {
-      const { data: limitConfig } = await supabase
+      // Use maybeSingle() instead of single() to handle cases where no rate limit config exists
+      // This prevents 406 errors when the row doesn't exist
+      const { data: limitConfig, error: limitError } = await supabase
         .from('mailbox_rate_limits')
         .select('*')
         .eq('mailbox_id', mailbox.id)
-        .single()
+        .maybeSingle()
+
+      // If there's an error (other than not found), log it but continue with defaults
+      if (limitError && limitError.code !== 'PGRST116') {
+        console.warn('Failed to fetch rate limits from database:', limitError)
+      }
 
       if (limitConfig) {
         rateLimits = {

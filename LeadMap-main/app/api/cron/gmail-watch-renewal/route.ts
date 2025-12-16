@@ -79,8 +79,7 @@ async function runCronJob(request: NextRequest) {
             
             // Update mailbox with new token
             const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-            await supabase
-              .from('mailboxes')
+            await (supabase.from('mailboxes') as any)
               .update({
                 access_token: accessToken,
                 token_expires_at: expiresAt.toISOString(),
@@ -109,8 +108,7 @@ async function runCronJob(request: NextRequest) {
               accessToken = refreshResult.accessToken
               
               const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-              await supabase
-                .from('mailboxes')
+              await (supabase.from('mailboxes') as any)
                 .update({
                   access_token: accessToken,
                   token_expires_at: expiresAt.toISOString(),

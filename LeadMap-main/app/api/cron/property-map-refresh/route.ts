@@ -93,13 +93,18 @@ async function runCronJob(request: NextRequest) {
               const [lng, lat] = data.features[0].center
               
               // Update the listing with coordinates
-              const { error: updateError } = await supabase
-                .from(table)
-                .update({ 
-                  lat: lat,
-                  lng: lng,
-                  updated_at: new Date().toISOString()
-                })
+              interface CoordinateUpdate {
+                lat: number
+                lng: number
+                updated_at: string
+              }
+              const coordinateUpdate: CoordinateUpdate = {
+                lat: lat,
+                lng: lng,
+                updated_at: new Date().toISOString()
+              }
+              const { error: updateError } = await (supabase.from(table) as any)
+                .update(coordinateUpdate)
                 .eq('listing_id', listing.listing_id)
 
               if (updateError) {

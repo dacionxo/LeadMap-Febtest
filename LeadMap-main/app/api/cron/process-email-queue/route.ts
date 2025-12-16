@@ -59,7 +59,10 @@ async function runCronJob(request: NextRequest) {
     for (const email of queuedEmails as Array<{ id: string; [key: string]: unknown }>) {
       try {
         // Mark as processing
-        const processingData: any = {
+        interface ProcessingUpdate {
+          status: 'processing'
+        }
+        const processingData: ProcessingUpdate = {
           status: 'processing'
         }
         await (supabase.from('email_queue') as any)
@@ -76,7 +79,12 @@ async function runCronJob(request: NextRequest) {
 
         if (mailboxError || !mailbox) {
           const retryCount = typeof email.retry_count === 'number' ? email.retry_count : 0
-          const failData: any = {
+          interface FailUpdate {
+            status: 'failed'
+            last_error: string
+            retry_count: number
+          }
+          const failData: FailUpdate = {
             status: 'failed',
             last_error: 'Mailbox not found',
             retry_count: retryCount + 1
@@ -95,7 +103,12 @@ async function runCronJob(request: NextRequest) {
 
         if (!(mailbox as any).active) {
           const retryCount = typeof email.retry_count === 'number' ? email.retry_count : 0
-          const inactiveData: any = {
+          interface InactiveUpdate {
+            status: 'failed'
+            last_error: string
+            retry_count: number
+          }
+          const inactiveData: InactiveUpdate = {
             status: 'failed',
             last_error: 'Mailbox is not active',
             retry_count: retryCount + 1
@@ -138,7 +151,10 @@ async function runCronJob(request: NextRequest) {
 
         if (!limitCheck.allowed) {
           // Rate limited - keep in queue, don't increment retry count
-          const queuedData: any = {
+          interface QueuedUpdate {
+            status: 'queued'
+          }
+          const queuedData: QueuedUpdate = {
             status: 'queued'
           }
           await (supabase.from('email_queue') as any)
@@ -163,27 +179,53 @@ async function runCronJob(request: NextRequest) {
         }, supabase)
 
         if (sendResult.success) {
+          // Validate required fields
+          const toEmail = email.to_email as string | undefined
+          const subject = email.subject as string | undefined
+          const html = email.html as string | undefined
+          
+          if (!toEmail || !subject || !html) {
+            throw new Error('Missing required email fields: to_email, subject, or html')
+          }
+          
           // Create email record
-          const emailInsertData: any = {
+          interface EmailInsert {
+            user_id: string
+            mailbox_id: string
+            to_email: string
+            subject: string
+            html: string
+            status: 'sent'
+            sent_at: string
+            provider_message_id?: string
+            direction: 'sent'
+            type: string | null
+            campaign_id: string | null
+            campaign_recipient_id: string | null
+          }
+          const emailInsertData: EmailInsert = {
             user_id: email.user_id as string,
             mailbox_id: email.mailbox_id as string,
-            to_email: email.to_email as string,
-            subject: email.subject as string,
-            html: email.html as string,
-              status: 'sent',
-              sent_at: new Date().toISOString(),
+            to_email: toEmail,
+            subject: subject,
+            html: html,
+            status: 'sent',
+            sent_at: new Date().toISOString(),
             provider_message_id: sendResult.providerMessageId,
             direction: 'sent',
-            type: email.type as string | undefined,
-            campaign_id: email.campaign_id as string | undefined || null,
-            campaign_recipient_id: email.campaign_recipient_id as string | undefined || null
+            type: (email.type as string | undefined) || null,
+            campaign_id: (email.campaign_id as string | undefined) || null,
+            campaign_recipient_id: (email.campaign_recipient_id as string | undefined) || null
           }
-          await supabase
-            .from('emails')
+          await (supabase.from('emails') as any)
             .insert(emailInsertData)
 
           // Mark queue entry as sent
-          const sentData: any = {
+          interface SentUpdate {
+            status: 'sent'
+            processed_at: string
+          }
+          const sentData: SentUpdate = {
             status: 'sent',
             processed_at: new Date().toISOString()
           }
@@ -203,7 +245,12 @@ async function runCronJob(request: NextRequest) {
           const retryCount = currentRetryCount + 1
           const shouldRetry = retryCount < maxRetries
 
-          const retryData: any = {
+          interface RetryUpdate {
+            status: 'queued' | 'failed'
+            last_error: string
+            retry_count: number
+          }
+          const retryData: RetryUpdate = {
             status: shouldRetry ? 'queued' : 'failed',
             last_error: sendResult.error || 'Failed to send email',
             retry_count: retryCount
@@ -227,7 +274,12 @@ async function runCronJob(request: NextRequest) {
         const retryCount = currentRetryCount + 1
         const shouldRetry = retryCount < maxRetries
 
-        const errorData: any = {
+        interface ErrorUpdate {
+          status: 'queued' | 'failed'
+          last_error: string
+          retry_count: number
+        }
+        const errorData: ErrorUpdate = {
           status: shouldRetry ? 'queued' : 'failed',
           last_error: error.message || 'Processing error',
           retry_count: retryCount

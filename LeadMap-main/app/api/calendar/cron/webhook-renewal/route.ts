@@ -153,7 +153,12 @@ async function runCronJob(request: NextRequest) {
         const expiresAt = new Date(webhookData.expiration || expiration).toISOString()
 
         // Update connection with new webhook info
-        const webhookUpdateData: any = {
+        interface WebhookUpdate {
+          webhook_id: string
+          webhook_expires_at: string
+          updated_at: string
+        }
+        const webhookUpdateData: WebhookUpdate = {
           webhook_id: webhookData.id,
           webhook_expires_at: expiresAt,
           updated_at: new Date().toISOString(),

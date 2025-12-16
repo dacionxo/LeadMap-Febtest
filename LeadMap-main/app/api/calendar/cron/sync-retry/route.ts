@@ -109,7 +109,11 @@ async function runCronJob(request: NextRequest) {
         // Update token if it was refreshed
         if (validAccessToken !== connection.access_token) {
           const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString()
-          const tokenUpdateData: any = {
+          interface TokenUpdate {
+            access_token: string
+            token_expires_at: string
+          }
+          const tokenUpdateData: TokenUpdate = {
             access_token: validAccessToken,
             token_expires_at: expiresAt,
           }
@@ -127,14 +131,19 @@ async function runCronJob(request: NextRequest) {
 
         if (syncResult.success) {
           // Update sync status
-          const updateData: Record<string, any> = {
+          interface SyncUpdate {
+            sync_status: 'synced'
+            last_synced_at: string
+            external_event_id?: string
+            external_calendar_id?: string
+          }
+          const updateData: SyncUpdate = {
             sync_status: 'synced',
             last_synced_at: new Date().toISOString(),
-          }
-
-          if (syncResult.externalEventId) {
-            updateData.external_event_id = syncResult.externalEventId
-            updateData.external_calendar_id = connection.calendar_id
+            ...(syncResult.externalEventId && {
+              external_event_id: syncResult.externalEventId,
+              external_calendar_id: connection.calendar_id
+            })
           }
 
           await (supabase.from('calendar_events') as any)

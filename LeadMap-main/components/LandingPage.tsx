@@ -410,7 +410,7 @@ export default function LandingPage() {
                 <img 
                   src="/nextdeal-logo.png" 
                   alt="NextDeal" 
-                  className="h-12 w-auto"
+                  className="h-8 w-auto"
                   onError={(e) => {
                     // Fallback if image doesn't exist yet - show text logo
                     const target = e.target as HTMLImageElement;
@@ -1707,7 +1707,7 @@ export default function LandingPage() {
                 <img 
                   src="/nextdeal-logo.png" 
                   alt="NextDeal" 
-                  className="h-12 w-48 object-contain mb-2"
+                  className="h-8 w-32 object-contain mb-2"
                   onError={(e) => {
                     // Fallback if image doesn't exist yet - show text logo
                     const target = e.target as HTMLImageElement;

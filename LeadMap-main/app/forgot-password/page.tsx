@@ -69,7 +69,7 @@ function ForgotPasswordContent() {
                 <img 
                   src="/nextdeal-logo.png" 
                   alt="NextDeal" 
-                  className="h-12 w-auto"
+                  className="h-8 w-auto"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';

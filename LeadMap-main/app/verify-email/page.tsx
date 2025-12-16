@@ -103,9 +103,9 @@ function VerifyEmailContent() {
             <div className="flex justify-between items-center h-16 max-w-[1872px] mx-auto">
               <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => router.push('/')}>
                 <img 
-                  src="/nextdeal-logo.png" 
-                  alt="NextDeal" 
-                  className="h-12 w-auto"
+                  src="/nextdeal-logo.png"
+                  alt="NextDeal"
+                  className="h-8 w-auto"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';

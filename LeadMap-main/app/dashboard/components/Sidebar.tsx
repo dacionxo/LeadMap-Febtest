@@ -140,7 +140,7 @@ export default function Sidebar() {
               <img 
                 src="/nextdeal-logo.png" 
                 alt="NextDeal" 
-                className="h-8 w-auto"
+                className="h-6 w-auto"
                 onError={(e) => {
                   // Fallback if image doesn't exist - show icon and text
                   const target = e.target as HTMLImageElement;
@@ -150,10 +150,10 @@ export default function Sidebar() {
                 }}
               />
               <div className="flex items-center space-x-2" style={{ display: 'none' }}>
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
-                  <MapPin className="w-4 h-4 text-white" />
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
+                  <MapPin className="w-3 h-3 text-white" />
                 </div>
-                <span className="text-lg font-bold text-black dark:text-white">NextDeal</span>
+                <span className="text-base font-bold text-black dark:text-white">NextDeal</span>
               </div>
             </div>
             <button
@@ -169,7 +169,7 @@ export default function Sidebar() {
             <img 
               src="/nextdeal-logo.png" 
               alt="NextDeal" 
-              className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform duration-200"
+              className="h-6 w-auto cursor-pointer hover:scale-105 transition-transform duration-200"
               onClick={() => router.push('/dashboard')}
               onError={(e) => {
                 // Fallback if image doesn't exist - show icon

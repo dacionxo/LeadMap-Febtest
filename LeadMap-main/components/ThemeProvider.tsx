@@ -19,7 +19,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const isSignupPage = pathname === '/signup'
   const isLoginPage = pathname === '/login'
   const isDemoPage = pathname === '/demo'
-  const isLightModePage = isHomePage || isSignupPage || isLoginPage || isDemoPage
+  const isForgotPasswordPage = pathname === '/forgot-password'
+  const isLightModePage = isHomePage || isSignupPage || isLoginPage || isDemoPage || isForgotPasswordPage
   const [theme, setTheme] = useState<Theme>('system')
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
   const [mounted, setMounted] = useState(false)

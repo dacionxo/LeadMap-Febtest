@@ -54,15 +54,15 @@ function ForgotPasswordContent() {
           }
         }
       `}</style>
-      <div className="h-screen overflow-hidden bg-white dark:bg-gray-900">
+      <div className="h-screen overflow-hidden bg-white">
         {/* Animated Background Elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/5 dark:bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
 
         {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white">
           <div className="mx-4 sm:mx-6 lg:mx-8">
             <div className="flex justify-between items-center h-16 max-w-[1872px] mx-auto">
               <div className="flex items-center space-x-3 group cursor-pointer mt-6 -ml-[10px]" onClick={() => router.push('/')}>
@@ -80,9 +80,9 @@ function ForgotPasswordContent() {
                 <div className="flex items-center space-x-2" style={{ display: 'none' }} id="logo-fallback">
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 blur-xl group-hover:bg-primary/30 transition-all"></div>
-                    <MapPin className="h-7 w-7 text-primary dark:text-primary-400 relative z-10" />
+                    <MapPin className="h-7 w-7 text-primary relative z-10" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  <span className="text-xl font-bold text-gray-900">
                     NextDeal
                   </span>
                 </div>
@@ -103,7 +103,7 @@ function ForgotPasswordContent() {
                       {/* Back to Login Link */}
                       <button
                         onClick={() => router.push('/login')}
-                        className="flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-primary mb-6 transition-colors"
+                        className="flex items-center text-sm text-gray-600 hover:text-primary mb-6 transition-colors"
                       >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back to Log In
@@ -111,10 +111,10 @@ function ForgotPasswordContent() {
 
                       {/* Header */}
                       <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
                           Reset Your Password
                         </h1>
-                        <p className="text-gray-600 dark:text-gray-400">
+                        <p className="text-gray-600">
                           Please enter your email address below to which we can send you instructions.
                         </p>
                       </div>
@@ -122,28 +122,28 @@ function ForgotPasswordContent() {
                       {/* Success Message */}
                       {success ? (
                         <div className="space-y-6">
-                          <div className="p-6 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg">
+                          <div className="p-6 bg-green-50 border-2 border-green-300 rounded-lg">
                             <div className="flex items-start space-x-3">
-                              <Mail className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                              <Mail className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
                               <div className="flex-1">
-                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
                                   Check Your Email
                                 </h2>
-                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                                  If an account exists with <strong className="text-gray-900 dark:text-white">{email}</strong>, you will receive a password reset link shortly.
+                                <p className="text-sm text-gray-700 mb-3">
+                                  If an account exists with <strong className="text-gray-900">{email}</strong>, you will receive a password reset link shortly.
                                 </p>
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded border border-green-200 dark:border-green-800 mb-4">
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                    <strong className="text-gray-900 dark:text-white">Next steps:</strong>
+                                <div className="bg-white p-4 rounded border border-green-200 mb-4">
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    <strong className="text-gray-900">Next steps:</strong>
                                   </p>
-                                  <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                  <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
                                     <li>Check your inbox (and spam folder) for an email from us</li>
                                     <li>Click the reset link in the email</li>
                                     <li>Create a new password</li>
                                     <li>Log in with your new password</li>
                                   </ol>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-500">
                                   <strong>Note:</strong> The reset link expires in 15 minutes. If you don't see the email, check your spam folder.
                                 </p>
                               </div>
@@ -168,7 +168,7 @@ function ForgotPasswordContent() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                           {/* Email Field */}
                           <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                               Email
                             </label>
                             <input
@@ -182,14 +182,14 @@ function ForgotPasswordContent() {
                                 setError('')
                               }}
                               autoComplete="email"
-                              className="w-full px-4 py-3 text-sm bg-white border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                              className="w-full px-4 py-3 text-sm bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                               required
                             />
                           </div>
 
                           {error && (
-                            <div className="p-3 bg-error/10 dark:bg-error/20 border border-error/30 dark:border-error/40 rounded-lg">
-                              <p className="text-error dark:text-error-400 text-xs">{error}</p>
+                            <div className="p-3 bg-error/10 border border-error/30 rounded-lg">
+                              <p className="text-error text-xs">{error}</p>
                             </div>
                           )}
 
@@ -254,12 +254,12 @@ function ForgotPasswordContent() {
                       )}
 
                       {/* Footer */}
-                      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                      <div className="mt-8 pt-6 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 text-center">
                           Have an account?{' '}
                           <a
                             href="/login"
-                            className="text-primary hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+                            className="text-primary hover:text-primary-600 font-medium"
                           >
                             Log in here
                           </a>
@@ -267,7 +267,7 @@ function ForgotPasswordContent() {
                       </div>
 
                       {/* Copyright */}
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6">
+                      <p className="text-xs text-gray-500 text-center mt-6">
                         2025 All Rights Reserved. Privacy and Terms.
                       </p>
                     </div>
@@ -275,7 +275,7 @@ function ForgotPasswordContent() {
                 </div>
 
                 {/* Right Column - Image/Illustration */}
-                <div className="relative w-full md:w-[35%] rounded-xl overflow-hidden flex items-center justify-center bg-white dark:bg-gray-900 h-auto">
+                <div className="relative w-full md:w-[35%] rounded-xl overflow-hidden flex items-center justify-center bg-white h-auto">
                   <div className="p-8 w-full h-full flex items-center justify-center">
                     <img
                       src="/nextdeal-logo.png"

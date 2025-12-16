@@ -92,7 +92,8 @@ async function archiveOldEvents(
       }
     )
 
-    if (!result.success || !result.data || result.data.length === 0) {
+    // Type guard: ensure result.data is an array
+    if (!result.success || !result.data || !Array.isArray(result.data) || result.data.length === 0) {
       hasMore = false
       break
     }

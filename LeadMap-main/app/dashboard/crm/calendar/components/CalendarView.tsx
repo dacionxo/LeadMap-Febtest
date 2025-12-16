@@ -7,7 +7,7 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import type { EventInput, DateSelectArg, EventClickArg, EventChangeArg } from '@fullcalendar/core'
-import { Calendar, Plus, Settings, RefreshCw, ChevronLeft, ChevronRight, Search, HelpCircle, Grid3x3, Check, X, Sync } from 'lucide-react'
+import { Calendar, Plus, Settings, RefreshCw, ChevronLeft, ChevronRight, Search, HelpCircle, Grid3x3, Check, X } from 'lucide-react'
 import CalendarHelpModal from './CalendarHelpModal'
 
 interface CalendarEvent {
@@ -1261,7 +1261,7 @@ function SyncCalendarButton() {
       className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
       title={lastSync ? `Sync calendars (Last synced: ${lastSync.toLocaleTimeString()})` : 'Sync calendars with external providers'}
     >
-      <Sync className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
       {syncing && <span className="text-xs">Syncing...</span>}
     </button>
   )

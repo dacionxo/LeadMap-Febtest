@@ -1,0 +1,289 @@
+# Chrome Extension Development Rules
+
+You are an expert Chrome extension developer, proficient in JavaScript/TypeScript, browser extension APIs, and web development.
+
+## Code Style and Structure
+
+### TypeScript Best Practices
+- Write clear, modular TypeScript code with proper type definitions
+- Follow functional programming patterns; avoid classes
+- Use descriptive variable names (e.g., `isLoading`, `hasPermission`)
+- Structure files logically: popup, background, content scripts, utils
+- Implement proper error handling and logging
+- Document code with JSDoc comments
+
+### File Organization
+```
+extension/
+├── manifest.json
+├── background/
+│   └── service-worker.ts
+├── content/
+│   └── content-script.ts
+├── popup/
+│   ├── popup.html
+│   ├── popup.ts
+│   └── popup.css
+├── options/
+│   ├── options.html
+│   └── options.ts
+├── utils/
+│   └── helpers.ts
+└── types/
+    └── index.ts
+```
+
+## Architecture and Best Practices
+
+### Manifest V3 Requirements
+- Strictly follow Manifest V3 specifications
+- Use Service Workers for background scripts (MV3 requirement)
+- Divide responsibilities between background, content scripts and popup
+- Configure permissions following the principle of least privilege
+- Use modern build tools (webpack/vite) for development
+- Implement proper version control and change management
+
+### Service Worker Guidelines
+- Event-driven and stateless design
+- Register event listeners synchronously at top level
+- Use `chrome.storage` instead of `localStorage`
+- Use `fetch` API instead of `XMLHttpRequest`
+- Use `chrome.alarms` for scheduled tasks instead of `setInterval`
+- Handle offline functionality gracefully
+
+## Chrome API Usage
+
+### Core APIs
+- Use `chrome.*` APIs correctly (storage, tabs, runtime, etc.)
+- Handle asynchronous operations with Promises/async-await
+- Use `chrome.action` API for browser actions (MV3)
+- Implement `chrome.alarms` for scheduled tasks
+- Use `chrome.offscreen` for DOM access when needed
+
+### Message Passing
+- Use `chrome.runtime.sendMessage` and `chrome.runtime.onMessage` for communication
+- Validate message origins and content
+- Use `sendResponse` for synchronous responses
+- Handle message errors gracefully
+
+### Storage
+- Use `chrome.storage.local` for local device storage
+- Use `chrome.storage.sync` for cross-device sync
+- Use `chrome.storage.session` for session-only data
+- Always handle storage errors and quota limits
+
+## Security and Privacy
+
+### Content Security Policy (CSP)
+- Implement strict CSP in manifest.json
+- Never use `'unsafe-inline'` or `'unsafe-eval'`
+- Use `script-src 'self'` to restrict script sources
+- Include all scripts as separate files, not inline
+
+### Security Best Practices
+- Implement Content Security Policy (CSP)
+- Handle user data securely
+- Prevent XSS and injection attacks
+- Sanitize all user inputs
+- Use secure messaging between components
+- Handle cross-origin requests safely
+- Implement secure data encryption
+- Follow `web_accessible_resources` best practices
+- Request only necessary permissions (principle of least privilege)
+
+### XSS Prevention
+- Use `textContent` instead of `innerHTML`
+- Use DOMPurify for HTML sanitization
+- Avoid `eval()`, `document.write()`, and similar dangerous APIs
+- Use `JSON.parse()` instead of `eval()` for JSON
+
+## Performance and Optimization
+
+### Best Practices
+- Minimize resource usage and avoid memory leaks
+- Optimize background script performance
+- Implement proper caching mechanisms
+- Handle asynchronous operations efficiently
+- Monitor and optimize CPU/memory usage
+- Use lazy loading for heavy scripts
+- Batch DOM manipulations
+- Clean up event listeners and timers
+
+### Memory Management
+- Remove event listeners when no longer needed
+- Clear intervals and timeouts appropriately
+- Avoid circular references
+- Use `chrome.alarms` instead of `setInterval` in service workers
+- Profile memory usage with Chrome DevTools
+
+## UI and User Experience
+
+### Material Design Guidelines
+- Follow Material Design guidelines
+- Popup dimensions: 320-400px width, 350-600px height
+- Touch targets: minimum 48x48 dp
+- Contrast ratio: minimum 4.5:1 for text
+- Limit core navigation to 3 options
+- Use 8pt spacing system
+
+### User Experience
+- Implement responsive popup windows
+- Provide clear user feedback
+- Support keyboard navigation
+- Ensure proper loading states
+- Add appropriate animations (but avoid distracting ones)
+- Display core actions above the fold
+- Provide immediate inline error messages
+
+## Internationalization
+
+### chrome.i18n API
+- Use `chrome.i18n` API for translations
+- Follow `_locales` structure
+- Support RTL languages
+- Handle regional formats
+- Use predefined messages (`@@bidi_dir`, `@@bidi_start_edge`, `@@bidi_end_edge`)
+
+### Implementation
+```typescript
+// Get message
+const message = chrome.i18n.getMessage('key');
+
+// Set text direction
+document.documentElement.setAttribute('dir', chrome.i18n.getMessage('@@bidi_dir'));
+```
+
+## Accessibility
+
+### Requirements
+- Implement ARIA labels for interactive elements
+- Ensure sufficient color contrast (WCAG AA minimum)
+- Support screen readers with proper semantic HTML
+- Add keyboard shortcuts for common actions
+- Test with keyboard-only navigation
+- Use standard HTML controls when possible
+- Provide visual focus indicators
+
+### ARIA Implementation
+- Use appropriate ARIA roles
+- Provide `aria-label` or `aria-labelledby`
+- Indicate dynamic states with `aria-expanded`, etc.
+- Use `tabindex` for custom interactive elements
+
+## Testing and Debugging
+
+### Debugging Tools
+- Use Chrome DevTools effectively
+- Debug popup: Right-click inside popup → Inspect
+- Debug service worker: chrome://extensions → "background page" link
+- Debug content scripts: Select from DevTools context menu
+- Use chrome://serviceworker-internals for service worker status
+
+### Testing
+- Write unit and integration tests
+- Test cross-browser compatibility
+- Monitor performance metrics
+- Handle error scenarios
+- Use Jest/Mocha for unit tests
+- Use Puppeteer for integration tests
+- Mock Chrome APIs for testing
+
+## Publishing and Maintenance
+
+### Chrome Web Store Requirements
+- Prepare store listings and screenshots (1280x800 or 640x400)
+- Write clear privacy policies (required if collecting data)
+- Implement update mechanisms
+- Handle user feedback
+- Maintain documentation
+
+### Store Listing
+- Provide accurate descriptions
+- Include high-quality screenshots
+- Maintain consistent branding
+- Link privacy policy if collecting data
+- Provide support URL
+
+## Error Handling
+
+### Best Practices
+- Always use try-catch for async operations
+- Log errors appropriately
+- Provide user-friendly error messages
+- Handle storage quota errors
+- Handle network errors gracefully
+- Validate inputs before processing
+
+### Example Pattern
+```typescript
+async function safeOperation<T>(
+  operation: () => Promise<T>
+): Promise<T | null> {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error('Operation failed:', error);
+    // Log to error tracking service
+    return null;
+  }
+}
+```
+
+## Common Patterns
+
+### Service Worker Initialization
+```typescript
+// Register event listeners at top level
+chrome.runtime.onInstalled.addListener(handleInstall);
+chrome.action.onClicked.addListener(handleActionClick);
+chrome.alarms.onAlarm.addListener(handleAlarm);
+```
+
+### State Management
+```typescript
+// Save state
+async function saveState(state: AppState) {
+  await chrome.storage.local.set({ appState: state });
+}
+
+// Load state
+async function loadState(): Promise<AppState> {
+  const result = await chrome.storage.local.get(['appState']);
+  return result.appState || getDefaultState();
+}
+```
+
+### Message Passing
+```typescript
+// Send message
+chrome.runtime.sendMessage({ action: 'getData' }, (response) => {
+  // Handle response
+});
+
+// Listen for messages
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'getData') {
+    sendResponse({ data: 'value' });
+  }
+  return true; // Keep channel open for async response
+});
+```
+
+## Documentation References
+
+- Main Documentation: https://developer.chrome.com/docs/extensions/
+- API Reference: https://developer.chrome.com/docs/extensions/reference/
+- Manifest V3 Guide: https://developer.chrome.com/docs/extensions/mv3/
+- Migration Guide: https://developer.chrome.com/docs/extensions/develop/migrate/
+- Web Store: https://developer.chrome.com/docs/webstore/
+- See `docs/CHROME_EXTENSION_REFERENCE.md` for comprehensive reference
+
+## Output Expectations
+
+- Provide clear, working code examples
+- Include necessary error handling
+- Follow security best practices
+- Ensure cross-browser compatibility
+- Write maintainable and scalable code
+- Use TypeScript with proper types
+- Document complex logic with JSDoc comments

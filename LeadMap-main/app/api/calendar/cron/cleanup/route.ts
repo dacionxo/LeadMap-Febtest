@@ -235,7 +235,10 @@ async function deleteOldReminders(
     }
   )
 
-  const count = countResult.success && countResult.data ? countResult.data.length : 0
+  // Type guard: ensure countResult.data is an array
+  const count = countResult.success && countResult.data && Array.isArray(countResult.data) 
+    ? countResult.data.length 
+    : 0
 
   if (count === 0) {
     return 0
@@ -291,11 +294,12 @@ async function clearExpiredWebhooks(
     }
   )
 
-  if (!result.success || !result.data || result.data.length === 0) {
+  // Type guard: ensure result.data is an array
+  if (!result.success || !result.data || !Array.isArray(result.data) || result.data.length === 0) {
     return 0
   }
 
-  const connectionIds = result.data.map(c => c.id)
+  const connectionIds = result.data.map((c: { id: string }) => c.id)
 
   // Clear webhook info (they'll be renewed by webhook renewal cron)
   const updateResult = await executeUpdateOperation(

@@ -207,7 +207,8 @@ async function fetchActiveConnections(
     )
   }
 
-  if (!result.data || result.data.length === 0) {
+  // Type guard: ensure result.data is an array
+  if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
     return []
   }
 
@@ -485,7 +486,8 @@ async function syncConnectionEvents(
         }
       )
 
-      const existing = existingResult.success && existingResult.data && existingResult.data.length > 0
+      // Type guard: ensure existingResult.data is an array
+      const existing = existingResult.success && existingResult.data && Array.isArray(existingResult.data) && existingResult.data.length > 0
         ? existingResult.data[0]
         : null
 

@@ -223,7 +223,8 @@ async function fetchFailedEvents(
     throw new DatabaseError('Failed to fetch failed calendar events', result.error)
   }
 
-  if (!result.data || result.data.length === 0) {
+  // Type guard: ensure result.data is an array
+  if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
     return []
   }
 
@@ -267,7 +268,8 @@ async function fetchUserCalendarConnection(
     return null
   }
 
-  if (!result.data || result.data.length === 0) {
+  // Type guard: ensure result.data is an array
+  if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
     return null
   }
 
@@ -468,7 +470,7 @@ async function runCronJob(request: NextRequest) {
             eventId: event.id,
             title: event.title,
             status: 'skipped',
-            reason: 'No active Google Calendar connection',
+            message: 'No active Google Calendar connection',
           })
           continue
         }

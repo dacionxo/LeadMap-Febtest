@@ -255,9 +255,11 @@ export async function POST(request: NextRequest) {
               // Google Calendar uses exclusive end dates for all-day events
               // For example, a single-day event on Dec 16 returns end.date = "2025-12-17"
               // We need to subtract one day to get the actual end date
-              const adjustedEndDate = new Date(new Date(endDate).getTime() - 86400000)
-                .toISOString()
-                .split('T')[0]
+              const adjustedEndDate = endDate 
+                ? new Date(new Date(endDate).getTime() - 86400000)
+                    .toISOString()
+                    .split('T')[0]
+                : startDate
               startTime = new Date(`${startDate}T00:00:00Z`).toISOString()
               endTime = new Date(`${adjustedEndDate}T23:59:59Z`).toISOString()
               timezone = googleEvent.start.timeZone || userTimezone
@@ -315,7 +317,8 @@ export async function POST(request: NextRequest) {
 
             if (existing) {
               // Update existing event
-              const { id: _, ...updateData } = eventData
+              // eventData doesn't have an 'id' property, so we can safely spread it
+              const updateData = { ...eventData }
               const { error: updateError } = await supabase
                 .from('calendar_events')
                 .update(updateData)

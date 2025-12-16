@@ -147,7 +147,8 @@ async function fetchConnectionsNeedingRenewal(
     )
   }
 
-  if (!result.data || result.data.length === 0) {
+  // Type guard: ensure result.data is an array
+  if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
     return []
   }
 

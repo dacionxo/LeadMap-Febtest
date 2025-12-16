@@ -140,7 +140,8 @@ async function fetchConnectionsNeedingRefresh(
     throw new DatabaseError('Failed to fetch connections needing token refresh', result.error)
   }
 
-  if (!result.data || result.data.length === 0) {
+  // Type guard: ensure result.data is an array
+  if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
     return []
   }
 
@@ -166,7 +167,7 @@ async function refreshConnectionToken(
         connectionId: connection.id,
         email: connection.email,
         status: 'skipped',
-        reason: 'No refresh token available',
+        message: 'No refresh token available',
       }
     }
 
@@ -287,7 +288,7 @@ async function runCronJob(request: NextRequest) {
         )
       } else {
         console.log(
-          `[Calendar Token Refresh] Skipped connection ${connection.id} (${connection.email}): ${result.reason}`
+          `[Calendar Token Refresh] Skipped connection ${connection.id} (${connection.email}): ${result.message || 'Unknown reason'}`
         )
       }
 

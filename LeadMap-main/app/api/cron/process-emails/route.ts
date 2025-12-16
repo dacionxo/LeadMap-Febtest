@@ -176,17 +176,12 @@ async function runCronJob(request: NextRequest) {
                 // Calculate new expiration (typically 1 hour from now)
                 const newExpiresAt = new Date(Date.now() + 3600 * 1000).toISOString()
 
-                const updateData: { 
-                  access_token: string; 
-                  token_expires_at: string; 
-                  updated_at: string 
-                } = {
+                const updateData: any = {
                   access_token: encrypted.access_token || refreshResult.accessToken,
                   token_expires_at: newExpiresAt,
                   updated_at: new Date().toISOString()
                 }
-                await supabase
-                  .from('mailboxes')
+                await (supabase.from('mailboxes') as any)
                   .update(updateData)
                   .eq('id', mailboxId)
 
@@ -719,9 +714,11 @@ async function runCronJob(request: NextRequest) {
             }
 
             // Update mailbox last_error
-            await supabase
-              .from('mailboxes')
-              .update({ last_error: sendResult.error } as Record<string, unknown>)
+            const errorUpdateData: any = {
+              last_error: sendResult.error
+            }
+            await (supabase.from('mailboxes') as any)
+              .update(errorUpdateData)
               .eq('id', mailboxId)
 
             // Update recipient status

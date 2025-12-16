@@ -69,7 +69,7 @@ async function runCronJob(request: NextRequest) {
     for (const mailbox of mailboxes as Array<{ id: string; [key: string]: unknown }>) {
       try {
         // Get valid access token (refresh if needed)
-        let accessToken = mailbox.access_token
+        let accessToken = mailbox.access_token as string | undefined
 
         if (!accessToken && mailbox.refresh_token) {
           // Token is missing, try to refresh
@@ -79,12 +79,11 @@ async function runCronJob(request: NextRequest) {
             
             // Update mailbox with new token
             const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-            const updateData: { access_token: string; token_expires_at: string } = {
+            const updateData: any = {
               access_token: accessToken,
               token_expires_at: expiresAt.toISOString(),
             }
-            await supabase
-              .from('mailboxes')
+            await (supabase.from('mailboxes') as any)
               .update(updateData)
               .eq('id', mailbox.id)
           } else {
@@ -100,7 +99,7 @@ async function runCronJob(request: NextRequest) {
 
         // Check if token needs refresh (expiring within 5 minutes)
         if (mailbox.token_expires_at && mailbox.refresh_token) {
-          const expiresAt = new Date(mailbox.token_expires_at)
+          const expiresAt = new Date(mailbox.token_expires_at as string)
           const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
 
           if (expiresAt < fiveMinutesFromNow) {
@@ -110,12 +109,11 @@ async function runCronJob(request: NextRequest) {
               accessToken = refreshResult.accessToken
               
               const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-              const updateData: { access_token: string; token_expires_at: string } = {
+              const updateData: any = {
                 access_token: accessToken,
                 token_expires_at: expiresAt.toISOString(),
               }
-              await supabase
-                .from('mailboxes')
+              await (supabase.from('mailboxes') as any)
                 .update(updateData)
                 .eq('id', mailbox.id)
             } else {
@@ -144,7 +142,7 @@ async function runCronJob(request: NextRequest) {
         const watchResult = await setupGmailWatch({
           mailboxId: mailbox.id,
           accessToken,
-          refreshToken: (mailbox.refresh_token as string) || undefined,
+          refreshToken: typeof mailbox.refresh_token === 'string' ? mailbox.refresh_token : undefined,
           webhookUrl: `${baseUrl}/api/webhooks/gmail`,
         })
 

@@ -71,12 +71,11 @@ async function runCronJob(request: NextRequest) {
                 accessToken = refreshResult.accessToken
                 
                 const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-                const updateData: { access_token: string; token_expires_at: string } = {
+                const updateData: any = {
                   access_token: accessToken,
                   token_expires_at: expiresAt.toISOString(),
                 }
-                await supabase
-                  .from('mailboxes')
+                await (supabase.from('mailboxes') as any)
                   .update(updateData)
                   .eq('id', mailbox.id)
               }
@@ -95,12 +94,11 @@ async function runCronJob(request: NextRequest) {
                 accessToken = refreshResult.accessToken
                 
                 const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-                const updateData: { access_token: string; token_expires_at: string } = {
+                const updateData: any = {
                   access_token: accessToken,
                   token_expires_at: expiresAt.toISOString(),
                 }
-                await supabase
-                  .from('mailboxes')
+                await (supabase.from('mailboxes') as any)
                   .update(updateData)
                   .eq('id', mailbox.id)
               }

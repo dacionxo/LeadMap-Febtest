@@ -203,7 +203,7 @@ async function runCronJob(request: NextRequest) {
 
         // Process each recipient
         let processedCount = 0
-        for (const recipient of readyRecipients) {
+        for (const recipient of readyRecipients as any[]) {
           try {
             // Check stop on reply
             const replyCheck = await checkAndStopOnReply(recipient.id, campaign.id, supabase)

@@ -51,8 +51,10 @@ interface Listing {
   agent_phone_2?: string | null
   listing_agent_phone_2?: string | null
   listing_agent_phone_5?: string | null
-  /** Property description text from Supabase 'text' field */
+  /** Property description text from Supabase 'text' field (fallback) */
   text?: string | null
+  /** Other JSONB field containing additional property data including description */
+  other?: any
   year_built?: number | null
   last_sale_price?: number | null
   last_sale_date?: string | null
@@ -197,9 +199,21 @@ export default function VirtualizedListingsTable({
   const scrollContainer = scrollContainerRef?.current || internalScrollRef.current
   
   // Use external pagination if provided, otherwise use internal
+  // This ensures pagination state is synced with parent component
   const currentPage = pagination?.currentPage ?? internalCurrentPage
   const pageSize = pagination?.pageSize ?? internalPageSize
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+  
+  // Log pagination state changes for debugging
+  useEffect(() => {
+    console.log('VirtualizedListingsTable: Pagination state updated', {
+      currentPage,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasPagination: !!pagination
+    })
+  }, [currentPage, pageSize, totalCount, totalPages, pagination])
   
   // ==========================================================================
   // Table Name Validation
@@ -238,6 +252,7 @@ export default function VirtualizedListingsTable({
    * Fetches listings from the API endpoint with current filters, sort, and pagination
    * Uses loadingRef to prevent concurrent requests
    * If providedListings is provided, skips API fetch and uses those listings instead
+   * Ensures 'other' JSONB field is included in the response for description extraction
    */
   const fetchListings = useCallback(async (page: number) => {
     // If listings are provided directly, use them instead of fetching
@@ -312,7 +327,14 @@ export default function VirtualizedListingsTable({
       const end = start + pageSize
       const paginated = filtered.slice(start, end)
       
-      setListings(paginated)
+      // Ensure 'other' JSONB field is preserved for client-side pagination
+      const paginatedWithOther = paginated.map((listing: any) => ({
+        ...listing,
+        // Ensure other field is properly structured
+        other: listing.other || null
+      }))
+      
+      setListings(paginatedWithOther)
       setTotalCount(filtered.length)
       setLoading(false)
       return
@@ -382,14 +404,55 @@ export default function VirtualizedListingsTable({
       }
       
       // Update state with fetched data
-      setListings(data || [])
+      // Ensure 'other' JSONB field is preserved and properly parsed in the response
+      const listingsWithOther = (data || []).map((listing: any) => {
+        let parsedOther = listing.other
+        // Safely parse other field if it's a string
+        if (listing.other && typeof listing.other === 'string') {
+          try {
+            parsedOther = JSON.parse(listing.other)
+          } catch (parseError) {
+            console.warn('Failed to parse other JSONB field for listing:', listing.listing_id, parseError)
+            parsedOther = null
+          }
+        }
+        
+        return {
+          ...listing,
+          other: parsedOther
+        }
+      })
+      
+      setListings(listingsWithOther)
       setTotalCount(count || 0)
       
-    } catch (error) {
+      // Log successful fetch for debugging
+      console.log('VirtualizedListingsTable: Successfully loaded page', {
+        page,
+        count: listingsWithOther.length,
+        totalCount: count,
+        tableName,
+        hasOtherField: listingsWithOther.some((l: any) => l.other !== null && l.other !== undefined)
+      })
+      
+    } catch (error: any) {
       console.error('Error fetching listings:', error)
       // On error, clear listings and reset count
       setListings([])
       setTotalCount(0)
+      
+      // Log detailed error information for debugging
+      if (error.message) {
+        console.error('Fetch error details:', {
+          message: error.message,
+          tableName,
+          page,
+          pageSize,
+          filters,
+          sortBy,
+          sortOrder
+        })
+      }
     } finally {
       setLoading(false)
       loadingRef.current = false
@@ -470,15 +533,38 @@ export default function VirtualizedListingsTable({
   
   /**
    * Effect: Fetch data when page changes or reload signal is triggered
+   * This ensures data is properly loaded when user switches pages
+   * Critical: This effect must run whenever currentPage changes to load new page data
    */
   useEffect(() => {
+    // Skip if already loading to prevent duplicate requests
+    if (loadingRef.current) {
+      console.log('VirtualizedListingsTable: Skipping fetch - already loading')
+      return
+    }
+    
     if (providedListings !== undefined) {
       // If using provided listings, always fetch (it handles pagination internally)
+      console.log('VirtualizedListingsTable: Fetching from provided listings', { currentPage })
       fetchListings(currentPage)
     } else if (currentPage > 0 && tableName && isValidTableName(tableName)) {
+      // Fetch from API when page changes
+      console.log('VirtualizedListingsTable: Page changed, fetching data from API', {
+        currentPage,
+        tableName,
+        pageSize,
+        timestamp: new Date().toISOString()
+      })
       fetchListings(currentPage)
+    } else {
+      console.warn('VirtualizedListingsTable: Cannot fetch - missing requirements', {
+        currentPage,
+        tableName,
+        isValidTable: tableName ? isValidTableName(tableName) : false,
+        hasProvidedListings: providedListings !== undefined
+      })
     }
-  }, [currentPage, fetchListings, tableName, providedListings, reloadSignal])
+  }, [currentPage, fetchListings, tableName, providedListings, reloadSignal, pageSize])
   
   
   /**

@@ -55,8 +55,9 @@ export async function GET(request: NextRequest) {
     console.warn(`Invalid or unsafe table name "${table}", using "listings" instead`)
   }
 
-  // Select all columns including 'text' field (property description)
-  // Using select('*') ensures all fields including 'text' are included in the response
+  // Select all columns including 'text' field and 'other' JSONB field (property description)
+  // Using select('*') ensures all fields including 'text' and 'other' JSONB are included in the response
+  // The 'other' JSONB field contains additional property data including description
   let query = supabase.from(safeTable).select('*', { count: 'exact' })
 
   // Apply search filter - works for all category tables as they share the same schema
@@ -101,7 +102,16 @@ export async function GET(request: NextRequest) {
           }, { status: 500 })
         }
         console.log(`Fallback successful: ${fallbackCount} listings found`)
-        return NextResponse.json({ data: fallbackData, count: fallbackCount, error: null })
+        // Ensure 'other' JSONB field is properly included in fallback response
+        const fallbackListingsWithOther = (fallbackData || []).map((listing: any) => ({
+          ...listing,
+          other: listing.other || null
+        }))
+        return NextResponse.json({ 
+          data: fallbackListingsWithOther, 
+          count: fallbackCount, 
+          error: null 
+        })
       }
       
       return NextResponse.json({ 
@@ -112,7 +122,24 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`Successfully fetched ${data?.length || 0} listings from ${safeTable}, total count: ${count}`)
-    return NextResponse.json({ data: data || [], count: count || 0, error: null })
+    
+    // Ensure 'other' JSONB field is properly included in response
+    // Supabase automatically includes all fields with select('*'), including JSONB fields
+    // Verify that 'other' field is present in the response
+    const listingsWithOther = (data || []).map((listing: any) => {
+      // Ensure other field is properly structured (Supabase returns JSONB as object, not string)
+      return {
+        ...listing,
+        // other field should already be an object from Supabase, but ensure it's not null
+        other: listing.other || null
+      }
+    })
+    
+    return NextResponse.json({ 
+      data: listingsWithOther, 
+      count: count || 0, 
+      error: null 
+    })
   } catch (error: any) {
     console.error('API Error fetching paginated listings:', error)
     return NextResponse.json({ 

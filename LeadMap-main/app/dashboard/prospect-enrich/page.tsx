@@ -2473,7 +2473,16 @@ function ProspectEnrichInner() {
                           }}
                           sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
                           sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
-                          onStatsChange={(stats) => setRemoteListingsCount(stats.totalCount)}
+                          pagination={{
+                            currentPage,
+                            pageSize: itemsPerPage,
+                            onPageChange: setCurrentPage,
+                            onPageSizeChange: setItemsPerPage
+                          }}
+                          onStatsChange={(stats) => {
+                            setRemoteListingsCount(stats.totalCount)
+                            // Update totalPages if needed for proper pagination display
+                          }}
                           onListingClick={(listing) => {
                             setSelectedListingId(listing.listing_id)
                             setShowLeadModal(true)
@@ -2940,7 +2949,16 @@ function ProspectEnrichInner() {
                           }}
                           sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
                           sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
-                          onStatsChange={(stats) => setRemoteListingsCount(stats.totalCount)}
+                          pagination={{
+                            currentPage,
+                            pageSize: itemsPerPage,
+                            onPageChange: setCurrentPage,
+                            onPageSizeChange: setItemsPerPage
+                          }}
+                          onStatsChange={(stats) => {
+                            setRemoteListingsCount(stats.totalCount)
+                            // Update totalPages if needed for proper pagination display
+                          }}
                           onListingClick={(listing) => {
                             setSelectedListingId(listing.listing_id)
                             setShowLeadModal(true)

@@ -90,6 +90,9 @@ interface SyncRetryResult extends CronJobResult {
   eventId: string
   title: string
   externalEventId?: string
+  status: 'success' | 'failed' | 'skipped' | 'error'
+  message?: string
+  error?: string
 }
 
 /**

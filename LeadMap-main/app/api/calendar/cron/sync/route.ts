@@ -381,8 +381,14 @@ function parseGoogleEventToDatabase(
     allDay = true
     startDate = googleEvent.start.date
     endDate = googleEvent.end?.date || startDate
+    // Google Calendar uses exclusive end dates for all-day events
+    // For example, a single-day event on Dec 16 returns end.date = "2025-12-17"
+    // We need to subtract one day to get the actual end date
+    const adjustedEndDate = new Date(new Date(endDate).getTime() - 86400000)
+      .toISOString()
+      .split('T')[0]
     startTime = new Date(`${startDate}T00:00:00Z`).toISOString()
-    endTime = new Date(`${endDate}T23:59:59Z`).toISOString()
+    endTime = new Date(`${adjustedEndDate}T23:59:59Z`).toISOString()
     timezone = googleEvent.start.timeZone || 'UTC'
   } else {
     // Invalid event - missing start time

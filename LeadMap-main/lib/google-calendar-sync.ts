@@ -50,6 +50,7 @@ export async function refreshGoogleAccessToken(
 
 /**
  * Get valid access token (refresh if needed)
+ * Returns the access token string for backward compatibility
  */
 export async function getValidAccessToken(
   accessToken: string,
@@ -74,6 +75,38 @@ export async function getValidAccessToken(
   }
 
   return accessToken
+}
+
+/**
+ * Get valid access token with expiration info (refresh if needed)
+ * Returns both the access token and expiration info when token is refreshed
+ */
+export async function getValidAccessTokenWithExpiration(
+  accessToken: string,
+  refreshToken: string | null,
+  tokenExpiresAt: string | null
+): Promise<{ accessToken: string; expiresIn?: number } | null> {
+  // Check if token is expired or expires in less than 5 minutes
+  if (tokenExpiresAt) {
+    const expiresAt = new Date(tokenExpiresAt)
+    const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000)
+    
+    if (expiresAt < fiveMinutesFromNow) {
+      // Token is expired or about to expire, refresh it
+      if (refreshToken) {
+        const refreshed = await refreshGoogleAccessToken(refreshToken)
+        if (refreshed) {
+          return {
+            accessToken: refreshed.accessToken,
+            expiresIn: refreshed.expiresIn,
+          }
+        }
+      }
+      return null
+    }
+  }
+
+  return { accessToken }
 }
 
 /**

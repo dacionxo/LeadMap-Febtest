@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
-import { getValidAccessToken, refreshGoogleAccessToken } from '@/lib/google-calendar-sync'
+import { getValidAccessTokenWithExpiration } from '@/lib/google-calendar-sync'
 
 export const runtime = 'nodejs'
 
@@ -94,13 +94,13 @@ export async function POST(request: NextRequest) {
     for (const connection of connections) {
       try {
         // Get valid access token (refresh if needed)
-        const validAccessToken = await getValidAccessToken(
+        const tokenResult = await getValidAccessTokenWithExpiration(
           connection.access_token || '',
           connection.refresh_token || null,
           connection.token_expires_at || null
         )
 
-        if (!validAccessToken) {
+        if (!tokenResult) {
           syncResults.push({
             connectionId: connection.id,
             email: connection.email,
@@ -110,9 +110,13 @@ export async function POST(request: NextRequest) {
           continue
         }
 
+        const validAccessToken = tokenResult.accessToken
+
         // Update token if it was refreshed
         if (validAccessToken !== connection.access_token) {
-          const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString()
+          // Use expires_in from token refresh response, fallback to 3600s if missing
+          const expiresInSeconds = tokenResult.expiresIn || 3600
+          const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString()
           await supabase
             .from('calendar_connections')
             .update({
@@ -248,8 +252,14 @@ export async function POST(request: NextRequest) {
               allDay = true
               startDate = googleEvent.start.date
               endDate = googleEvent.end?.date || startDate
+              // Google Calendar uses exclusive end dates for all-day events
+              // For example, a single-day event on Dec 16 returns end.date = "2025-12-17"
+              // We need to subtract one day to get the actual end date
+              const adjustedEndDate = new Date(new Date(endDate).getTime() - 86400000)
+                .toISOString()
+                .split('T')[0]
               startTime = new Date(`${startDate}T00:00:00Z`).toISOString()
-              endTime = new Date(`${endDate}T23:59:59Z`).toISOString()
+              endTime = new Date(`${adjustedEndDate}T23:59:59Z`).toISOString()
               timezone = googleEvent.start.timeZone || userTimezone
             } else {
               skippedCount++

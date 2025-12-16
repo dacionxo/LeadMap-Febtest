@@ -30,6 +30,7 @@ This implementation ensures that when a user clicks the "Street View" button on 
 Located in `components/GoogleMapsViewEnhanced.tsx`, this function:
 
 1. **Checks Street View Availability**
+
    ```typescript
    streetViewService.getPanorama(
      { location: { lat, lng }, radius: 50 },
@@ -42,6 +43,7 @@ Located in `components/GoogleMapsViewEnhanced.tsx`, this function:
    ```
 
 2. **Activates Street View on Map**
+
    ```typescript
    panorama.setPosition({ lat, lng });
    panorama.setPov({ heading: 270, pitch: 0 });
@@ -50,6 +52,7 @@ Located in `components/GoogleMapsViewEnhanced.tsx`, this function:
    ```
 
 3. **Centers Map on Location**
+
    ```typescript
    mapInstance.setCenter({ lat, lng });
    mapInstance.setZoom(18);
@@ -83,6 +86,7 @@ btn.addEventListener('click', (e) => {
 ## 🎨 User Flow
 
 ### Before (Modal-First)
+
 ```
 1. User clicks marker
 2. Info window appears
@@ -92,6 +96,7 @@ btn.addEventListener('click', (e) => {
 ```
 
 ### After (Immediate Street View)
+
 ```
 1. User clicks marker
 2. Info window appears
@@ -226,7 +231,7 @@ Uses Google Maps `StreetViewService` to check availability:
 
 - `GOOGLE_MAPS_STREET_VIEW_SETUP.md` - Setup guide
 - `GOOGLE_MAPS_IMPLEMENTATION_SUMMARY.md` - Overall implementation
-- Google Maps JavaScript API: https://developers.google.com/maps/documentation/javascript/streetview
+- [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/streetview) - Street View documentation
 
 ---
 

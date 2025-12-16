@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useState, useEffect, useMemo } from 'react'
 import DashboardLayout from '../components/DashboardLayout'
 import MapView from '@/components/MapView'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
@@ -16,7 +16,8 @@ import {
   HelpCircle
 } from 'lucide-react'
 import MapsOnboardingModal from './components/MapsOnboardingModal'
-import LeadDetailModal from '../prospect-enrich/components/LeadDetailModal'
+
+const LeadDetailModal = lazy(() => import('../prospect-enrich/components/LeadDetailModal'))
 
 interface Listing {
   listing_id: string
@@ -477,11 +478,17 @@ export default function MapPage() {
 
         {/* Property Detail Modal with Street View */}
         {selectedListingId && (
-          <LeadDetailModal
-            listingId={selectedListingId}
-            listingList={listings}
-            onClose={handleCloseModal}
-          />
+          <Suspense fallback={
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="text-white">Loading...</div>
+            </div>
+          }>
+            <LeadDetailModal
+              listingId={selectedListingId}
+              listingList={listings}
+              onClose={handleCloseModal}
+            />
+          </Suspense>
         )}
       </div>
     </DashboardLayout>

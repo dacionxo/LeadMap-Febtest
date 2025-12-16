@@ -156,8 +156,7 @@ async function runCronJob(request: NextRequest) {
 
         if (sendResult.success) {
           // Create email record
-          await supabase
-            .from('emails')
+          await (supabase.from('emails') as any)
             .insert({
               user_id: email.user_id,
               mailbox_id: email.mailbox_id,

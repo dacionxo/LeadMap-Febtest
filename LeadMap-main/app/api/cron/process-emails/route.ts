@@ -1019,8 +1019,7 @@ async function scheduleNextStep(
 
           // Create variant assignment
           if (variantId) {
-            await supabase
-              .from('campaign_recipient_variant_assignments')
+            await (supabase.from('campaign_recipient_variant_assignments') as any)
               .insert({
                 campaign_id: campaignId,
                 step_id: nextStep.id,
@@ -1095,8 +1094,7 @@ async function scheduleNextStep(
     }
 
     // Create email record for next step
-    const { data: emailRecord } = await supabase
-      .from('emails')
+    const { data: emailRecord } = await (supabase.from('emails') as any)
       .insert({
         user_id: campaignData.user_id,
         mailbox_id: campaignMailbox.mailbox_id,

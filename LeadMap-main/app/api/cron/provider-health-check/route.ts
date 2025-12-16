@@ -80,8 +80,7 @@ async function runCronJob(request: NextRequest) {
         const healthResult = await checkProviderHealth(cred.provider_type, config, supabase)
 
         // Store result
-        await supabase
-          .from('provider_health_checks')
+        await (supabase.from('provider_health_checks') as any)
           .upsert({
             credential_id: cred.id,
             healthy: healthResult.healthy,

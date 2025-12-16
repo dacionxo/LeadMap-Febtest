@@ -308,8 +308,7 @@ async function runCronJob(request: NextRequest) {
             processedHtml = appendComplianceFooter(processedHtml, emailSettings, unsubscribeUrl)
 
             // Create email record
-            const { data: emailRecord, error: emailError } = await supabase
-              .from('emails')
+            const { data: emailRecord, error: emailError } = await (supabase.from('emails') as any)
               .insert({
                 user_id: campaign.user_id,
                 mailbox_id: campaign.mailbox_id,

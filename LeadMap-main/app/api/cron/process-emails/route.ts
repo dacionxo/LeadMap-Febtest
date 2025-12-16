@@ -696,12 +696,12 @@ async function runCronJob(request: NextRequest) {
             processed++
           } else {
             // Mark as failed
-            await supabase
-              .from('emails')
-              .update({
-                status: 'failed',
-                error: sendResult.error
-              })
+            const failedData: any = {
+              status: 'failed',
+              error: sendResult.error
+            }
+            await (supabase.from('emails') as any)
+              .update(failedData)
               .eq('id', email.id)
 
             // Record 'failed' event in unified email_events table
@@ -746,21 +746,23 @@ async function runCronJob(request: NextRequest) {
 
             // Update recipient status
             if (email.campaign_recipient_id) {
-              await supabase
-                .from('campaign_recipients')
-                .update({ status: 'failed' })
-                .eq('id', email.campaign_recipient_id)
+              const recipientFailedData: any = {
+                status: 'failed'
+              }
+              await (supabase.from('campaign_recipients') as any)
+                .update(recipientFailedData)
+                .eq('id', email.campaign_recipient_id as string)
             }
           }
         } catch (error: any) {
           console.error(`Error processing email ${email.id}:`, error)
           
-          await supabase
-            .from('emails')
-            .update({
-              status: 'failed',
-              error: error.message || 'Unknown error'
-            })
+          const catchErrorData: any = {
+            status: 'failed',
+            error: error.message || 'Unknown error'
+          }
+          await (supabase.from('emails') as any)
+            .update(catchErrorData)
             .eq('id', email.id)
 
           // Record 'failed' event

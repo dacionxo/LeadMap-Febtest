@@ -653,13 +653,13 @@ async function runCronJob(request: NextRequest) {
 
             // Update campaign recipient if applicable
             if (email.campaign_recipient_id) {
-              await supabase
-                .from('campaign_recipients')
-                .update({
-                  last_sent_at: now.toISOString(),
-                  status: email.campaign_step_id ? 'in_progress' : 'completed'
-                })
-                .eq('id', email.campaign_recipient_id)
+              const recipientUpdateData: any = {
+                last_sent_at: now.toISOString(),
+                status: email.campaign_step_id ? 'in_progress' : 'completed'
+              }
+              await (supabase.from('campaign_recipients') as any)
+                .update(recipientUpdateData)
+                .eq('id', email.campaign_recipient_id as string)
 
               // Update last_step_sent if this is a campaign step
               if (email.campaign_step_id) {
@@ -667,14 +667,16 @@ async function runCronJob(request: NextRequest) {
                 const { data: step } = await supabase
                   .from('campaign_steps')
                   .select('step_number')
-                  .eq('id', email.campaign_step_id)
-                  .single()
+                  .eq('id', email.campaign_step_id as string)
+                  .single() as { data: { step_number: number } | null; error: any }
 
                 if (step) {
-                  await supabase
-                    .from('campaign_recipients')
-                    .update({ last_step_sent: step.step_number })
-                    .eq('id', email.campaign_recipient_id)
+                  const stepUpdateData: any = {
+                    last_step_sent: step.step_number
+                  }
+                  await (supabase.from('campaign_recipients') as any)
+                    .update(stepUpdateData)
+                    .eq('id', email.campaign_recipient_id as string)
                 }
               }
 

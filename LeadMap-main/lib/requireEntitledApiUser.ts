@@ -54,10 +54,18 @@ export async function requireEntitledApiUser(
     };
   }
 
+  // Type assertion needed because service role client doesn't have database schema types
+  const userData = user as {
+    id: string;
+    email: string | null;
+    trial_end: string | null;
+    subscription_status: string | null;
+  };
+
   // Check entitlement
   const ent = getEntitlement({
-    trialEndsAt: user.trial_end,
-    subscriptionStatus: (user.subscription_status as string) || "none",
+    trialEndsAt: userData.trial_end,
+    subscriptionStatus: (userData.subscription_status as string) || "none",
   });
 
   if (!ent.canUseApp) {
@@ -77,10 +85,10 @@ export async function requireEntitledApiUser(
   return {
     ok: true,
     user: {
-      id: user.id,
-      email: user.email || "",
-      trialEndsAt: user.trial_end ? new Date(user.trial_end) : null,
-      subscriptionStatus: (user.subscription_status as string) || "none",
+      id: userData.id,
+      email: userData.email || "",
+      trialEndsAt: userData.trial_end ? new Date(userData.trial_end) : null,
+      subscriptionStatus: (userData.subscription_status as string) || "none",
     },
     ent,
   };

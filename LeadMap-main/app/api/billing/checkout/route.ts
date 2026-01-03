@@ -64,10 +64,9 @@ export async function POST(req: NextRequest) {
       customerId = customer.id
 
       // Update user with customer ID
-      // @ts-ignore - Supabase types are strict but the update is valid
       const { error: updateError } = await supabase
         .from('users')
-        .update({ stripe_customer_id: customerId })
+        .update({ stripe_customer_id: customerId } as Record<string, unknown>)
         .eq('id', userId)
       
       if (updateError) {

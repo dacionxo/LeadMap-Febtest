@@ -64,10 +64,15 @@ export async function POST(req: NextRequest) {
       customerId = customer.id
 
       // Update user with customer ID
-      await supabase
+      // @ts-ignore - Supabase types are strict but the update is valid
+      const { error: updateError } = await supabase
         .from('users')
-        .update({ stripe_customer_id: customerId } as any)
+        .update({ stripe_customer_id: customerId })
         .eq('id', userId)
+      
+      if (updateError) {
+        console.error('Error updating user with customer ID:', updateError)
+      }
     }
 
     // Create checkout session

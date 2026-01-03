@@ -42,11 +42,17 @@ export async function POST(req: NextRequest) {
       ? `https://${process.env.VERCEL_URL}` 
       : 'http://localhost:3000'
     
-    // Get price ID from environment (fallback to first price in Stripe if needed)
-    const priceId = process.env.STRIPE_PRICE_ID
+    // Get plan type from query or default to monthly
+    const { plan } = await req.json().catch(() => ({ plan: 'monthly' }))
+    const planType = plan === 'yearly' ? 'yearly' : 'monthly'
+    
+    // Get price ID from environment based on plan type
+    const priceId = planType === 'yearly' 
+      ? process.env.STRIPE_PRICE_ID_YEARLY 
+      : process.env.STRIPE_PRICE_ID_MONTHLY
 
     if (!priceId) {
-      console.error('STRIPE_PRICE_ID not configured')
+      console.error(`STRIPE_PRICE_ID_${planType.toUpperCase()} not configured`)
       return NextResponse.json(
         { error: 'Subscription not configured' },
         { status: 500 }

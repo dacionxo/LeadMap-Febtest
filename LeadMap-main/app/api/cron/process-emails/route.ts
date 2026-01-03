@@ -602,7 +602,21 @@ async function processEmail(
       }
     )
 
-    if (!mailboxCheck.success || !mailboxCheck.data || !mailboxCheck.data[0]?.active) {
+    if (!mailboxCheck.success || !mailboxCheck.data) {
+      return {
+        email_id: email.id,
+        status: 'skipped',
+        reason: 'Mailbox is not active',
+      }
+    }
+
+    // Since we use .single(), result.data should be a single object
+    // But handle both cases for type safety
+    const mailboxData = Array.isArray(mailboxCheck.data) 
+      ? mailboxCheck.data[0] 
+      : mailboxCheck.data
+
+    if (!mailboxData?.active) {
       return {
         email_id: email.id,
         status: 'skipped',
@@ -1054,19 +1068,27 @@ async function processEmail(
             }
           )
 
-          if (stepResult.success && stepResult.data && stepResult.data.length > 0) {
-            await executeUpdateOperation(
-              supabase,
-              'campaign_recipients',
-              {
-                last_step_sent: stepResult.data[0].step_number,
-              },
-              (query) => (query as any).eq('id', email.campaign_recipient_id!),
-              {
-                operation: 'update_recipient_step',
-                recipientId: email.campaign_recipient_id,
-              }
-            )
+          if (stepResult.success && stepResult.data) {
+            // Since we use .single(), result.data should be a single object
+            // But handle both cases for type safety
+            const stepData = Array.isArray(stepResult.data)
+              ? stepResult.data[0]
+              : stepResult.data
+
+            if (stepData) {
+              await executeUpdateOperation(
+                supabase,
+                'campaign_recipients',
+                {
+                  last_step_sent: stepData.step_number,
+                },
+                (query) => (query as any).eq('id', email.campaign_recipient_id!),
+                {
+                  operation: 'update_recipient_step',
+                  recipientId: email.campaign_recipient_id,
+                }
+              )
+            }
           }
 
           // Schedule next step if this is a sequence campaign

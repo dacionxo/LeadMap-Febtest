@@ -1016,7 +1016,12 @@ async function processEmail(
           }
         )
 
-        if (variantResult.success && variantResult.data && variantResult.data.length > 0) {
+        // .single() returns a single object, but TypeScript sees it as T[] | T, so normalize it
+        const variantAssignment = Array.isArray(variantResult.data)
+          ? variantResult.data[0]
+          : variantResult.data
+
+        if (variantResult.success && variantAssignment) {
           await executeUpdateOperation(
             supabase,
             'campaign_recipient_variant_assignments',
@@ -1024,7 +1029,7 @@ async function processEmail(
               email_id: email.id,
               sent_at: now.toISOString(),
             },
-            (query) => (query as any).eq('id', variantResult.data![0].id),
+            (query) => (query as any).eq('id', variantAssignment.id),
             {
               operation: 'update_variant_assignment',
             }

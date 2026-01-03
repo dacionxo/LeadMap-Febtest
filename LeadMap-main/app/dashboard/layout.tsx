@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
-import { noStore } from 'next/cache'
 import { getEntitlement } from '@/lib/entitlements'
 import { getCurrentUser } from '@/lib/auth'
 import { getServiceRoleClient } from '@/lib/supabase-singleton'
+
+// Force dynamic rendering to prevent caching entitlement decisions
+export const dynamic = 'force-dynamic'
 
 /**
  * Protected Dashboard Layout
@@ -14,8 +16,6 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  // IMPORTANT: Prevent caching entitlement decisions
-  noStore()
 
   // Check authentication
   const sessionUser = await getCurrentUser()

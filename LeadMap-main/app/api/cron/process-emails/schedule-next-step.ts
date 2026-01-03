@@ -101,11 +101,13 @@ export async function scheduleNextStep(
     // Check if recipient has replied
     if (recipient.replied) {
       // Check if we should stop (campaign-level setting takes precedence, then step-level)
+      // Normalize campaignResult.data to handle T | T[] return type
+      const campaignData = campaignResult.success && campaignResult.data
+        ? (Array.isArray(campaignResult.data) ? campaignResult.data[0] : campaignResult.data)
+        : null
+      
       const campaignStopOnReply =
-        campaignResult.success &&
-        campaignResult.data &&
-        campaignResult.data.length > 0 &&
-        campaignResult.data[0].stop_on_reply !== false // Default to true if not set
+        campaignData?.stop_on_reply !== false // Default to true if not set
       const stepStopOnReply = currentStep.stop_on_reply !== false // Default to true if not set
 
       // If either campaign or step has stop_on_reply enabled, don't schedule next step

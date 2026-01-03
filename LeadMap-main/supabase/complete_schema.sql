@@ -106,8 +106,9 @@ CREATE TABLE users (
   email TEXT NOT NULL,
   name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  trial_end TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
+  trial_end TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '14 days'),
   is_subscribed BOOLEAN NOT NULL DEFAULT FALSE,
+  subscription_status TEXT NOT NULL DEFAULT 'none' CHECK (subscription_status IN ('none', 'active', 'trialing', 'past_due', 'canceled', 'incomplete')),
   plan_tier TEXT NOT NULL DEFAULT 'free' CHECK (plan_tier IN ('free', 'starter', 'pro')),
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
@@ -824,15 +825,16 @@ SET search_path = public
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  INSERT INTO public.users (id, email, name, role, trial_end, is_subscribed, plan_tier)
+  INSERT INTO public.users (id, email, name, role, trial_end, is_subscribed, plan_tier, subscription_status)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'name', NEW.email::text, 'User'),
     'user',
-    NOW() + INTERVAL '7 days',
+    NOW() + INTERVAL '14 days',
     false,
-    'free'
+    'free',
+    'none'
   )
   ON CONFLICT (id) DO NOTHING; -- Don't error if profile already exists
   RETURN NEW;

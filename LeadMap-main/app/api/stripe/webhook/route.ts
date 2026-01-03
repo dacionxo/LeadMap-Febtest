@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -8,6 +7,30 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+/**
+ * Map Stripe subscription status to our subscription_status enum
+ */
+function mapStripeStatusToSubscriptionStatus(
+  stripeStatus: Stripe.Subscription.Status
+): 'none' | 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete' {
+  switch (stripeStatus) {
+    case 'active':
+      return 'active'
+    case 'trialing':
+      return 'trialing'
+    case 'past_due':
+      return 'past_due'
+    case 'canceled':
+    case 'unpaid':
+      return 'canceled'
+    case 'incomplete':
+    case 'incomplete_expired':
+      return 'incomplete'
+    default:
+      return 'none'
+  }
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -22,8 +45,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  const cookieStore = await cookies()
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+  // Use service role client for webhook (no auth cookies needed)
+  const supabase = getServiceRoleClient()
 
   try {
     switch (event.type) {
@@ -32,22 +55,30 @@ export async function POST(request: NextRequest) {
         const customerId = session.customer as string
         const subscriptionId = session.subscription as string
 
+        if (!subscriptionId) {
+          console.error('No subscription ID in checkout session')
+          break
+        }
+
         // Get subscription details
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId as string)
         const priceId = subscription.items.data[0].price.id
 
         // Determine plan tier based on price ID
         let planTier = 'pro'
         // Both monthly and annual are the same pro tier
 
+        const subscriptionStatus = mapStripeStatusToSubscriptionStatus(subscription.status)
+
         // Update user subscription status
         const { error } = await supabase
           .from('users')
           .update({
-            is_subscribed: true,
+            is_subscribed: subscription.status === 'active' || subscription.status === 'trialing',
+            subscription_status: subscriptionStatus,
             plan_tier: planTier,
             stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId
+            stripe_subscription_id: subscriptionId as string
           })
           .eq('stripe_customer_id', customerId)
 
@@ -59,17 +90,21 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
 
-        // Update subscription status based on status
-        const isActive = subscription.status === 'active'
+        const subscriptionStatus = mapStripeStatusToSubscriptionStatus(subscription.status)
+        const isActive = subscription.status === 'active' || subscription.status === 'trialing'
         
         const { error } = await supabase
           .from('users')
           .update({
-            is_subscribed: isActive
+            is_subscribed: isActive,
+            subscription_status: subscriptionStatus,
+            stripe_subscription_id: subscription.id,
+            // Optionally update current_period_end if you add that column
           })
           .eq('stripe_customer_id', customerId)
 
@@ -84,11 +119,12 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
 
-        // Mark subscription as inactive
+        // Mark subscription as canceled
         const { error } = await supabase
           .from('users')
           .update({
             is_subscribed: false,
+            subscription_status: 'canceled',
             plan_tier: 'free'
           })
           .eq('stripe_customer_id', customerId)

@@ -71,8 +71,9 @@ export async function POST(request: NextRequest) {
         const subscriptionStatus = mapStripeStatusToSubscriptionStatus(subscription.status)
 
         // Update user subscription status
-        const { error } = await supabase
-          .from('users')
+        // Type assertion needed because service role client doesn't have database schema types
+        const { error } = await (supabase
+          .from('users') as any)
           .update({
             is_subscribed: subscription.status === 'active' || subscription.status === 'trialing',
             subscription_status: subscriptionStatus,
@@ -98,8 +99,9 @@ export async function POST(request: NextRequest) {
         const subscriptionStatus = mapStripeStatusToSubscriptionStatus(subscription.status)
         const isActive = subscription.status === 'active' || subscription.status === 'trialing'
         
-        const { error } = await supabase
-          .from('users')
+        // Type assertion needed because service role client doesn't have database schema types
+        const { error } = await (supabase
+          .from('users') as any)
           .update({
             is_subscribed: isActive,
             subscription_status: subscriptionStatus,
@@ -120,8 +122,9 @@ export async function POST(request: NextRequest) {
         const customerId = subscription.customer as string
 
         // Mark subscription as canceled
-        const { error } = await supabase
-          .from('users')
+        // Type assertion needed because service role client doesn't have database schema types
+        const { error } = await (supabase
+          .from('users') as any)
           .update({
             is_subscribed: false,
             subscription_status: 'canceled',

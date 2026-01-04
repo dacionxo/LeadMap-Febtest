@@ -4,30 +4,13 @@
  */
 
 import { Mailbox, EmailPayload, SendResult } from '../types'
-import { decryptMailboxTokens } from '../encryption'
-
-/**
- * Decrypt mailbox tokens/passwords for use
- */
-function getDecryptedMailbox(mailbox: Mailbox): Mailbox {
-  const decrypted = decryptMailboxTokens({
-    access_token: mailbox.access_token,
-    refresh_token: mailbox.refresh_token,
-    smtp_password: mailbox.smtp_password
-  })
-
-  return {
-    ...mailbox,
-    access_token: decrypted.access_token || mailbox.access_token,
-    refresh_token: decrypted.refresh_token || mailbox.refresh_token,
-    smtp_password: decrypted.smtp_password || mailbox.smtp_password
-  }
-}
+import { createTokenPersistence } from '../token-persistence'
 
 export async function smtpSend(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
   try {
-    // Decrypt passwords if encrypted
-    const decryptedMailbox = getDecryptedMailbox(mailbox)
+    // Create token persistence instance (handles decryption)
+    const tokenPersistence = createTokenPersistence(mailbox)
+    const decryptedMailbox = tokenPersistence.getDecryptedMailbox()
     
     if (!decryptedMailbox.smtp_host || !decryptedMailbox.smtp_port || !decryptedMailbox.smtp_username || !decryptedMailbox.smtp_password) {
       return {

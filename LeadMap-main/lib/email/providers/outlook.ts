@@ -181,10 +181,11 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
 }
 
 export async function refreshOutlookToken(mailbox: Mailbox): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  // Decrypt refresh token if encrypted
-  const decryptedMailbox = getDecryptedMailbox(mailbox)
+  // Create token persistence instance
+  const tokenPersistence = createTokenPersistence(mailbox)
   
-  if (!decryptedMailbox.refresh_token) {
+  const refreshToken = tokenPersistence.getRefreshToken()
+  if (!refreshToken) {
     return {
       success: false,
       error: 'Refresh token is missing'
@@ -212,7 +213,7 @@ export async function refreshOutlookToken(mailbox: Mailbox): Promise<{ success: 
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        refresh_token: decryptedMailbox.refresh_token!, // Already validated above
+        refresh_token: refreshToken, // Already validated above
         grant_type: 'refresh_token',
         scope: 'https://graph.microsoft.com/Mail.Send offline_access'
       })

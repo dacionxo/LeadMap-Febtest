@@ -138,6 +138,16 @@ interface CalendarSyncResponse {
 }
 
 /**
+ * Helper to normalize datetime strings from database
+ * Converts empty strings to null before datetime validation
+ * Supabase may return empty strings for nullable TIMESTAMPTZ fields
+ */
+const nullableDatetime = z.preprocess(
+  (val) => val === '' || val === null || val === undefined ? null : val,
+  z.string().datetime().nullable().optional()
+)
+
+/**
  * Zod schema for calendar connection validation
  */
 const calendarConnectionSchema = z.object({
@@ -147,13 +157,13 @@ const calendarConnectionSchema = z.object({
   email: z.string().email(),
   access_token: z.string().nullable().optional(),
   refresh_token: z.string().nullable().optional(),
-  token_expires_at: z.string().datetime().nullable().optional(),
+  token_expires_at: nullableDatetime,
   calendar_id: z.string().nullable().optional(),
   calendar_name: z.string().nullable().optional(),
   sync_enabled: z.boolean(),
-  last_sync_at: z.string().datetime().nullable().optional(),
+  last_sync_at: nullableDatetime,
   created_at: z.string().datetime(),
-  updated_at: z.string().datetime().nullable().optional(),
+  updated_at: nullableDatetime,
 })
 
 /**

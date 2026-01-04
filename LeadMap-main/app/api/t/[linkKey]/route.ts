@@ -89,15 +89,19 @@ export async function GET(
       .single()
 
     // Update click count on trigger link (fire and forget)
-    supabase
-      .from('trigger_links')
-      .update({ 
-        click_count: (triggerLink.click_count || 0) + 1,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', triggerLink.id)
-      .then(() => {})
-      .catch(err => console.warn('Failed to update click count:', err))
+    ;(async () => {
+      try {
+        await supabase
+          .from('trigger_links')
+          .update({ 
+            click_count: (triggerLink.click_count || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', triggerLink.id)
+      } catch (err) {
+        console.warn('Failed to update click count:', err)
+      }
+    })()
 
     // Record email event if we have email context
     if (emailId || recipientId || recipientEmail) {

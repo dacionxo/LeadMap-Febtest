@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/ssr'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { replaceTokensInContent, buildTokenContext } from '@/app/dashboard/marketing/components/compose-email/utils/token-replacement-service'
 
@@ -15,7 +15,8 @@ import { replaceTokensInContent, buildTokenContext } from '@/app/dashboard/marke
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const {
       data: { user },
     } = await supabase.auth.getUser()

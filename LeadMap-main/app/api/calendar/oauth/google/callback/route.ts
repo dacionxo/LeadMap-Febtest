@@ -94,8 +94,8 @@ export async function GET(request: NextRequest) {
     const tokens = await tokenResponse.json()
     const { access_token, refresh_token, expires_in } = tokens
 
-    // Get user info and calendar info
-    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    // Get user info and calendar info (use OpenID endpoint to avoid 307 redirects)
+    const userInfoResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },

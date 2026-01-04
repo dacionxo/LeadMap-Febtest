@@ -18,8 +18,16 @@ const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 16 // 16 bytes for AES
 const SALT_LENGTH = 64
 const TAG_LENGTH = 16
-const TAG_POSITION = SALT_LENGTH + IV_LENGTH
-const ENCRYPTED_POSITION = TAG_POSITION + TAG_LENGTH
+
+// Hex string positions (2 hex characters per byte)
+const SALT_HEX_LEN = SALT_LENGTH * 2
+const IV_HEX_LEN = IV_LENGTH * 2
+const TAG_HEX_LEN = TAG_LENGTH * 2
+const IV_START = SALT_HEX_LEN
+const IV_END = IV_START + IV_HEX_LEN
+const TAG_START = IV_END
+const TAG_END = TAG_START + TAG_HEX_LEN
+const ENCRYPTED_START = TAG_END
 
 /**
  * Get encryption key from environment
@@ -104,18 +112,18 @@ export function decrypt(encryptedText: string): string {
   }
 
   // Check if text is already decrypted (plain text, not encrypted format)
-  // Encrypted format: [64 hex chars salt][32 hex chars IV][32 hex chars tag][variable hex chars encrypted]
-  if (encryptedText.length < ENCRYPTED_POSITION) {
+  // Encrypted format: [128 hex chars salt][32 hex chars IV][32 hex chars tag][variable hex chars encrypted]
+  if (encryptedText.length < ENCRYPTED_START) {
     // Likely plain text, return as-is (for migration period)
     return encryptedText
   }
 
   try {
-    // Extract components
-    const salt = Buffer.from(encryptedText.slice(0, SALT_LENGTH * 2), 'hex')
-    const iv = Buffer.from(encryptedText.slice(SALT_LENGTH * 2, TAG_POSITION), 'hex')
-    const tag = Buffer.from(encryptedText.slice(TAG_POSITION, ENCRYPTED_POSITION), 'hex')
-    const encrypted = encryptedText.slice(ENCRYPTED_POSITION)
+    // Extract components using hex string positions (2 chars per byte)
+    const salt = Buffer.from(encryptedText.slice(0, SALT_HEX_LEN), 'hex')
+    const iv = Buffer.from(encryptedText.slice(IV_START, IV_END), 'hex')
+    const tag = Buffer.from(encryptedText.slice(TAG_START, TAG_END), 'hex')
+    const encrypted = encryptedText.slice(ENCRYPTED_START)
 
     // Derive key
     const derivedKey = deriveKey(salt)

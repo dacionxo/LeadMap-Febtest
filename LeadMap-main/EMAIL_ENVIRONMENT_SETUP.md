@@ -163,6 +163,39 @@ Follow these steps to add each variable:
 - **Environment:** Production, Preview, Development (select all)
 - Click **"Save"**
 
+#### Email Encryption Key (CRITICAL for Production)
+- **Name:** `EMAIL_ENCRYPTION_KEY`
+- **Value:** A 32-byte key (64 hex characters) - see generation instructions below
+- **Environment:** Production, Preview, Development (select all)
+- Click **"Save"**
+
+**⚠️ CRITICAL:** This key encrypts OAuth tokens and SMTP passwords in the database. Without it, the system uses an insecure default key (NOT SECURE FOR PRODUCTION).
+
+**How to Generate EMAIL_ENCRYPTION_KEY:**
+
+**Option 1: Using OpenSSL (Recommended)**
+```bash
+openssl rand -hex 32
+```
+
+**Option 2: Using Node.js**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+**Option 3: Using PowerShell (Windows)**
+```powershell
+[Convert]::ToHexString((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+The output should be exactly 64 hex characters (e.g., `a1b2c3d4e5f6...`).
+
+**Important Notes:**
+- ⚠️ **Do NOT change this key after production data is encrypted** - old data won't decrypt with a new key
+- Store this key securely - if lost, encrypted tokens cannot be recovered
+- Use different keys for development and production
+- If you change the key, users may need to reconnect their mailboxes
+
 #### App URL
 - **Name:** `NEXT_PUBLIC_APP_URL`
 - **Value:** `https://www.growyourdigitalleverage.com` (no trailing slash!)

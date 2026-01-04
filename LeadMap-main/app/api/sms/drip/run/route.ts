@@ -20,6 +20,8 @@ import { renderTemplate } from '@/lib/api'
 import { verifyCronRequestOrError } from '@/lib/cron/auth'
 import { handleCronError } from '@/lib/cron/errors'
 import { createSuccessResponse, createNoDataResponse } from '@/lib/cron/responses'
+import { dispatchSMSDripMessage, type SMSEnrollment, type SMSStep } from '@/lib/symphony/integration/sms-drip'
+import { shouldUseSymphonyForSMSDrip } from '@/lib/symphony/utils/feature-flags'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -82,7 +84,12 @@ async function runCronJob(req: NextRequest) {
 
     let processed = 0
     let errors = 0
+    let dispatched = 0
+    let legacy = 0
     const errorsList: Array<{ enrollmentId: string; error: string }> = []
+
+    // Check if Symphony is enabled for SMS drip
+    const useSymphony = shouldUseSymphonyForSMSDrip()
 
     for (const enrollment of enrollments) {
       try {
@@ -185,7 +192,28 @@ async function runCronJob(req: NextRequest) {
         // Render template with listing data
         const smsText = renderTemplate(stepRow.template_body, listing || {})
 
-        // Send message
+        // Check if Symphony is enabled and dispatch to Symphony
+        if (useSymphony) {
+          try {
+            const result = await dispatchSMSDripMessage(
+              enrollment as SMSEnrollment,
+              stepRow as SMSStep,
+              smsText
+            )
+            if (!result.useLegacy) {
+              dispatched++
+              processed++
+              continue
+            } else {
+              legacy++
+            }
+          } catch (symphonyError) {
+            console.error('Symphony dispatch failed, falling back to legacy:', symphonyError)
+            legacy++
+          }
+        }
+
+        // Legacy processing: Send message directly
         const msgRow = await sendConversationMessage({
           conversationSid: convo.twilio_conversation_sid,
           conversationId: convo.id,
@@ -243,12 +271,16 @@ async function runCronJob(req: NextRequest) {
       {
         processed,
         errors,
+        dispatched: useSymphony ? dispatched : undefined,
+        legacy: useSymphony ? legacy : undefined,
         total: enrollments.length,
         duration,
         errorDetails: errorsList.length > 0 ? errorsList : undefined
       },
       {
-        message: `Processed ${processed} enrollments (${errors} errors)`,
+        message: useSymphony
+          ? `Processed ${processed} enrollments (${dispatched} via Symphony, ${legacy} legacy, ${errors} errors)`
+          : `Processed ${processed} enrollments (${errors} errors)`,
         processed
       }
     )

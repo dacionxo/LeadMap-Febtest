@@ -715,3 +715,4 @@ interface ComparisonChartProps {
 - Use TailwindCSS for all styling
 - Maintain consistency with existing dashboard components
 
+

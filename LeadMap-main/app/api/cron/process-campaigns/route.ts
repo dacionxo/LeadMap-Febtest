@@ -41,6 +41,7 @@ import {
 } from '@/lib/email/email-settings'
 import type { Mailbox, EmailPayload, SendResult } from '@/lib/email/types'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
+import { dispatchCampaignProcessing, shouldUseSymphonyForCampaigns } from '@/lib/symphony/integration/campaigns'
 
 export const runtime = 'nodejs'
 
@@ -1106,6 +1107,42 @@ async function runCronJob(request: NextRequest) {
       return createNoDataResponse('No active campaigns to process')
     }
 
+    // Check if Symphony is enabled for campaign processing
+    if (shouldUseSymphonyForCampaigns()) {
+      // Dispatch campaigns to Symphony Messenger
+      let dispatched = 0
+      let legacy = 0
+      let errors = 0
+
+      for (const campaign of activeCampaigns) {
+        try {
+          const result = await dispatchCampaignProcessing(
+            campaign.id,
+            campaign.user_id,
+            { action: 'process' }
+          )
+          if (result.useLegacy) {
+            legacy++
+          } else {
+            dispatched++
+          }
+        } catch (error) {
+          errors++
+          console.error('Failed to dispatch campaign to Symphony:', error)
+        }
+      }
+
+      // Return response indicating Symphony processing
+      return createSuccessResponse({
+        message: 'Campaigns dispatched to Symphony Messenger',
+        dispatched,
+        legacy,
+        errors,
+        total: activeCampaigns.length,
+      })
+    }
+
+    // Legacy processing (existing logic)
     // Process each campaign
     const results: CampaignProcessingResult[] = []
     const stats: BatchProcessingStats = {

@@ -22,6 +22,8 @@ import { getCronSupabaseClient, executeUpdateOperation, executeSelectOperation, 
 import { sendViaMailbox, checkMailboxLimits } from '@/lib/email/sendViaMailbox'
 import type { Mailbox, EmailPayload, SendResult } from '@/lib/email/types'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
+import { dispatchEmailQueueBatch, type EmailQueueItem as SymphonyEmailQueueItem } from '@/lib/symphony/integration/email-queue'
+import { shouldUseSymphonyForEmailQueue } from '@/lib/symphony/utils/feature-flags'
 
 export const runtime = 'nodejs'
 
@@ -561,6 +563,24 @@ async function runCronJob(request: NextRequest) {
       return createNoDataResponse('No emails to process')
     }
 
+    // Check if Symphony is enabled for email queue
+    if (shouldUseSymphonyForEmailQueue()) {
+      // Dispatch emails to Symphony Messenger
+      const dispatchResult = await dispatchEmailQueueBatch(
+        queuedEmails as SymphonyEmailQueueItem[]
+      )
+
+      // Return response indicating Symphony processing
+      return createSuccessResponse({
+        message: 'Emails dispatched to Symphony Messenger',
+        dispatched: dispatchResult.dispatched,
+        legacy: dispatchResult.legacy,
+        errors: dispatchResult.errors,
+        total: queuedEmails.length,
+      })
+    }
+
+    // Legacy processing (existing logic)
     // Process each email
     const results: EmailProcessingResult[] = []
     const stats: BatchProcessingStats = {

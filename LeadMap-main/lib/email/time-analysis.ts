@@ -338,3 +338,4 @@ export function formatHour(hour: number): string {
   return `${displayHour}:00 ${period}`
 }
 
+

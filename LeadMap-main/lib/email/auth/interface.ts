@@ -84,3 +84,4 @@ export function isAuthenticated(mailbox: Mailbox): boolean {
   return !!mailbox.access_token
 }
 
+

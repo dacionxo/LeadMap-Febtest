@@ -352,3 +352,4 @@ This implementation follows Mautic's approach to trigger links:
 - Integration with email events
 - Support for multiple action types
 
+

@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Code, Layout, FileText, Loader2 } from 'lucide-react'
 import type { EmailEditorProps } from '../types'
+
+// Import GrapesJS CSS (required for proper styling)
+import 'grapesjs/dist/css/grapes.min.css'
 
 /**
  * Email Builder Component with GrapesJS Integration
@@ -12,7 +15,6 @@ import type { EmailEditorProps } from '../types'
 
 // Dynamic imports for GrapesJS (code splitting for performance)
 let grapesjsModule: any = null
-let grapesjsMjmlModule: any = null
 let grapesjsPresetNewsletterModule: any = null
 
 const loadGrapesJS = async () => {
@@ -199,12 +201,17 @@ export default function EmailBuilder({
     }
   }, []) // Only run on mount
 
-  // Update content when prop changes externally
+  // Update content when prop changes externally (only if not currently editing)
   useEffect(() => {
     if (editorInstanceRef.current && content && mode === 'builder') {
-      const currentHtml = editorInstanceRef.current.getHtml()
-      if (currentHtml !== content) {
-        editorInstanceRef.current.setComponents(content)
+      try {
+        const currentHtml = editorInstanceRef.current.getHtml()
+        // Only update if content actually changed (avoid infinite loops)
+        if (currentHtml.trim() !== content.trim()) {
+          editorInstanceRef.current.setComponents(content)
+        }
+      } catch (err) {
+        console.error('Error updating editor content:', err)
       }
     }
   }, [content, mode])
@@ -293,18 +300,17 @@ export default function EmailBuilder({
       </div>
 
       {/* GrapesJS Editor Container */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative gjs-editor-wrapper" style={{ minHeight: '600px' }}>
         <div
           ref={editorRef}
-          className="gjs-editor w-full h-full"
-          style={{ minHeight: '600px' }}
+          className="gjs-editor"
           aria-label="Email visual builder"
         />
-        {/* Sidebar containers (GrapesJS will append to these) */}
-        <div className="blocks-container" style={{ display: 'none' }} />
-        <div className="styles-container" style={{ display: 'none' }} />
-        <div className="traits-container" style={{ display: 'none' }} />
-        <div className="layers-container" style={{ display: 'none' }} />
+        {/* Sidebar containers (GrapesJS will append to these via appendTo config) */}
+        <div className="blocks-container" style={{ display: 'none' }} aria-hidden="true" />
+        <div className="styles-container" style={{ display: 'none' }} aria-hidden="true" />
+        <div className="traits-container" style={{ display: 'none' }} aria-hidden="true" />
+        <div className="layers-container" style={{ display: 'none' }} aria-hidden="true" />
       </div>
     </div>
   )

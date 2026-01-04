@@ -53,6 +53,8 @@ export default function ComposeEmailEnhanced({
   const [scheduleConfig, setScheduleConfig] = useState<EmailScheduleConfig>({
     sendType: 'now',
   })
+  const [availableTokens] = useState<EmailToken[]>(getAllDefaultTokens())
+  const [showTokenSelector, setShowTokenSelector] = useState(false)
 
   // Fetch mailboxes and templates on mount
   useEffect(() => {
@@ -257,6 +259,28 @@ export default function ComposeEmailEnhanced({
     }
   }, [onCancel, router])
 
+  const handleTokenInsert = useCallback(
+    (token: EmailToken) => {
+      const tokenString = generateTokenString(token)
+      const textarea = document.querySelector('textarea[aria-label="Email HTML content editor"]') as HTMLTextAreaElement
+      if (textarea) {
+        const start = textarea.selectionStart || 0
+        const end = textarea.selectionEnd || 0
+        const currentContent = composition.htmlContent
+        const newContent = currentContent.slice(0, start) + tokenString + currentContent.slice(end)
+        updateComposition({ htmlContent: newContent })
+        
+        // Set cursor position after inserted token
+        setTimeout(() => {
+          textarea.focus()
+          const newPosition = start + tokenString.length
+          textarea.setSelectionRange(newPosition, newPosition)
+        }, 0)
+      }
+    },
+    [composition.htmlContent, updateComposition]
+  )
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -276,9 +300,9 @@ export default function ComposeEmailEnhanced({
         />
 
         {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Sidebar - Settings */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-3 space-y-4">
             <EmailSettingsPanel
               composition={composition}
               mailboxes={mailboxes}
@@ -295,10 +319,29 @@ export default function ComposeEmailEnhanced({
                 onTemplateLoad={handleTemplateLoad}
               />
             )}
+            {/* Token Selector */}
+            <div>
+              <button
+                onClick={() => setShowTokenSelector(!showTokenSelector)}
+                className="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                aria-label={showTokenSelector ? 'Hide token selector' : 'Show token selector'}
+              >
+                <Tag className="w-4 h-4" />
+                {showTokenSelector ? 'Hide' : 'Show'} Personalization Tokens
+              </button>
+              {showTokenSelector && (
+                <div className="mt-2">
+                  <TokenSelector
+                    tokens={availableTokens}
+                    onTokenSelect={handleTokenInsert}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Main Editor Area */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-9 space-y-4">
             {/* To, Subject, Preview Text Fields */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4">
               {/* To Field */}
@@ -367,6 +410,8 @@ export default function ComposeEmailEnhanced({
               content={composition.htmlContent}
               mode={composition.editorMode}
               onChange={(content) => updateComposition({ htmlContent: content })}
+              tokens={availableTokens}
+              onTokenInsert={handleTokenInsert}
             />
           </div>
         </div>

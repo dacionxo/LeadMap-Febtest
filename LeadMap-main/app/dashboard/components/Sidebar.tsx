@@ -80,7 +80,8 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Workflows', icon: Zap, href: '/dashboard/tools' },
       { label: 'Tasks', icon: CheckCircle2, href: '/dashboard/tasks' },
-      { label: 'Analytics', icon: BarChart3, href: '/dashboard/crm/analytics' }
+      { label: 'Analytics', icon: BarChart3, href: '/dashboard/crm/analytics' },
+      { label: 'Symphony', icon: BarChart3, href: '/dashboard/symphony' }
     ]
   }
 ]

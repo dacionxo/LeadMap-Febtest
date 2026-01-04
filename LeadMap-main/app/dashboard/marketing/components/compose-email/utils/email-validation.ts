@@ -2,8 +2,20 @@
  * Email Validation Utilities
  * HTML, link, and email validation following Mautic patterns
  * Following .cursorrules: TypeScript interfaces, error handling
+ * 
+ * @module email-validation
+ * @description Provides comprehensive email content validation including HTML structure,
+ * link validation, image validation, and accessibility checks following Mautic best practices.
  */
 
+/**
+ * Validation error interface
+ * @interface ValidationError
+ * @property {string} type - Type of validation error (html, link, image, accessibility, compatibility)
+ * @property {string} message - Human-readable error message
+ * @property {'error' | 'warning' | 'info'} severity - Severity level of the issue
+ * @property {string} [element] - Optional element identifier for the error
+ */
 export interface ValidationError {
   type: 'html' | 'link' | 'image' | 'accessibility' | 'compatibility'
   message: string
@@ -11,6 +23,14 @@ export interface ValidationError {
   element?: string
 }
 
+/**
+ * Validation result interface
+ * @interface ValidationResult
+ * @property {boolean} isValid - Whether the email content passes validation (no errors)
+ * @property {ValidationError[]} errors - Array of blocking errors that prevent sending
+ * @property {ValidationError[]} warnings - Array of non-blocking warnings
+ * @property {ValidationError[]} info - Array of informational recommendations
+ */
 export interface ValidationResult {
   isValid: boolean
   errors: ValidationError[]
@@ -19,7 +39,26 @@ export interface ValidationResult {
 }
 
 /**
- * Validate HTML content
+ * Validates HTML content structure and email compatibility
+ * 
+ * @function validateHTML
+ * @param {string} html - HTML content to validate
+ * @returns {ValidationResult} Validation result with errors, warnings, and info messages
+ * 
+ * @example
+ * ```typescript
+ * const result = validateHTML('<p>Hello World</p>')
+ * if (!result.isValid) {
+ *   console.error('Validation errors:', result.errors)
+ * }
+ * ```
+ * 
+ * @description
+ * Checks for:
+ * - Empty content
+ * - Unclosed HTML tags
+ * - Inline styles (recommended for email)
+ * - Table-based layouts (recommended for email client compatibility)
  */
 export function validateHTML(html: string): ValidationResult {
   const errors: ValidationError[] = []
@@ -75,7 +114,23 @@ export function validateHTML(html: string): ValidationResult {
 }
 
 /**
- * Validate links in HTML
+ * Validates all links in HTML content
+ * 
+ * @function validateLinks
+ * @param {string} html - HTML content containing links to validate
+ * @returns {ValidationResult} Validation result with link-specific errors and warnings
+ * 
+ * @example
+ * ```typescript
+ * const result = validateLinks('<a href="https://example.com">Link</a>')
+ * ```
+ * 
+ * @description
+ * Validates:
+ * - Link URL format and validity
+ * - Empty or placeholder links (#, javascript:void(0))
+ * - Long URLs that may be truncated
+ * - Links without text content
  */
 export function validateLinks(html: string): ValidationResult {
   const errors: ValidationError[] = []
@@ -147,7 +202,22 @@ export function validateLinks(html: string): ValidationResult {
 }
 
 /**
- * Validate images in HTML
+ * Validates all images in HTML content for accessibility and compatibility
+ * 
+ * @function validateImages
+ * @param {string} html - HTML content containing images to validate
+ * @returns {ValidationResult} Validation result with image-specific errors and warnings
+ * 
+ * @example
+ * ```typescript
+ * const result = validateImages('<img src="image.jpg" alt="Description" />')
+ * ```
+ * 
+ * @description
+ * Validates:
+ * - Alt text presence (accessibility requirement)
+ * - Data URI usage (may cause compatibility issues)
+ * - Absolute URL usage (recommended for email clients)
  */
 export function validateImages(html: string): ValidationResult {
   const errors: ValidationError[] = []
@@ -209,7 +279,31 @@ export function validateImages(html: string): ValidationResult {
 }
 
 /**
- * Comprehensive email validation
+ * Comprehensive email validation combining HTML, link, and image validation
+ * 
+ * @function validateEmail
+ * @param {string} html - Complete HTML email content to validate
+ * @returns {ValidationResult} Combined validation result from all validators
+ * 
+ * @example
+ * ```typescript
+ * const result = validateEmail(emailHtmlContent)
+ * if (result.isValid) {
+ *   // Email is ready to send
+ * } else {
+ *   // Display errors to user
+ *   console.error('Validation errors:', result.errors)
+ * }
+ * ```
+ * 
+ * @description
+ * Performs comprehensive validation by combining:
+ * - HTML structure validation
+ * - Link validation
+ * - Image validation
+ * 
+ * Returns aggregated results with all errors, warnings, and info messages.
+ * Email is considered valid only if there are no errors (warnings and info don't block sending).
  */
 export function validateEmail(html: string): ValidationResult {
   const htmlValidation = validateHTML(html)

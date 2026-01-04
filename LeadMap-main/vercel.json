@@ -60,6 +60,14 @@
     {
       "path": "/api/sms/drip/run",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/symphony-worker",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/symphony-scheduler",
+      "schedule": "* * * * *"
     }
   ]
 }

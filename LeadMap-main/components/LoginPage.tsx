@@ -53,9 +53,9 @@ function LoginPageContent() {
         `login:${email}`, // Deduplication key based on email
         async () => {
           return await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
+        email,
+        password,
+      })
         },
         {
           maxRequests: 100, // Allow 100 requests per minute per user

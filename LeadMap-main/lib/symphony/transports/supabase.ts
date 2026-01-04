@@ -61,6 +61,25 @@ export class SupabaseTransport extends BaseTransport {
     this.validateEnvelope(envelope)
 
     try {
+      // Check for duplicates if idempotency key is present
+      if (envelope.idempotencyKey) {
+        try {
+          const { getDeduplicator } = require('../deduplication')
+          const deduplicator = getDeduplicator(this.supabase)
+          const existingId = await deduplicator.checkDuplicate(envelope)
+          
+          if (existingId) {
+            // Duplicate found - return existing message ID
+            envelope.id = existingId
+            return
+          }
+        } catch (error) {
+          // If deduplication fails, continue with normal send
+          // This ensures system continues to work even if deduplication has issues
+          console.warn('Deduplication check failed, continuing with send:', error)
+        }
+      }
+
       // Serialize message body
       const body = serializeMessageBody(envelope.message)
 

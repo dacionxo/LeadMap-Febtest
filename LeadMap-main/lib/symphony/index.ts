@@ -21,7 +21,9 @@ export * from './validation'
 export * from './serialization'
 
 // Configuration
-export * from './config'
+export * from './config/config'
+export * from './config/environment'
+export * from './config/runtime'
 
 // Dispatcher
 export * from './dispatcher'
@@ -51,4 +53,10 @@ export * from './scheduler'
 
 // Utilities
 export * from './utils'
+
+// Batching
+export * from './batching'
+
+// Deduplication
+export * from './deduplication'
 

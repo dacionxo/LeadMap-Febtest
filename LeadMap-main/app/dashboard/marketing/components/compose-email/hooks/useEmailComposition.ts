@@ -4,9 +4,33 @@ import { useState, useCallback } from 'react'
 import type { EmailComposition } from '../types'
 
 /**
- * Email composition state management hook
- * Manages composition state and provides update/reset functionality
- * Following .cursorrules patterns: functional hooks, TypeScript interfaces
+ * Email Composition Hook
+ * 
+ * @module useEmailComposition
+ * @description Manages email composition state with update and reset functionality.
+ * Provides a centralized state management solution for email composition following
+ * React hooks best practices and .cursorrules patterns.
+ * 
+ * @param {Partial<EmailComposition>} [initialData] - Optional initial composition data
+ * @returns {Object} Composition state and update functions
+ * @returns {EmailComposition} composition - Current email composition state
+ * @returns {Function} updateComposition - Function to update composition with partial data
+ * @returns {Function} resetComposition - Function to reset composition to default state
+ * @returns {Function} setComposition - Direct state setter (use sparingly)
+ * 
+ * @example
+ * ```typescript
+ * const { composition, updateComposition, resetComposition } = useEmailComposition({
+ *   subject: 'Welcome Email',
+ *   to: ['user@example.com']
+ * })
+ * 
+ * // Update subject
+ * updateComposition({ subject: 'Updated Subject' })
+ * 
+ * // Reset to defaults
+ * resetComposition()
+ * ```
  */
 export function useEmailComposition(initialData?: Partial<EmailComposition>) {
   const [composition, setComposition] = useState<EmailComposition>({

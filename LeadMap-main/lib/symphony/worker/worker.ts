@@ -11,6 +11,7 @@ import type {
 } from '@/lib/types/symphony'
 import { HandlerExecutor, globalHandlerRegistry } from '../handlers'
 import { TransportError, HandlerError } from '../errors'
+import { getMetricsCollector } from '../monitoring/metrics'
 import type {
   WorkerOptions,
   WorkerHealth,
@@ -328,6 +329,18 @@ export class Worker {
         this.messagesSucceeded++
         this.lastProcessedTime = new Date()
 
+        // Record metrics
+        const metricsCollector = getMetricsCollector()
+        metricsCollector.record({
+          messageId: envelope.id,
+          messageType: envelope.message.type,
+          transport: envelope.transportName,
+          queue: envelope.queueName,
+          processingTime: duration,
+          success: true,
+          retryCount,
+        })
+
         this.emitEvent({
           type: 'message_processed',
           timestamp: new Date(),
@@ -344,6 +357,19 @@ export class Worker {
         this.messagesFailed++
         this.lastError = error
         this.lastErrorTime = new Date()
+
+        // Record metrics
+        const metricsCollector = getMetricsCollector()
+        metricsCollector.record({
+          messageId: envelope.id,
+          messageType: envelope.message.type,
+          transport: envelope.transportName,
+          queue: envelope.queueName,
+          processingTime: duration,
+          success: false,
+          error: error.message,
+          retryCount,
+        })
 
         this.emitEvent({
           type: 'message_processed',

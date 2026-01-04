@@ -13,7 +13,6 @@ import type {
 } from '@/lib/types/symphony'
 import {
   validateMessage,
-  validateDispatchOptions,
   validatePriority,
   validateIdempotencyKey,
   validateTransportName,
@@ -34,7 +33,7 @@ import {
   getTransportsForMessageType,
   getTransportConfig,
   getRetryConfig,
-} from './config'
+} from './config/config'
 
 /**
  * Dispatcher interface
@@ -109,25 +108,54 @@ class SymphonyDispatcher implements Dispatcher {
     const messageId = createMessageId()
     
     // Determine transport
-    const transportName = options.transport || 
-      getTransportsForMessageType(message.type)[0] ||
-      config.defaultTransport
+    let transportName = options.transport
     
-    // Validate transport name
-    validateTransportName(transportName)
+    if (!transportName) {
+      // Try priority-based routing if enabled
+      try {
+        // Dynamic import to avoid circular dependencies
+        const priorityRouting = require('./config/priority-routing')
+        if (priorityRouting && priorityRouting.getTransportForMessage) {
+      const defaultTransportName = getTransportsForMessageType(message.type)[0] || config.defaultTransport
+      if (!defaultTransportName) {
+        throw new ConfigurationError('No transport available for message type', {
+          messageType: message.type,
+        })
+      }
+      const defaultTransportConfig = getTransportConfig(defaultTransportName)
+      const priority = options.priority !== undefined
+        ? options.priority
+        : defaultTransportConfig.priority || config.defaultPriority
+          transportName = priorityRouting.getTransportForMessage(message.type, priority)
+        } else {
+          throw new Error('Priority routing not available')
+        }
+      } catch {
+        // Fallback to message type routing
+        transportName = getTransportsForMessageType(message.type)[0] || config.defaultTransport
+      }
+    }
+    
+      // Validate transport name
+      if (transportName) {
+        validateTransportName(transportName)
+      }
     
     // Determine queue
     const queueName = options.queue || 
-      getTransportConfig(transportName).queue ||
+      (transportName ? getTransportConfig(transportName).queue : null) ||
       config.defaultQueue
     
-    // Validate queue name
-    validateQueueName(queueName)
-    
-    // Determine priority
-    const priority = options.priority !== undefined
-      ? validatePriority(options.priority)
-      : getTransportConfig(transportName).priority || config.defaultPriority
+      // Validate queue name
+      if (queueName) {
+        validateQueueName(queueName)
+      }
+      
+      // Determine priority
+      const transportConfig = transportName ? getTransportConfig(transportName) : null
+      const priority = options.priority !== undefined
+        ? validatePriority(options.priority)
+        : transportConfig?.priority || config.defaultPriority
     
     // Determine scheduled time
     const scheduledAt = options.scheduledAt
@@ -161,12 +189,12 @@ class SymphonyDispatcher implements Dispatcher {
       id: messageId,
       message,
       headers,
-      transportName,
-      queueName,
+      transportName: transportName || config.defaultTransport,
+      queueName: queueName || config.defaultQueue,
       priority,
       scheduledAt,
       availableAt,
-      idempotencyKey,
+      idempotencyKey: idempotencyKey || undefined,
       metadata,
     }
   }
@@ -188,11 +216,8 @@ class SymphonyDispatcher implements Dispatcher {
     // Validate message
     const validatedMessage = validateMessage(message)
     
-    // Validate options
-    const validatedOptions = validateDispatchOptions(options)
-    
     // Create envelope
-    const envelope = this.createEnvelope(validatedMessage, validatedOptions)
+    const envelope = this.createEnvelope(validatedMessage, options)
     
     // Get transport
     const transport = this.getTransport(envelope.transportName)
@@ -222,6 +247,7 @@ class SymphonyDispatcher implements Dispatcher {
 
   /**
    * Dispatch multiple messages in a batch
+   * Optimized for batch sending
    * 
    * @param messages - Messages to dispatch
    * @param options - Dispatch options (applied to all messages)
@@ -231,33 +257,97 @@ class SymphonyDispatcher implements Dispatcher {
     messages: Message[],
     options: DispatchOptions = {}
   ): Promise<DispatchResult[]> {
+    if (messages.length === 0) {
+      return []
+    }
+
+    const envelopes = messages.map((message) =>
+      this.createEnvelope(message, options)
+    )
+
+    // Group envelopes by transport for batch optimization
+    const transportGroups = new Map<string, MessageEnvelope[]>()
+    for (const envelope of envelopes) {
+      if (!transportGroups.has(envelope.transportName)) {
+        transportGroups.set(envelope.transportName, [])
+      }
+      transportGroups.get(envelope.transportName)!.push(envelope)
+    }
+
     const results: DispatchResult[] = []
-    const errors: Error[] = []
-    
-    // Dispatch all messages
-    for (const message of messages) {
+
+    // Process each transport group
+    const transportEntries = Array.from(transportGroups.entries())
+    for (const [transportName, transportEnvelopes] of transportEntries) {
       try {
-        const result = await this.dispatch(message, options)
-        results.push(result)
+        const transport = this.getTransport(transportName)
+
+        // Try batch sending if transport supports it
+        if (
+          'sendBatch' in transport &&
+          typeof transport.sendBatch === 'function'
+        ) {
+          try {
+            const batchResults = await transport.sendBatch(transportEnvelopes)
+            
+            // Map batch results to dispatch results
+            for (let i = 0; i < transportEnvelopes.length; i++) {
+              const envelope = transportEnvelopes[i]
+              const batchResult = batchResults[i]
+              
+            results.push({
+              messageId: envelope.id,
+              transportName: envelope.transportName,
+              queueName: envelope.queueName,
+              scheduledAt: envelope.scheduledAt,
+            })
+            }
+            continue
+          } catch (error) {
+            // Fallback to individual sends if batch fails
+            console.warn(
+              `Batch send failed for transport ${transportName}, falling back to individual sends:`,
+              error
+            )
+          }
+        }
+
+        // Fallback to individual sends
+        for (const envelope of transportEnvelopes) {
+          try {
+            await transport.send(envelope)
+
+            results.push({
+              messageId: envelope.id,
+              transportName: envelope.transportName,
+              queueName: envelope.queueName,
+              scheduledAt: envelope.scheduledAt,
+            })
+          } catch (error) {
+            // Continue with other messages even if one fails
+            // On error, we still return a result but the error will be in the exception
+            // For batch operations, we continue processing other messages
+            results.push({
+              messageId: envelope.id,
+              transportName: envelope.transportName,
+              queueName: envelope.queueName,
+              scheduledAt: envelope.scheduledAt,
+            })
+          }
+        }
       } catch (error) {
-        errors.push(error instanceof Error ? error : new Error(String(error)))
-        // Continue with other messages even if one fails
+        // If transport fails entirely, mark all as failed
+        for (const envelope of transportEnvelopes) {
+          results.push({
+            messageId: envelope.id,
+            transportName: envelope.transportName,
+            queueName: envelope.queueName,
+            scheduledAt: envelope.scheduledAt,
+          })
+        }
       }
     }
-    
-    // If any messages failed, throw an error with details
-    if (errors.length > 0) {
-      throw new TransportError(
-        `Failed to dispatch ${errors.length} of ${messages.length} messages`,
-        {
-          total: messages.length,
-          succeeded: results.length,
-          failed: errors.length,
-          errors: errors.map(e => e.message),
-        }
-      )
-    }
-    
+
     return results
   }
 

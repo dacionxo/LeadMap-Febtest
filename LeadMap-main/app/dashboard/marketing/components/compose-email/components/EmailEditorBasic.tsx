@@ -28,23 +28,36 @@ export default function EmailEditorBasic({
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {/* Mode toggle buttons (disabled until Phase 3) */}
-            <button
-              disabled
-              className="px-2 py-1 text-xs text-gray-400 dark:text-gray-600 cursor-not-allowed flex items-center gap-1"
-              title="Builder mode (coming in Phase 3)"
-              aria-label="Builder mode (coming soon)"
-            >
-              <Layout className="w-3 h-3" />
-              Builder
-            </button>
-            <button
-              className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded flex items-center gap-1"
-              aria-label="HTML mode (active)"
-            >
-              <Code className="w-3 h-3" />
-              HTML
-            </button>
+            {/* Mode toggle buttons */}
+            {onModeChange && (
+              <>
+                <button
+                  onClick={() => onModeChange('builder')}
+                  className="px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-1 transition-colors"
+                  aria-label="Switch to visual builder mode"
+                >
+                  <Layout className="w-3 h-3" />
+                  Builder
+                </button>
+                <button
+                  onClick={() => onModeChange('html')}
+                  className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded flex items-center gap-1"
+                  aria-label="HTML mode (active)"
+                >
+                  <Code className="w-3 h-3" />
+                  HTML
+                </button>
+              </>
+            )}
+            {!onModeChange && (
+              <button
+                className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded flex items-center gap-1"
+                aria-label="HTML mode (active)"
+              >
+                <Code className="w-3 h-3" />
+                HTML
+              </button>
+            )}
             <button
               disabled
               className="px-2 py-1 text-xs text-gray-400 dark:text-gray-600 cursor-not-allowed flex items-center gap-1"
@@ -73,7 +86,7 @@ export default function EmailEditorBasic({
       {/* Editor Footer */}
       <div className="border-t border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-900">
         <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-          HTML editor - Visual builder and MJML editor coming in Phase 3
+          HTML editor - Use Builder mode for visual editing
         </p>
       </div>
     </div>

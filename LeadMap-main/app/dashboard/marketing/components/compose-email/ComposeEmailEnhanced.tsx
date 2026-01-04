@@ -406,13 +406,22 @@ export default function ComposeEmailEnhanced({
             </div>
 
             {/* Editor */}
-            <EmailEditorBasic
-              content={composition.htmlContent}
-              mode={composition.editorMode}
-              onChange={(content) => updateComposition({ htmlContent: content })}
-              tokens={availableTokens}
-              onTokenInsert={handleTokenInsert}
-            />
+            {composition.editorMode === 'builder' ? (
+              <EmailBuilder
+                content={composition.htmlContent}
+                mode={composition.editorMode}
+                onChange={(content) => updateComposition({ htmlContent: content })}
+                onModeChange={(mode) => updateComposition({ editorMode: mode })}
+              />
+            ) : (
+              <EmailEditorBasic
+                content={composition.htmlContent}
+                mode={composition.editorMode}
+                onChange={(content) => updateComposition({ htmlContent: content })}
+                tokens={availableTokens}
+                onTokenInsert={handleTokenInsert}
+              />
+            )}
           </div>
         </div>
 

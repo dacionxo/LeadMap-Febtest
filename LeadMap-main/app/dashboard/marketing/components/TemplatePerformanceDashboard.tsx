@@ -336,7 +336,6 @@ export default function TemplatePerformanceDashboard({
           />
         )}
       </div>
-      </div>
       </ErrorBoundary>
     )
   }

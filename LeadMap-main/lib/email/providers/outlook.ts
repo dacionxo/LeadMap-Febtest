@@ -4,49 +4,43 @@
  */
 
 import { Mailbox, EmailPayload, SendResult } from '../types'
-import { decryptMailboxTokens } from '../encryption'
-
-/**
- * Decrypt mailbox tokens for use
- */
-function getDecryptedMailbox(mailbox: Mailbox): Mailbox {
-  const decrypted = decryptMailboxTokens({
-    access_token: mailbox.access_token,
-    refresh_token: mailbox.refresh_token,
-    smtp_password: mailbox.smtp_password
-  })
-
-  return {
-    ...mailbox,
-    access_token: decrypted.access_token || mailbox.access_token,
-    refresh_token: decrypted.refresh_token || mailbox.refresh_token,
-    smtp_password: decrypted.smtp_password || mailbox.smtp_password
-  }
-}
+import { createTokenPersistence } from '../token-persistence'
 
 export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
   try {
-    // Decrypt tokens if encrypted
-    const decryptedMailbox = getDecryptedMailbox(mailbox)
+    // Create token persistence instance
+    const tokenPersistence = createTokenPersistence(mailbox)
     
-    // Check if token needs refresh
-    let accessToken = decryptedMailbox.access_token
-    if (decryptedMailbox.token_expires_at && decryptedMailbox.refresh_token) {
-      const expiresAt = new Date(decryptedMailbox.token_expires_at)
-      const now = new Date()
-      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
-
-      if (expiresAt < fiveMinutesFromNow) {
-        // Token is expired or about to expire, refresh it
-        const refreshed = await refreshOutlookToken(decryptedMailbox)
-        if (!refreshed.success || !refreshed.accessToken) {
-          return {
-            success: false,
-            error: refreshed.error || 'Failed to refresh Outlook token'
-          }
-        }
-        accessToken = refreshed.accessToken
+    // Check if authenticated
+    if (!tokenPersistence.isAuthenticated()) {
+      return {
+        success: false,
+        error: 'Outlook mailbox is not authenticated. Please reconnect your Outlook account.'
       }
+    }
+    
+    // Get access token
+    let accessToken = tokenPersistence.getAccessToken()
+    
+    // Check if token is expired and refresh if needed
+    if (tokenPersistence.isTokenExpired(5)) {
+      const refreshToken = tokenPersistence.getRefreshToken()
+      if (!refreshToken) {
+        return {
+          success: false,
+          error: 'Outlook refresh token is missing. Please reconnect your Outlook account.'
+        }
+      }
+
+      // Token is expired or about to expire, refresh it
+      const refreshed = await refreshOutlookToken(mailbox)
+      if (!refreshed.success || !refreshed.accessToken) {
+        return {
+          success: false,
+          error: refreshed.error || 'Failed to refresh Outlook token'
+        }
+      }
+      accessToken = refreshed.accessToken
     }
 
     if (!accessToken) {

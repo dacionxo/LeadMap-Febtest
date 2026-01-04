@@ -443,5 +443,4 @@ export default function TemplatePerformanceDashboard({
       </ErrorBoundary>
     )
   }
-}
 

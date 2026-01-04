@@ -23,6 +23,7 @@ import { handleCronError, DatabaseError, ValidationError } from '@/lib/cron/erro
 import { createSuccessResponse, createNoDataResponse } from '@/lib/cron/responses'
 import { getCronSupabaseClient, executeSelectOperation, executeUpdateOperation } from '@/lib/cron/database'
 import { getValidAccessToken } from '@/lib/google-calendar-sync'
+import { dbDatetimeNullable, dbDatetimeRequired } from '@/lib/cron/zod'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
 
 export const runtime = 'nodejs'
@@ -82,15 +83,15 @@ const calendarConnectionSchema = z.object({
   email: z.string().email(),
   access_token: z.string().nullable().optional(),
   refresh_token: z.string().nullable().optional(),
-  token_expires_at: z.string().datetime().nullable().optional(),
+  token_expires_at: dbDatetimeNullable,
   calendar_id: z.string().nullable().optional(),
   calendar_name: z.string().nullable().optional(),
   sync_enabled: z.boolean(),
   webhook_id: z.string().nullable().optional(),
-  webhook_expires_at: z.string().datetime().nullable().optional(),
-  last_sync_at: z.string().datetime().nullable().optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime().nullable().optional(),
+  webhook_expires_at: dbDatetimeNullable,
+  last_sync_at: dbDatetimeNullable,
+  created_at: dbDatetimeRequired,
+  updated_at: dbDatetimeNullable,
 })
 
 /**

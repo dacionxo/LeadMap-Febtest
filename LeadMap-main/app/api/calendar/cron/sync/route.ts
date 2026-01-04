@@ -26,6 +26,7 @@ import { handleCronError, DatabaseError, ValidationError } from '@/lib/cron/erro
 import { createSuccessResponse, createNoDataResponse } from '@/lib/cron/responses'
 import { getCronSupabaseClient, executeSelectOperation, executeUpdateOperation, executeInsertOperation } from '@/lib/cron/database'
 import { getValidAccessToken, refreshGoogleAccessToken } from '@/lib/google-calendar-sync'
+import { dbDatetimeNullable, dbDatetimeRequired } from '@/lib/cron/zod'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
 
 export const runtime = 'nodejs'
@@ -138,16 +139,6 @@ interface CalendarSyncResponse {
 }
 
 /**
- * Helper to normalize datetime strings from database
- * Converts empty strings to null before datetime validation
- * Supabase may return empty strings for nullable TIMESTAMPTZ fields
- */
-const nullableDatetime = z.preprocess(
-  (val) => val === '' || val === null || val === undefined ? null : val,
-  z.string().datetime().nullable().optional()
-)
-
-/**
  * Zod schema for calendar connection validation
  */
 const calendarConnectionSchema = z.object({
@@ -157,13 +148,13 @@ const calendarConnectionSchema = z.object({
   email: z.string().email(),
   access_token: z.string().nullable().optional(),
   refresh_token: z.string().nullable().optional(),
-  token_expires_at: nullableDatetime,
+  token_expires_at: dbDatetimeNullable,
   calendar_id: z.string().nullable().optional(),
   calendar_name: z.string().nullable().optional(),
   sync_enabled: z.boolean(),
-  last_sync_at: nullableDatetime,
-  created_at: z.string().datetime(),
-  updated_at: nullableDatetime,
+  last_sync_at: dbDatetimeNullable,
+  created_at: dbDatetimeRequired,
+  updated_at: dbDatetimeNullable,
 })
 
 /**
@@ -222,8 +213,19 @@ async function fetchActiveConnections(
     return []
   }
 
-  // Validate each connection
-  return result.data.map(validateCalendarConnection)
+  // Validate connections, skipping invalid rows to prevent single bad row from killing the job
+  const validConnections: CalendarConnection[] = []
+  for (const connection of result.data) {
+    try {
+      validConnections.push(validateCalendarConnection(connection))
+    } catch (error) {
+      const connectionId = (connection as any)?.id || 'unknown'
+      const email = (connection as any)?.email || 'unknown'
+      console.error(`[Calendar Sync] Skipping invalid connection ${connectionId} (${email}):`, error)
+    }
+  }
+
+  return validConnections
 }
 
 /**

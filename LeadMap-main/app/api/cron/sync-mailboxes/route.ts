@@ -27,6 +27,7 @@ import { syncGmailMessages } from '@/lib/email/unibox/gmail-connector'
 import { syncOutlookMessages, refreshOutlookToken } from '@/lib/email/unibox/outlook-connector'
 import { refreshGmailToken } from '@/lib/email/providers/gmail-watch'
 import { decryptMailboxTokens } from '@/lib/email/encryption'
+import { dbDatetimeNullable, dbDatetimeRequired } from '@/lib/cron/zod'
 import type { GmailSyncResult } from '@/lib/email/unibox/gmail-connector'
 import type { OutlookSyncResult } from '@/lib/email/unibox/outlook-connector'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
@@ -79,28 +80,6 @@ interface SyncMailboxesResponse {
 }
 
 /**
- * Helper to normalize datetime strings from database
- * Converts empty strings to null before datetime validation
- * Supabase may return empty strings for nullable TIMESTAMPTZ fields
- */
-const nullableDatetime = z.preprocess(
-  (val) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-mailboxes/route.ts:nullableDatetime',message:'Preprocessing nullable datetime - input value',data:{value:val,valueType:typeof val,valueLength:typeof val === 'string' ? val.length : 'N/A',isEmptyString:val === '',isNull:val === null,isUndefined:val === undefined,isWhitespaceOnly:typeof val === 'string' && val.trim() === ''},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    // Convert empty strings, null, undefined, or whitespace-only strings to null
-    const result = (val === '' || val === null || val === undefined || (typeof val === 'string' && val.trim() === '')) ? null : val;
-    // #region agent log
-    if (result === null && val !== null && val !== undefined) {
-      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-mailboxes/route.ts:nullableDatetime',message:'Preprocessing nullable datetime - converted to null',data:{originalValue:val,result:result},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-    }
-    // #endregion
-    return result;
-  },
-  z.string().datetime().nullable().optional()
-)
-
-/**
  * Zod schema for mailbox validation
  */
 const mailboxSchema = z.object({
@@ -111,10 +90,10 @@ const mailboxSchema = z.object({
   active: z.boolean(),
   access_token: z.string().nullable().optional(),
   refresh_token: z.string().nullable().optional(),
-  token_expires_at: nullableDatetime,
-  last_synced_at: nullableDatetime,
-  created_at: z.string().datetime(),
-  updated_at: nullableDatetime,
+  token_expires_at: dbDatetimeNullable,
+  last_synced_at: dbDatetimeNullable,
+  created_at: dbDatetimeRequired,
+  updated_at: dbDatetimeNullable,
 })
 
 /**
@@ -125,15 +104,9 @@ const mailboxSchema = z.object({
  * @throws ValidationError if validation fails
  */
 function validateMailbox(mailbox: unknown): Mailbox {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-mailboxes/route.ts:validateMailbox',message:'Validating mailbox - capturing raw datetime values',data:{mailboxId:(mailbox as any)?.id,token_expires_at:(mailbox as any)?.token_expires_at,last_synced_at:(mailbox as any)?.last_synced_at,created_at:(mailbox as any)?.created_at,updated_at:(mailbox as any)?.updated_at,token_expires_at_type:typeof (mailbox as any)?.token_expires_at,last_synced_at_type:typeof (mailbox as any)?.last_synced_at,created_at_type:typeof (mailbox as any)?.created_at,updated_at_type:typeof (mailbox as any)?.updated_at},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   const result = mailboxSchema.safeParse(mailbox)
   
   if (!result.success) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-mailboxes/route.ts:validateMailbox',message:'Validation failed - capturing error details',data:{mailboxId:(mailbox as any)?.id,errorIssues:result.error.issues,errorCount:result.error.issues.length},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     throw new ValidationError(
       'Invalid mailbox structure',
       result.error.issues

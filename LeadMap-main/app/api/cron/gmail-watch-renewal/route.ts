@@ -22,6 +22,7 @@ import { handleCronError, DatabaseError, ValidationError } from '@/lib/cron/erro
 import { createSuccessResponse, createNoDataResponse } from '@/lib/cron/responses'
 import { getCronSupabaseClient, executeSelectOperation, executeUpdateOperation } from '@/lib/cron/database'
 import { setupGmailWatch, refreshGmailToken } from '@/lib/email/providers/gmail-watch'
+import { dbDatetimeNullable, dbDatetimeRequired } from '@/lib/cron/zod'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
 
 export const runtime = 'nodejs'
@@ -79,11 +80,11 @@ const gmailMailboxSchema = z.object({
   active: z.boolean(),
   access_token: z.string().nullable().optional(),
   refresh_token: z.string().nullable().optional(),
-  token_expires_at: z.string().datetime().nullable().optional(),
-  watch_expiration: z.string().datetime().nullable().optional(),
+  token_expires_at: dbDatetimeNullable,
+  watch_expiration: dbDatetimeNullable,
   watch_history_id: z.string().nullable().optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime().nullable().optional(),
+  created_at: dbDatetimeRequired,
+  updated_at: dbDatetimeNullable,
 })
 
 /**
@@ -147,8 +148,19 @@ async function fetchMailboxesNeedingRenewal(
     return []
   }
 
-  // Validate each mailbox
-  return result.data.map(validateGmailMailbox)
+  // Validate mailboxes, skipping invalid rows to prevent single bad row from killing the job
+  const validMailboxes: GmailMailbox[] = []
+  for (const mailbox of result.data) {
+    try {
+      validMailboxes.push(validateGmailMailbox(mailbox))
+    } catch (error) {
+      const mailboxId = (mailbox as any)?.id || 'unknown'
+      const email = (mailbox as any)?.email || 'unknown'
+      console.error(`[Gmail Watch Renewal] Skipping invalid mailbox ${mailboxId} (${email}):`, error)
+    }
+  }
+
+  return validMailboxes
 }
 
 /**

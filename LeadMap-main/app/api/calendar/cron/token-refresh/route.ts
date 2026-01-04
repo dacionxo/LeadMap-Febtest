@@ -26,6 +26,7 @@ import {
   executeUpdateOperation,
 } from '@/lib/cron/database'
 import { refreshGoogleAccessToken } from '@/lib/google-calendar-sync'
+import { dbDatetimeNullable, dbDatetimeRequired } from '@/lib/cron/zod'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
 
 export const runtime = 'nodejs'
@@ -83,13 +84,13 @@ const calendarConnectionSchema = z.object({
   email: z.string().email(),
   access_token: z.string().nullable().optional(),
   refresh_token: z.string().nullable().optional(),
-  token_expires_at: z.string().datetime().nullable().optional(),
+  token_expires_at: dbDatetimeNullable,
   calendar_id: z.string().nullable().optional(),
   calendar_name: z.string().nullable().optional(),
   sync_enabled: z.boolean(),
-  last_sync_at: z.string().datetime().nullable().optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime().nullable().optional(),
+  last_sync_at: dbDatetimeNullable,
+  created_at: dbDatetimeRequired,
+  updated_at: dbDatetimeNullable,
 })
 
 /**
@@ -145,9 +146,19 @@ async function fetchConnectionsNeedingRefresh(
     return []
   }
 
-  // TypeScript now knows result.data is an array
-  const connectionsArray = result.data
-  return connectionsArray.map(validateCalendarConnection)
+  // Validate connections, skipping invalid rows to prevent single bad row from killing the job
+  const validConnections: CalendarConnection[] = []
+  for (const connection of result.data) {
+    try {
+      validConnections.push(validateCalendarConnection(connection))
+    } catch (error) {
+      const connectionId = (connection as any)?.id || 'unknown'
+      const email = (connection as any)?.email || 'unknown'
+      console.error(`[Token Refresh] Skipping invalid connection ${connectionId} (${email}):`, error)
+    }
+  }
+
+  return validConnections
 }
 
 /**

@@ -23,6 +23,8 @@ const nextConfig = {
     }
     // Fix for Windows filesystem symlink issues
     config.resolve.symlinks = false
+    // Fix for Windows EISDIR errors - use realpath instead of readlink
+    config.resolve.cacheWithContext = false
     return config
   },
   // Turbopack configuration (used by default in Next.js 16)

@@ -3,6 +3,8 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { sendViaMailbox, checkMailboxLimits } from '@/lib/email/sendViaMailbox'
 import { createClient } from '@supabase/supabase-js'
+import { writeFile, mkdir } from 'fs/promises'
+import { join } from 'path'
 
 /**
  * Send Email API
@@ -12,10 +14,16 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/emails/send/route.ts:13',message:'POST handler entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/emails/send/route.ts:18',message:'auth check',data:{hasUser:!!user,hasAuthError:!!authError,authError:authError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -29,6 +37,9 @@ export async function POST(request: NextRequest) {
       scheduleAt
     } = body
 
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/emails/send/route.ts:32',message:'request body parsed',data:{mailboxId:!!mailboxId,to:!!to,subject:!!subject,html:!!html,scheduleAt:!!scheduleAt},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     if (!mailboxId || !to || !subject || !html) {
       return NextResponse.json({
         error: 'Mailbox ID, recipient email, subject, and HTML content are required'
@@ -57,6 +68,9 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/emails/send/route.ts:60',message:'mailbox fetch result',data:{hasMailbox:!!mailbox,hasError:!!mailboxError,error:mailboxError?.message,active:mailbox?.active,provider:mailbox?.provider},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+    // #endregion
     if (mailboxError || !mailbox) {
       return NextResponse.json({ error: 'Mailbox not found' }, { status: 404 })
     }
@@ -162,6 +176,9 @@ export async function POST(request: NextRequest) {
 
     let sendResult
     try {
+      // #region agent log
+      await fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/emails/send/route.ts:164',message:'calling sendViaMailbox',data:{provider:mailbox.provider,to,hasSubject:!!subject},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
       sendResult = await sendViaMailbox(mailbox, {
         to,
         subject,
@@ -169,8 +186,14 @@ export async function POST(request: NextRequest) {
         fromName,
         fromEmail
       }, supabaseAdmin)
+      // #region agent log
+      await fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/emails/send/route.ts:174',message:'sendViaMailbox result',data:{success:sendResult.success,error:sendResult.error,hasMessageId:!!sendResult.providerMessageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
     } catch (error: any) {
       console.error('Error sending email via mailbox:', error)
+      // #region agent log
+      await fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/emails/send/route.ts:177',message:'sendViaMailbox exception',data:{error:error?.message,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
       return NextResponse.json({ 
         error: error.message || 'Failed to send email',
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined

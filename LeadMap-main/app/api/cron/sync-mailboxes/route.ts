@@ -24,13 +24,13 @@ import { handleCronError, DatabaseError, ValidationError } from '@/lib/cron/erro
 import { createSuccessResponse, createNoDataResponse } from '@/lib/cron/responses'
 import { getCronSupabaseClient, executeSelectOperation, executeUpdateOperation } from '@/lib/cron/database'
 import { syncGmailMessages } from '@/lib/email/unibox/gmail-connector'
-import { syncOutlookMessages, refreshOutlookToken } from '@/lib/email/unibox/outlook-connector'
-import { refreshGmailToken } from '@/lib/email/providers/gmail-watch'
-import { decryptMailboxTokens } from '@/lib/email/encryption'
+import { syncOutlookMessages } from '@/lib/email/unibox/outlook-connector'
+import { refreshToken } from '@/lib/email/token-refresh'
 import { dbDatetimeNullable, dbDatetimeRequired } from '@/lib/cron/zod'
 import type { GmailSyncResult } from '@/lib/email/unibox/gmail-connector'
 import type { OutlookSyncResult } from '@/lib/email/unibox/outlook-connector'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
+import type { Mailbox as ProviderMailbox } from '@/lib/email/types'
 
 export const runtime = 'nodejs'
 
@@ -157,228 +157,73 @@ async function fetchActiveMailboxes(
 }
 
 /**
- * Refreshes Gmail access token if needed
+ * Refreshes access token if needed (unified for Gmail and Outlook)
  * Checks if token is missing or expiring within 5 minutes
+ * Uses the unified refreshToken() function which handles decryption and persistence automatically
  * 
- * @param mailbox - Gmail mailbox
+ * @param mailbox - Mailbox (Gmail or Outlook)
  * @param supabase - Supabase client
  * @param now - Current timestamp
  * @returns Refreshed access token or null if refresh failed
  */
-async function refreshGmailTokenIfNeeded(
+async function refreshTokenIfNeeded(
   mailbox: Mailbox,
   supabase: ReturnType<typeof getCronSupabaseClient>,
   now: Date
 ): Promise<string | null> {
-  if (mailbox.provider !== 'gmail') {
+  // Only refresh for Gmail and Outlook
+  if (mailbox.provider !== 'gmail' && mailbox.provider !== 'outlook') {
     return mailbox.access_token || null
   }
 
   let accessToken = mailbox.access_token || null
+  const needsRefresh = !accessToken || 
+    (mailbox.token_expires_at && mailbox.refresh_token && 
+     new Date(mailbox.token_expires_at) < new Date(now.getTime() + 5 * 60 * 1000))
 
-  // If no access token but we have refresh token, try to refresh
-  if (!accessToken && mailbox.refresh_token) {
-    console.log(`[Sync Mailboxes] Refreshing missing Gmail access token for mailbox ${mailbox.id}`)
-    
-    // Decrypt refresh token if encrypted
-    const decryptedTokens = decryptMailboxTokens({
-      refresh_token: mailbox.refresh_token,
-      access_token: null,
-      smtp_password: null
-    })
-    const decryptedRefreshToken = decryptedTokens.refresh_token || mailbox.refresh_token
-    
-    const refreshResult = await refreshGmailToken(decryptedRefreshToken)
-    
-    if (refreshResult.success && refreshResult.accessToken) {
-      accessToken = refreshResult.accessToken
-      
-      // Update mailbox with new token
-      const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-      const updateResult = await executeUpdateOperation(
-        supabase,
-        'mailboxes',
-        {
-          access_token: accessToken,
-          token_expires_at: expiresAt.toISOString(),
-        },
-        (query) => (query as any).eq('id', mailbox.id),
-        {
-          operation: 'update_gmail_access_token',
-          mailboxId: mailbox.id,
-        }
-      )
-
-      if (!updateResult.success) {
-        console.error(`[Sync Mailboxes] Failed to update Gmail access token for mailbox ${mailbox.id}:`, updateResult.error)
-        return null
-      }
-    } else {
-      console.error(`[Sync Mailboxes] Failed to refresh Gmail access token for mailbox ${mailbox.id}:`, refreshResult.error)
-      return null
-    }
+  if (!needsRefresh) {
+    return accessToken
   }
 
-  // Check if token is expiring within 5 minutes
-  if (accessToken && mailbox.token_expires_at && mailbox.refresh_token) {
-    const expiresAt = new Date(mailbox.token_expires_at)
-    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
-
-    if (expiresAt < fiveMinutesFromNow) {
-      console.log(`[Sync Mailboxes] Refreshing expiring Gmail access token for mailbox ${mailbox.id}`)
-      
-      // Decrypt refresh token if encrypted
-      const decryptedTokens = decryptMailboxTokens({
-        refresh_token: mailbox.refresh_token,
-        access_token: null,
-        smtp_password: null
-      })
-      const decryptedRefreshToken = decryptedTokens.refresh_token || mailbox.refresh_token
-      
-      const refreshResult = await refreshGmailToken(decryptedRefreshToken)
-      
-      if (refreshResult.success && refreshResult.accessToken) {
-        accessToken = refreshResult.accessToken
-        
-        // Update mailbox with new token
-        const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-        const updateResult = await executeUpdateOperation(
-          supabase,
-          'mailboxes',
-          {
-            access_token: accessToken,
-            token_expires_at: expiresAt.toISOString(),
-          },
-          (query) => (query as any).eq('id', mailbox.id),
-          {
-            operation: 'update_gmail_access_token',
-            mailboxId: mailbox.id,
-          }
-        )
-
-        if (!updateResult.success) {
-          console.error(`[Sync Mailboxes] Failed to update refreshed Gmail token for mailbox ${mailbox.id}:`, updateResult.error)
-          return null
-        }
-      } else {
-        console.error(`[Sync Mailboxes] Failed to refresh expiring Gmail token for mailbox ${mailbox.id}:`, refreshResult.error)
-        return null
-      }
-    }
+  if (!mailbox.refresh_token) {
+    console.warn(`[Sync Mailboxes] Cannot refresh token for mailbox ${mailbox.id}: no refresh token`)
+    return accessToken
   }
 
-  return accessToken
-}
-
-/**
- * Refreshes Outlook access token if needed
- * Checks if token is missing or expiring within 5 minutes
- * 
- * @param mailbox - Outlook mailbox
- * @param supabase - Supabase client
- * @param now - Current timestamp
- * @returns Refreshed access token or null if refresh failed
- */
-async function refreshOutlookTokenIfNeeded(
-  mailbox: Mailbox,
-  supabase: ReturnType<typeof getCronSupabaseClient>,
-  now: Date
-): Promise<string | null> {
-  if (mailbox.provider !== 'outlook') {
-    return mailbox.access_token || null
+  const reason = !accessToken ? 'missing' : 'expiring'
+  console.log(`[Sync Mailboxes] Refreshing ${reason} ${mailbox.provider} access token for mailbox ${mailbox.id}`)
+  
+  // Convert local Mailbox to ProviderMailbox type (filter out null values and add defaults)
+  const providerMailbox: ProviderMailbox = {
+    id: mailbox.id,
+    user_id: mailbox.user_id,
+    email: mailbox.email,
+    provider: mailbox.provider,
+    active: mailbox.active,
+    access_token: mailbox.access_token || undefined,
+    refresh_token: mailbox.refresh_token || undefined,
+    token_expires_at: mailbox.token_expires_at || undefined,
+    daily_limit: 0, // Not used by token refresh
+    hourly_limit: 0, // Not used by token refresh
   }
+  
+  // Use unified refreshToken function which handles:
+  // - Token decryption (via token persistence)
+  // - Provider-specific refresh logic
+  // - Database persistence (when persistToDatabase: true)
+  // - Error handling and retry logic
+  const refreshResult = await refreshToken(providerMailbox, {
+    supabase,
+    persistToDatabase: true,
+    autoRetry: true,
+  })
 
-  let accessToken = mailbox.access_token || null
-
-  // If no access token but we have refresh token, try to refresh
-  if (!accessToken && mailbox.refresh_token) {
-    console.log(`[Sync Mailboxes] Refreshing missing Outlook access token for mailbox ${mailbox.id}`)
-    
-    // Decrypt refresh token if encrypted
-    const decryptedTokens = decryptMailboxTokens({
-      refresh_token: mailbox.refresh_token,
-      access_token: null,
-      smtp_password: null
-    })
-    const decryptedRefreshToken = decryptedTokens.refresh_token || mailbox.refresh_token
-    
-    const refreshResult = await refreshOutlookToken(decryptedRefreshToken)
-    
-    if (refreshResult.success && refreshResult.accessToken) {
-      accessToken = refreshResult.accessToken
-      
-      // Update mailbox with new token
-      const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-      const updateResult = await executeUpdateOperation(
-        supabase,
-        'mailboxes',
-        {
-          access_token: accessToken,
-          token_expires_at: expiresAt.toISOString(),
-        },
-        (query) => (query as any).eq('id', mailbox.id),
-        {
-          operation: 'update_outlook_access_token',
-          mailboxId: mailbox.id,
-        }
-      )
-
-      if (!updateResult.success) {
-        console.error(`[Sync Mailboxes] Failed to update Outlook access token for mailbox ${mailbox.id}:`, updateResult.error)
-        return null
-      }
-    } else {
-      console.error(`[Sync Mailboxes] Failed to refresh Outlook access token for mailbox ${mailbox.id}:`, refreshResult.error)
-      return null
-    }
-  }
-
-  // Check if token is expiring within 5 minutes
-  if (accessToken && mailbox.token_expires_at && mailbox.refresh_token) {
-    const expiresAt = new Date(mailbox.token_expires_at)
-    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
-
-    if (expiresAt < fiveMinutesFromNow) {
-      console.log(`[Sync Mailboxes] Refreshing expiring Outlook access token for mailbox ${mailbox.id}`)
-      
-      // Decrypt refresh token if encrypted
-      const decryptedTokens = decryptMailboxTokens({
-        refresh_token: mailbox.refresh_token,
-        access_token: null,
-        smtp_password: null
-      })
-      const decryptedRefreshToken = decryptedTokens.refresh_token || mailbox.refresh_token
-      
-      const refreshResult = await refreshOutlookToken(decryptedRefreshToken)
-      
-      if (refreshResult.success && refreshResult.accessToken) {
-        accessToken = refreshResult.accessToken
-        
-        // Update mailbox with new token
-        const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-        const updateResult = await executeUpdateOperation(
-          supabase,
-          'mailboxes',
-          {
-            access_token: accessToken,
-            token_expires_at: expiresAt.toISOString(),
-          },
-          (query) => (query as any).eq('id', mailbox.id),
-          {
-            operation: 'update_outlook_access_token',
-            mailboxId: mailbox.id,
-          }
-        )
-
-        if (!updateResult.success) {
-          console.error(`[Sync Mailboxes] Failed to update refreshed Outlook token for mailbox ${mailbox.id}:`, updateResult.error)
-          return null
-        }
-      } else {
-        console.error(`[Sync Mailboxes] Failed to refresh expiring Outlook token for mailbox ${mailbox.id}:`, refreshResult.error)
-        return null
-      }
-    }
+  if (refreshResult.success && refreshResult.accessToken) {
+    accessToken = refreshResult.accessToken
+    console.log(`[Sync Mailboxes] Successfully refreshed ${mailbox.provider} access token for mailbox ${mailbox.id}`)
+  } else {
+    console.error(`[Sync Mailboxes] Failed to refresh ${mailbox.provider} access token for mailbox ${mailbox.id}:`, refreshResult.error)
+    return null
   }
 
   return accessToken
@@ -569,23 +414,8 @@ async function runCronJob(request: NextRequest) {
     // Process each mailbox
     for (const mailbox of mailboxes) {
       try {
-        // Refresh token if needed based on provider
-        let accessToken: string | null = null
-
-        if (mailbox.provider === 'gmail') {
-          accessToken = await refreshGmailTokenIfNeeded(mailbox, supabase, now)
-        } else if (mailbox.provider === 'outlook') {
-          accessToken = await refreshOutlookTokenIfNeeded(mailbox, supabase, now)
-        } else {
-          results.push({
-            mailboxId: mailbox.id,
-            email: mailbox.email,
-            provider: mailbox.provider,
-            status: 'skipped',
-            error: `Provider ${mailbox.provider} not supported for sync`,
-          })
-          continue
-        }
+        // Refresh token if needed (unified function handles both Gmail and Outlook)
+        const accessToken = await refreshTokenIfNeeded(mailbox, supabase, now)
 
         if (!accessToken) {
           results.push({

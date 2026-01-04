@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { calculateEngagementFromEvents } from '@/lib/email/engagement-scoring'
 
 export const runtime = 'nodejs'
 
 /**
- * Per-Recipient Engagement Analytics
+ * Per-Recipient Engagement Analytics (Enhanced with Mautic-style scoring)
  * GET /api/email/analytics/recipient?email=... or ?contactId=...
- * Returns engagement profile for a specific recipient
+ * Returns engagement profile for a specific recipient with engagement score
  */
 
 export async function GET(request: NextRequest) {
@@ -48,13 +49,13 @@ export async function GET(request: NextRequest) {
       engagement = data?.[0] || null
     }
 
-    // Also get recent events for this recipient
+    // Get engagement events for scoring
     let eventsQuery = supabase
       .from('email_events')
-      .select('*')
+      .select('event_type, event_timestamp, email_id, *')
       .eq('user_id', user.id)
       .order('event_timestamp', { ascending: false })
-      .limit(50)
+      .limit(1000)
 
     if (recipientEmail) {
       eventsQuery = eventsQuery.eq('recipient_email', recipientEmail.toLowerCase())
@@ -62,10 +63,36 @@ export async function GET(request: NextRequest) {
       eventsQuery = eventsQuery.eq('contact_id', contactId)
     }
 
-    const { data: recentEvents, error: eventsError } = await eventsQuery
+    const { data: allEvents, error: eventsError } = await eventsQuery
 
     if (eventsError) {
       console.error('Events query error:', eventsError)
+    }
+
+    // Calculate engagement score
+    const engagementEvents = (allEvents || []).filter((e: { event_type: string }) => 
+      ['opened', 'clicked', 'replied'].includes(e.event_type)
+    )
+    const engagementScore = calculateEngagementFromEvents(engagementEvents)
+
+
+    // Get recent events (last 50) for display
+    const recentEvents = (allEvents || []).slice(0, 50)
+
+    // Get database-calculated engagement score if available
+    let dbEngagementScore: any = null
+    if (recipientEmail) {
+      const { data: dbScore, error: dbError } = await supabase.rpc(
+        'calculate_recipient_engagement_score',
+        {
+          p_user_id: user.id,
+          p_recipient_email: recipientEmail.toLowerCase()
+        }
+      )
+
+      if (!dbError && dbScore && dbScore.length > 0) {
+        dbEngagementScore = dbScore[0]
+      }
     }
 
     return NextResponse.json({
@@ -81,6 +108,14 @@ export async function GET(request: NextRequest) {
         click_rate: 0,
         reply_rate: 0
       },
+      engagementScore: {
+        score: engagementScore.score,
+        level: engagementScore.level,
+        trend: engagementScore.trend,
+        lastEngagement: engagementScore.lastEngagement?.toISOString() || null,
+        factors: engagementScore.factors
+      },
+      databaseEngagementScore: dbEngagementScore,
       recentEvents: recentEvents || []
     })
   } catch (error: any) {

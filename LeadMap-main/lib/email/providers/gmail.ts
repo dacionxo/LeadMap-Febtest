@@ -5,7 +5,14 @@
 
 import { Mailbox, EmailPayload, SendResult } from '../types'
 import { createTokenPersistence } from '../token-persistence'
-import { encryptMailboxTokens } from '../encryption'
+import { refreshToken as refreshOAuthToken } from '../token-refresh'
+import { 
+  TokenExpiredError, 
+  TokenRefreshError, 
+  AuthenticationError,
+  getUserFriendlyErrorMessage,
+  classifyError
+} from '../errors'
 
 export async function gmailSend(
   mailbox: Mailbox, 
@@ -29,55 +36,40 @@ export async function gmailSend(
     
     // Check if token is expired and refresh if needed
     if (tokenPersistence.isTokenExpired(5)) {
-      const refreshToken = tokenPersistence.getRefreshToken()
-      if (!refreshToken) {
+      const refreshTokenValue = tokenPersistence.getRefreshToken()
+      if (!refreshTokenValue) {
         return {
           success: false,
           error: 'Gmail refresh token is missing. Please reconnect your Gmail account.'
         }
       }
 
-      // Refresh the token
-      const refreshed = await refreshGmailToken(mailbox)
+      // Refresh the token using unified refresh function
+      const refreshed = await refreshOAuthToken(mailbox, {
+        supabase,
+        persistToDatabase: true
+      })
       if (!refreshed.success || !refreshed.accessToken) {
+        const refreshError = new TokenRefreshError(
+          refreshed.error || 'Failed to refresh Gmail token',
+          'gmail',
+          { error_code: refreshed.errorCode }
+        )
+
+        console.error('Gmail token refresh failed', {
+          mailbox_id: mailbox.id,
+          errorType: classifyError(refreshError),
+          error: refreshed.error
+        })
+
         return {
           success: false,
-          error: refreshed.error || 'Failed to refresh Gmail token'
+          error: getUserFriendlyErrorMessage(refreshError)
         }
       }
 
       accessToken = refreshed.accessToken
-      
-      // Update tokens in persistence
-      const expiresInSeconds = refreshed.expiresIn || 3600 // Default to 1 hour
-      const newExpiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString()
-      
-      const encryptedTokens = tokenPersistence.setTokens({
-        access_token: refreshed.accessToken,
-        refresh_token: null, // Keep existing refresh token (don't update)
-        token_expires_at: newExpiresAt
-      })
-      
-      // Save refreshed token to database if supabase is available
-      if (supabase && mailbox.id) {
-        try {
-          await supabase
-            .from('mailboxes')
-            .update({
-              access_token: encryptedTokens.access_token,
-              token_expires_at: encryptedTokens.token_expires_at,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', mailbox.id)
-          
-          console.log('Saved refreshed Gmail token to database', {
-            mailbox_id: mailbox.id
-          })
-        } catch (error: any) {
-          console.error('Failed to save refreshed token to database:', error)
-          // Continue anyway - token is valid for this send
-        }
-      }
+      // Token persistence and database update are handled by refreshToken() when persistToDatabase is true
     }
 
     if (!accessToken) {
@@ -123,43 +115,16 @@ export async function gmailSend(
         mailbox_email: mailbox.email
       })
 
-      const refreshed = await refreshGmailToken(mailbox)
+      const refreshed = await refreshOAuthToken(mailbox, {
+        supabase,
+        persistToDatabase: true
+      })
       if (refreshed.success && refreshed.accessToken) {
         console.log('Gmail token refreshed successfully, retrying send', {
           mailbox_id: mailbox.id
         })
         accessToken = refreshed.accessToken
-        
-        // Update tokens in persistence
-        const expiresInSeconds = refreshed.expiresIn || 3600 // Default to 1 hour
-        const newExpiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString()
-        
-        const encryptedTokens = tokenPersistence.setTokens({
-          access_token: refreshed.accessToken,
-          refresh_token: null, // Keep existing refresh token (don't update)
-          token_expires_at: newExpiresAt
-        })
-        
-        // Save refreshed token to database if supabase is available
-        if (supabase && mailbox.id) {
-          try {
-            await supabase
-              .from('mailboxes')
-              .update({
-                access_token: encryptedTokens.access_token,
-                token_expires_at: encryptedTokens.token_expires_at,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', mailbox.id)
-            
-            console.log('Saved refreshed Gmail token to database after 401 retry', {
-              mailbox_id: mailbox.id
-            })
-          } catch (error: any) {
-            console.error('Failed to save refreshed token to database:', error)
-            // Continue anyway - token is valid for this send
-          }
-        }
+        // Token persistence and database update are handled by refreshOAuthToken() when persistToDatabase is true
         
         response = await sendOnce(refreshed.accessToken)
       } else {
@@ -177,12 +142,22 @@ export async function gmailSend(
         errorData.error?.message ||
         `Gmail API error: ${response.status} ${response.statusText}`
 
-      // Enhanced error logging for 401 failures
+      // Enhanced error handling with error classification
       if (response.status === 401) {
+        const authError = new AuthenticationError(
+          `Gmail authentication failed: ${errorMessage}`,
+          'gmail',
+          {
+            status: response.status,
+            error_data: errorData,
+            has_refresh_token: !!tokenPersistence.getRefreshToken()
+          }
+        )
+
         console.error('Gmail authentication failed after retry', {
           mailbox_id: mailbox.id,
           mailbox_email: mailbox.email,
-          error_data: errorData,
+          errorType: classifyError(authError),
           error_code: errorData.error?.code,
           error_message: errorData.error?.message,
           error_description: errorData.error_description,
@@ -191,13 +166,19 @@ export async function gmailSend(
 
         return {
           success: false,
-          error: 'Gmail authentication expired. Please reconnect your mailbox.'
+          error: getUserFriendlyErrorMessage(authError)
         }
       }
 
+      // Classify other errors for better logging
+      const errorObj = new Error(errorMessage) as Error & { statusCode?: number }
+      errorObj.statusCode = response.status
+      const errorType = classifyError(errorObj)
+      
       console.error('Gmail send failed', {
         mailbox_id: mailbox.id,
         status: response.status,
+        errorType,
         error_data: errorData
       })
 

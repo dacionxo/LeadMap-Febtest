@@ -21,9 +21,11 @@ import { verifyCronRequestOrError } from '@/lib/cron/auth'
 import { handleCronError, DatabaseError, ValidationError } from '@/lib/cron/errors'
 import { createSuccessResponse, createNoDataResponse } from '@/lib/cron/responses'
 import { getCronSupabaseClient, executeSelectOperation, executeUpdateOperation } from '@/lib/cron/database'
-import { setupGmailWatch, refreshGmailToken } from '@/lib/email/providers/gmail-watch'
+import { setupGmailWatch } from '@/lib/email/providers/gmail-watch'
+import { refreshToken } from '@/lib/email/token-refresh'
 import { dbDatetimeNullable, dbDatetimeRequired } from '@/lib/cron/zod'
 import type { CronJobResult, BatchProcessingStats } from '@/lib/types/cron'
+import type { Mailbox as ProviderMailbox } from '@/lib/email/types'
 
 export const runtime = 'nodejs'
 
@@ -166,6 +168,7 @@ async function fetchMailboxesNeedingRenewal(
 /**
  * Refreshes Gmail access token if needed
  * Checks if token is missing or expiring within 5 minutes
+ * Uses the unified refreshToken() function which handles decryption and persistence automatically
  * 
  * @param mailbox - Gmail mailbox
  * @param supabase - Supabase client
@@ -178,80 +181,53 @@ async function refreshTokenIfNeeded(
   now: Date
 ): Promise<string | null> {
   let accessToken = mailbox.access_token || null
+  const needsRefresh = !accessToken || 
+    (mailbox.token_expires_at && mailbox.refresh_token && 
+     new Date(mailbox.token_expires_at) < new Date(now.getTime() + 5 * 60 * 1000))
 
-  // If no access token but we have refresh token, try to refresh
-  if (!accessToken && mailbox.refresh_token) {
-    console.log(`[Gmail Watch Renewal] Refreshing missing access token for mailbox ${mailbox.id}`)
-    
-    const refreshResult = await refreshGmailToken(mailbox.refresh_token)
-    
-    if (refreshResult.success && refreshResult.accessToken) {
-      accessToken = refreshResult.accessToken
-      
-      // Update mailbox with new token
-      const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-      const updateResult = await executeUpdateOperation(
-        supabase,
-        'mailboxes',
-        {
-          access_token: accessToken,
-          token_expires_at: expiresAt.toISOString(),
-        },
-        (query) => (query as any).eq('id', mailbox.id),
-        {
-          operation: 'update_access_token',
-          mailboxId: mailbox.id,
-        }
-      )
-
-      if (!updateResult.success) {
-        console.error(`[Gmail Watch Renewal] Failed to update access token for mailbox ${mailbox.id}:`, updateResult.error)
-        return null
-      }
-    } else {
-      console.error(`[Gmail Watch Renewal] Failed to refresh access token for mailbox ${mailbox.id}:`, refreshResult.error)
-      return null
-    }
+  if (!needsRefresh) {
+    return accessToken
   }
 
-  // Check if token is expiring within 5 minutes
-  if (accessToken && mailbox.token_expires_at && mailbox.refresh_token) {
-    const expiresAt = new Date(mailbox.token_expires_at)
-    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
+  if (!mailbox.refresh_token) {
+    console.warn(`[Gmail Watch Renewal] Cannot refresh token for mailbox ${mailbox.id}: no refresh token`)
+    return accessToken
+  }
 
-    if (expiresAt < fiveMinutesFromNow) {
-      console.log(`[Gmail Watch Renewal] Refreshing expiring access token for mailbox ${mailbox.id}`)
-      
-      const refreshResult = await refreshGmailToken(mailbox.refresh_token)
-      
-      if (refreshResult.success && refreshResult.accessToken) {
-        accessToken = refreshResult.accessToken
-        
-        // Update mailbox with new token
-        const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-        const updateResult = await executeUpdateOperation(
-          supabase,
-          'mailboxes',
-          {
-            access_token: accessToken,
-            token_expires_at: expiresAt.toISOString(),
-          },
-          (query) => (query as any).eq('id', mailbox.id),
-          {
-            operation: 'update_access_token',
-            mailboxId: mailbox.id,
-          }
-        )
+  const reason = !accessToken ? 'missing' : 'expiring'
+  console.log(`[Gmail Watch Renewal] Refreshing ${reason} access token for mailbox ${mailbox.id}`)
+  
+  // Convert local GmailMailbox to ProviderMailbox type (filter out null values and add defaults)
+  const providerMailbox: ProviderMailbox = {
+    id: mailbox.id,
+    user_id: mailbox.user_id,
+    email: mailbox.email,
+    provider: 'gmail',
+    active: mailbox.active,
+    access_token: mailbox.access_token || undefined,
+    refresh_token: mailbox.refresh_token || undefined,
+    token_expires_at: mailbox.token_expires_at || undefined,
+    daily_limit: 0, // Not used by token refresh
+    hourly_limit: 0, // Not used by token refresh
+  }
+  
+  // Use unified refreshToken function which handles:
+  // - Token decryption (via token persistence)
+  // - Provider-specific refresh logic
+  // - Database persistence (when persistToDatabase: true)
+  // - Error handling and retry logic
+  const refreshResult = await refreshToken(providerMailbox, {
+    supabase,
+    persistToDatabase: true,
+    autoRetry: true,
+  })
 
-        if (!updateResult.success) {
-          console.error(`[Gmail Watch Renewal] Failed to update refreshed token for mailbox ${mailbox.id}:`, updateResult.error)
-          return null
-        }
-      } else {
-        console.error(`[Gmail Watch Renewal] Failed to refresh expiring token for mailbox ${mailbox.id}:`, refreshResult.error)
-        return null
-      }
-    }
+  if (refreshResult.success && refreshResult.accessToken) {
+    accessToken = refreshResult.accessToken
+    console.log(`[Gmail Watch Renewal] Successfully refreshed access token for mailbox ${mailbox.id}`)
+  } else {
+    console.error(`[Gmail Watch Renewal] Failed to refresh access token for mailbox ${mailbox.id}:`, refreshResult.error)
+    return null
   }
 
   return accessToken

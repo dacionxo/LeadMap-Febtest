@@ -1,12 +1,22 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import DashboardLayout from '../../components/DashboardLayout'
 import EmailAnalyticsDashboard from '../components/EmailAnalyticsDashboard'
 import CrossChannelReporting from '../components/CrossChannelReporting'
 
 function EmailAnalyticsPageContent() {
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<'email' | 'cross-channel'>('email')
+
+  // Check for URL parameters to set initial tab
+  useEffect(() => {
+    const view = searchParams.get('view')
+    if (view === 'campaign-performance' || view === 'ab-testing') {
+      setActiveTab('email')
+    }
+  }, [searchParams])
 
   return (
     <div className="space-y-6">

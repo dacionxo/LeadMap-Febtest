@@ -32,9 +32,7 @@ import {
   executeUpdateOperation,
 } from '@/lib/cron/database'
 import { sendViaMailbox, checkMailboxLimits } from '@/lib/email/sendViaMailbox'
-import { refreshGmailToken } from '@/lib/email/providers/gmail'
-import { refreshOutlookToken } from '@/lib/email/providers/outlook'
-import { decryptMailboxTokens, encryptMailboxTokens } from '@/lib/email/encryption'
+import { refreshToken } from '@/lib/email/token-refresh'
 import { recordSentEvent, recordFailedEvent, logEmailFailure } from '@/lib/email/event-tracking'
 import {
   getUserEmailSettings,
@@ -314,6 +312,7 @@ function groupEmailsByMailbox(emails: QueuedEmail[]): Map<string, QueuedEmail[]>
 
 /**
  * Refreshes OAuth token for Gmail or Outlook mailbox
+ * Uses the unified refreshToken() function which handles decryption and persistence automatically
  * 
  * @param mailbox - Mailbox to refresh token for
  * @param supabase - Supabase client
@@ -345,48 +344,30 @@ async function refreshMailboxToken(
   }
 
   try {
-    let refreshResult: { success: boolean; accessToken?: string; error?: string } | null = null
+    // Use unified refreshToken function which handles:
+    // - Token decryption (via token persistence)
+    // - Provider-specific refresh logic
+    // - Database persistence (when persistToDatabase: true)
+    // - Error handling and retry logic
+    const refreshResult = await refreshToken(mailbox, {
+      supabase,
+      persistToDatabase: true,
+      autoRetry: true,
+    })
 
-    // Refresh functions handle decryption internally
-    if (mailbox.provider === 'gmail') {
-      refreshResult = await refreshGmailToken(mailbox)
-    } else if (mailbox.provider === 'outlook') {
-      refreshResult = await refreshOutlookToken(mailbox)
-    }
+    if (refreshResult.success && refreshResult.accessToken) {
+      // Calculate new expiration from expiresIn or default to 1 hour
+      const newExpiresAt = refreshResult.expiresIn
+        ? new Date(Date.now() + refreshResult.expiresIn * 1000).toISOString()
+        : new Date(Date.now() + 3600 * 1000).toISOString()
 
-    if (refreshResult?.success && refreshResult.accessToken) {
-      // Update mailbox with new token (encrypt before storing)
-      const encrypted = encryptMailboxTokens({
-        access_token: refreshResult.accessToken,
-        refresh_token: null, // Keep existing refresh token (don't re-encrypt)
-        smtp_password: null,
-      })
-
-      // Calculate new expiration (typically 1 hour from now)
-      const newExpiresAt = new Date(Date.now() + 3600 * 1000).toISOString()
-
-      await executeUpdateOperation(
-        supabase,
-        'mailboxes',
-        {
-          access_token: encrypted.access_token || refreshResult.accessToken,
-          token_expires_at: newExpiresAt,
-          updated_at: new Date().toISOString(),
-        },
-        (query) => (query as any).eq('id', mailbox.id),
-        {
-          operation: 'refresh_mailbox_token',
-          mailboxId: mailbox.id,
-        }
-      )
-
-      // Return updated mailbox
+      // Return updated mailbox (database update is handled by refreshToken when persistToDatabase: true)
       return {
         ...mailbox,
         access_token: refreshResult.accessToken,
         token_expires_at: newExpiresAt,
       }
-    } else if (refreshResult?.error) {
+    } else if (refreshResult.error) {
       console.warn(
         `Failed to refresh ${mailbox.provider} token for mailbox ${mailbox.id}: ${refreshResult.error}`
       )

@@ -1,7 +1,10 @@
 /**
  * Email Tracking URL Utilities
  * Generates tracking URLs for open pixels and click redirects
+ * Enhanced with UTM tag support following Mautic patterns
  */
+
+import type { UtmTags } from './mautic-hash-utils'
 
 /**
  * Generate tracking pixel URL for email open tracking
@@ -24,6 +27,7 @@ export function generateOpenTrackingUrl(params: {
 
 /**
  * Generate click tracking URL (query parameter method)
+ * Supports UTM tag preservation and tracking
  */
 export function generateClickTrackingUrl(params: {
   originalUrl: string
@@ -31,6 +35,7 @@ export function generateClickTrackingUrl(params: {
   recipientId?: string
   campaignId?: string
   baseUrl?: string
+  utmTags?: UtmTags
 }): string {
   const baseUrl = params.baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const url = new URL('/api/email/track/click', baseUrl)
@@ -39,6 +44,15 @@ export function generateClickTrackingUrl(params: {
   if (params.emailId) url.searchParams.set('email_id', params.emailId)
   if (params.recipientId) url.searchParams.set('recipient_id', params.recipientId)
   if (params.campaignId) url.searchParams.set('campaign_id', params.campaignId)
+  
+  // Preserve UTM tags in tracking URL
+  if (params.utmTags) {
+    if (params.utmTags.utmSource) url.searchParams.set('utm_source', params.utmTags.utmSource)
+    if (params.utmTags.utmMedium) url.searchParams.set('utm_medium', params.utmTags.utmMedium)
+    if (params.utmTags.utmCampaign) url.searchParams.set('utm_campaign', params.utmTags.utmCampaign)
+    if (params.utmTags.utmContent) url.searchParams.set('utm_content', params.utmTags.utmContent)
+    if (params.utmTags.utmTerm) url.searchParams.set('utm_term', params.utmTags.utmTerm)
+  }
   
   return url.toString()
 }
@@ -113,6 +127,7 @@ export function replaceLinksWithTracking(
 
 /**
  * Process email HTML to add tracking
+ * Enhanced with UTM tag support
  */
 export function addEmailTracking(html: string, params: {
   emailId?: string
@@ -120,6 +135,7 @@ export function addEmailTracking(html: string, params: {
   campaignId?: string
   baseUrl?: string
   useCleanUrls?: boolean // Use /r/:eventId instead of query params
+  utmTags?: UtmTags // UTM tags to preserve in tracked links
 }): string {
   let trackedHtml = html
   
@@ -141,13 +157,33 @@ export function addEmailTracking(html: string, params: {
         campaignId: params.campaignId,
         baseUrl: params.baseUrl
       })
-    : (url: string) => generateClickTrackingUrl({
-        originalUrl: url,
-        emailId: params.emailId,
-        recipientId: params.recipientId,
-        campaignId: params.campaignId,
-        baseUrl: params.baseUrl
-      })
+    : (url: string) => {
+        // Extract UTM tags from original URL if present
+        let utmTags = params.utmTags
+        try {
+          const originalUrl = new URL(url, params.baseUrl || process.env.NEXT_PUBLIC_APP_URL)
+          if (originalUrl.searchParams.has('utm_source') || originalUrl.searchParams.has('utm_campaign')) {
+            utmTags = {
+              utmSource: originalUrl.searchParams.get('utm_source') || params.utmTags?.utmSource,
+              utmMedium: originalUrl.searchParams.get('utm_medium') || params.utmTags?.utmMedium,
+              utmCampaign: originalUrl.searchParams.get('utm_campaign') || params.utmTags?.utmCampaign,
+              utmContent: originalUrl.searchParams.get('utm_content') || params.utmTags?.utmContent,
+              utmTerm: originalUrl.searchParams.get('utm_term') || params.utmTags?.utmTerm
+            }
+          }
+        } catch {
+          // Invalid URL, use provided UTM tags
+        }
+        
+        return generateClickTrackingUrl({
+          originalUrl: url,
+          emailId: params.emailId,
+          recipientId: params.recipientId,
+          campaignId: params.campaignId,
+          baseUrl: params.baseUrl,
+          utmTags
+        })
+      }
   
   trackedHtml = replaceLinksWithTracking(trackedHtml, urlGenerator)
   

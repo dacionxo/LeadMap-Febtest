@@ -1,7 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import DeviceAnalytics from './DeviceAnalytics'
+import HealthMonitoring from './HealthMonitoring'
+import EngagementHeatmap from './EngagementHeatmap'
+import LocationAnalytics from './LocationAnalytics'
+import ABTestingDashboard from './ABTestingDashboard'
+import CampaignPerformanceDashboard from './CampaignPerformanceDashboard'
+import TemplatePerformanceDashboard from './TemplatePerformanceDashboard'
+import ComparativeAnalyticsDashboard from './ComparativeAnalyticsDashboard'
+import CampaignSelector from './CampaignSelector'
+import EmailSelector from './EmailSelector'
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts'
 
 interface TimeSeriesData {
   date: string
@@ -53,13 +77,87 @@ export default function EmailAnalyticsDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
   const [mailboxes, setMailboxes] = useState<Array<{ id: string; email: string; display_name?: string }>>([])
   const [health, setHealth] = useState<any>(null)
+  const [optimalSendTime, setOptimalSendTime] = useState<any>(null)
+  const [realtimeEnabled, setRealtimeEnabled] = useState(false)
+  const [activeView, setActiveView] = useState<'overview' | 'ab-testing' | 'campaign-performance' | 'template-performance' | 'comparative'>('overview')
+  const [selectedParentEmailId, setSelectedParentEmailId] = useState<string | null>(null)
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
+
+  // Check for URL parameters to set initial view and IDs
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const campaignId = urlParams.get('campaignId')
+      const emailId = urlParams.get('emailId')
+      const view = urlParams.get('view') as 'overview' | 'ab-testing' | 'campaign-performance' | 'template-performance' | 'comparative' | null
+
+      // Set view first, then IDs (view takes priority)
+      if (view && ['overview', 'ab-testing', 'campaign-performance', 'template-performance', 'comparative'].includes(view)) {
+        setActiveView(view as any)
+      }
+
+      // Set IDs based on parameters
+      if (campaignId) {
+        setSelectedCampaignId(campaignId)
+        if (!view) {
+          setActiveView('campaign-performance')
+        }
+      }
+      if (emailId) {
+        setSelectedParentEmailId(emailId)
+        if (!view) {
+          setActiveView('ab-testing')
+        }
+      }
+    }
+  }, [])
 
   useEffect(() => {
     fetchMailboxes()
     fetchStats()
     fetchTimeseries()
     fetchHealth()
+    fetchOptimalSendTime()
   }, [selectedMailbox, selectedPeriod])
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!realtimeEnabled) return
+
+    let channel: any = null
+
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      channel = supabase
+        .channel(`email-events-realtime-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'email_events',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            // Refresh stats when new events arrive
+            fetchStats()
+            fetchTimeseries()
+            fetchHealth()
+          }
+        )
+        .subscribe()
+    }
+
+    setupRealtime()
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [realtimeEnabled, selectedMailbox, selectedPeriod])
 
   const fetchMailboxes = async () => {
     try {
@@ -138,6 +236,27 @@ export default function EmailAnalyticsDashboard() {
       }
     } catch (error) {
       console.error('Error fetching health:', error)
+    }
+  }
+
+  const fetchOptimalSendTime = async () => {
+    try {
+      const startDate = getStartDate(selectedPeriod)
+      const params = new URLSearchParams({
+        days: selectedPeriod === '7d' ? '7' : selectedPeriod === '30d' ? '30' : selectedPeriod === '90d' ? '90' : '90',
+        ...(selectedMailbox !== 'all' && { recipientEmail: selectedMailbox })
+      })
+
+      const response = await fetch(`/api/email/analytics/optimal-send-time?${params}`, {
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setOptimalSendTime(data)
+      }
+    } catch (error) {
+      console.error('Error fetching optimal send time:', error)
     }
   }
 
@@ -236,6 +355,16 @@ export default function EmailAnalyticsDashboard() {
             <option value="all">All time</option>
           </select>
           <button
+            onClick={() => setRealtimeEnabled(!realtimeEnabled)}
+            className={`px-4 py-2 rounded-md text-sm ${
+              realtimeEnabled
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            {realtimeEnabled ? '● Live' : '○ Paused'}
+          </button>
+          <button
             onClick={() => handleExport('events')}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
           >
@@ -244,7 +373,124 @@ export default function EmailAnalyticsDashboard() {
         </div>
       </div>
 
-      {/* Health Widget */}
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex space-x-1 overflow-x-auto">
+          {[
+            { id: 'overview', label: 'Overview', icon: '📊' },
+            { id: 'ab-testing', label: 'A/B Testing', icon: '🧪' },
+            { id: 'campaign-performance', label: 'Campaign Performance', icon: '📈' },
+            { id: 'template-performance', label: 'Template Performance', icon: '📧' },
+            { id: 'comparative', label: 'Comparative Analytics', icon: '📊' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveView(tab.id as any)}
+              className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeView === tab.id
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300'
+              }`}
+              aria-label={`Switch to ${tab.label} view`}
+            >
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* A/B Testing View */}
+      {activeView === 'ab-testing' && (
+        <div className="space-y-6">
+          {/* Email Selector */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Email with A/B Test Variants
+            </label>
+            <EmailSelector
+              selectedEmailId={selectedParentEmailId}
+              onEmailSelect={setSelectedParentEmailId}
+              filterWithVariants={true}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Only emails with A/B test variants will appear here
+            </p>
+          </div>
+
+          {selectedParentEmailId ? (
+            <ABTestingDashboard
+              parentEmailId={selectedParentEmailId}
+              onVariantSelect={(variantId) => {
+                console.log('Selected variant:', variantId)
+              }}
+            />
+          ) : (
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Select an email with A/B test variants to view performance
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                A/B testing data will appear here when you have variants configured
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Campaign Performance View */}
+      {activeView === 'campaign-performance' && (
+        <div className="space-y-6">
+          {/* Campaign Selector */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Campaign
+            </label>
+            <CampaignSelector
+              selectedCampaignId={selectedCampaignId}
+              onCampaignSelect={setSelectedCampaignId}
+            />
+          </div>
+
+          {selectedCampaignId ? (
+            <CampaignPerformanceDashboard
+              campaignId={selectedCampaignId}
+              startDate={getStartDate(selectedPeriod) || undefined}
+              endDate={new Date().toISOString()}
+            />
+          ) : (
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Select a campaign to view performance analytics
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                Campaign performance data will appear here when you select a campaign
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Template Performance View */}
+      {activeView === 'template-performance' && (
+        <TemplatePerformanceDashboard
+          startDate={getStartDate(selectedPeriod) || undefined}
+          endDate={new Date().toISOString()}
+          showAll={true}
+        />
+      )}
+
+      {/* Comparative Analytics View */}
+      {activeView === 'comparative' && (
+        <ComparativeAnalyticsDashboard
+          defaultMetric="open_rate"
+        />
+      )}
+
+      {/* Overview View (Default) */}
+      {activeView === 'overview' && (
+        <>
+          {/* Health Widget */}
       {health && (
         <div className={`border rounded-lg p-4 ${
           health.isHealthy 
@@ -355,17 +601,166 @@ export default function EmailAnalyticsDashboard() {
         </div>
       )}
 
-      {/* Time Series Chart */}
+      {/* Time Series Chart - Enhanced with Recharts */}
       {timeseries.length > 0 && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Email Activity Over Time
           </h2>
-          <div className="h-64">
-            <TimeSeriesChart data={timeseries} />
-          </div>
+          <ResponsiveContainer width="100%" height={400}>
+            <AreaChart data={timeseries}>
+              <defs>
+                <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorOpened" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorClicked" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tickFormatter={(value) => {
+                  const date = new Date(value)
+                  return `${date.getMonth() + 1}/${date.getDate()}`
+                }}
+              />
+              <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px'
+                }}
+              />
+              <Legend />
+              <Area
+                type="monotone"
+                dataKey="sent"
+                stroke="#3b82f6"
+                fillOpacity={1}
+                fill="url(#colorSent)"
+                name="Sent"
+              />
+              <Area
+                type="monotone"
+                dataKey="opened"
+                stroke="#10b981"
+                fillOpacity={1}
+                fill="url(#colorOpened)"
+                name="Opened"
+              />
+              <Area
+                type="monotone"
+                dataKey="clicked"
+                stroke="#8b5cf6"
+                fillOpacity={1}
+                fill="url(#colorClicked)"
+                name="Clicked"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       )}
+
+      {/* Optimal Send Time Recommendations */}
+      {optimalSendTime && optimalSendTime.recommendations && optimalSendTime.recommendations.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Optimal Send Time Recommendations
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {optimalSendTime.recommendations.map((rec: any, index: number) => (
+              <div
+                key={index}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/50"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold text-gray-900 dark:text-white">
+                    {rec.formattedHour}
+                  </div>
+                  <div
+                    className={`px-2 py-1 rounded text-xs ${
+                      rec.confidence === 'high'
+                        ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200'
+                        : rec.confidence === 'medium'
+                        ? 'bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
+                    }`}
+                  >
+                    {rec.confidence}
+                  </div>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  {rec.dayName}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500">{rec.reason}</div>
+                <div className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
+                  Score: {rec.score}/100
+                </div>
+              </div>
+            ))}
+          </div>
+          {optimalSendTime.hourlyPattern && optimalSendTime.hourlyPattern.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                Engagement by Hour of Day
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={optimalSendTime.hourlyPattern}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="formattedHour"
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="opens" fill="#10b981" name="Opens" />
+                  <Bar dataKey="clicks" fill="#8b5cf6" name="Clicks" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Engagement Heatmap */}
+      <EngagementHeatmap mailboxId={selectedMailbox} period={selectedPeriod} />
+
+      {/* Device Analytics */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Device & Browser Analytics
+        </h2>
+        <DeviceAnalytics mailboxId={selectedMailbox} period={selectedPeriod} />
+      </div>
+
+      {/* Location Analytics */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Location Analytics
+        </h2>
+        <LocationAnalytics mailboxId={selectedMailbox} period={selectedPeriod} />
+      </div>
+
+      {/* Health Monitoring */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Email Health Monitoring
+        </h2>
+        <HealthMonitoring mailboxId={selectedMailbox} hours={24} />
+      </div>
 
       {/* Per-Mailbox Performance */}
       {stats.perMailbox && stats.perMailbox.length > 0 && (
@@ -407,6 +802,8 @@ export default function EmailAnalyticsDashboard() {
           </div>
         </div>
       )}
+        </>
+      )}
     </div>
   )
 }
@@ -438,87 +835,6 @@ function MetricCard({
   )
 }
 
-function TimeSeriesChart({ data }: { data: TimeSeriesData[] }) {
-  // Simple bar chart implementation
-  // In production, you'd use a charting library like recharts or chart.js
-  const maxValue = data.length > 0 
-    ? Math.max(...data.map(d => Math.max(d.sent || 0, d.opened || 0, d.clicked || 0)))
-    : 1
-  
-  return (
-    <div className="relative w-full h-full">
-      <svg viewBox="0 0 800 200" className="w-full h-full">
-        {/* Grid lines */}
-        {[0, 25, 50, 75, 100].map((y) => (
-          <line
-            key={y}
-            x1="50"
-            y1={160 - (y / 100) * 140}
-            x2="750"
-            y2={160 - (y / 100) * 140}
-            stroke="#e5e7eb"
-            strokeWidth="1"
-            className="dark:stroke-gray-700"
-          />
-        ))}
-
-        {/* Bars for sent, opened, clicked */}
-        {data.map((d, i) => {
-          const x = 60 + (i * (690 / data.length))
-          const width = 690 / data.length - 4
-          const sentHeight = (d.sent / maxValue) * 140
-          const openedHeight = (d.opened / maxValue) * 140
-          const clickedHeight = (d.clicked / maxValue) * 140
-
-          return (
-            <g key={i}>
-              <rect
-                x={x}
-                y={160 - sentHeight}
-                width={width}
-                height={sentHeight}
-                fill="#3b82f6"
-                opacity="0.3"
-              />
-              <rect
-                x={x}
-                y={160 - openedHeight}
-                width={width}
-                height={openedHeight}
-                fill="#10b981"
-                opacity="0.6"
-              />
-              <rect
-                x={x}
-                y={160 - clickedHeight}
-                width={width}
-                height={clickedHeight}
-                fill="#8b5cf6"
-              />
-            </g>
-          )
-        })}
-
-        {/* Labels */}
-        {data.map((d, i) => {
-          const x = 60 + (i * (690 / data.length)) + (690 / data.length) / 2
-          const date = new Date(d.date)
-          return (
-            <text
-              key={i}
-              x={x}
-              y="190"
-              textAnchor="middle"
-              className="text-xs fill-gray-600 dark:fill-gray-400"
-            >
-              {date.getMonth() + 1}/{date.getDate()}
-            </text>
-          )
-        })}
-      </svg>
-    </div>
-  )
-}
 
 
 

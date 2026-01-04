@@ -2,6 +2,7 @@
 -- This schema supports trigger links for tracking customer actions in SMS and emails
 
 -- Trigger Links table
+-- Enhanced with Mautic-style actions support
 CREATE TABLE IF NOT EXISTS trigger_links (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -10,6 +11,9 @@ CREATE TABLE IF NOT EXISTS trigger_links (
   link_key TEXT NOT NULL UNIQUE, -- Unique key for tracking (e.g., "offer-2024", "newsletter-signup")
   description TEXT,
   click_count INTEGER DEFAULT 0,
+  -- Mautic-style actions: JSONB array of action objects
+  -- Example: [{"type": "add_to_segment", "config": {"list_id": "uuid"}}]
+  actions JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

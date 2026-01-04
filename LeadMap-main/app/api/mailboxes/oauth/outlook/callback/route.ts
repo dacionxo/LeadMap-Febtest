@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { createOutlookAuth } from '@/lib/email/auth/outlook'
 import { encryptMailboxTokens } from '@/lib/email/encryption'
+import { AuthenticationError, getUserFriendlyErrorMessage } from '@/lib/email/errors'
 
 export const runtime = 'nodejs'
 
 /**
  * GET /api/mailboxes/oauth/outlook/callback
  * Handle Outlook/Microsoft 365 OAuth callback
+ * 
+ * Uses the standardized OutlookAuth class for OAuth authentication
  */
 export async function GET(request: NextRequest) {
   try {
@@ -52,59 +56,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const clientId = process.env.MICROSOFT_CLIENT_ID
-    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET
     const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
     const redirectUri = `${baseUrl}/api/mailboxes/oauth/outlook/callback`
+
+    // Use OutlookAuth for authentication
+    const outlookAuth = createOutlookAuth()
     
-    if (!clientId || !clientSecret) {
+    let tokenResult
+    try {
+      tokenResult = await outlookAuth.authenticateIntegration(code, state, redirectUri)
+    } catch (authErr) {
+      // Handle authentication errors with user-friendly messages
+      const errorMessage = authErr instanceof AuthenticationError 
+        ? getUserFriendlyErrorMessage(authErr)
+        : 'Outlook authentication failed'
+      
+      console.error('Outlook OAuth authentication error:', authErr)
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=oauth_not_configured`
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=${encodeURIComponent(errorMessage)}`
       )
     }
 
-    // Exchange code for tokens
-    const tokenResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        redirect_uri: redirectUri,
-        grant_type: 'authorization_code',
-        scope: 'https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access',
-      }),
-    })
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
-      console.error('Token exchange error:', errorText)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=token_exchange_failed`
-      )
-    }
-
-    const tokens = await tokenResponse.json()
-    const { access_token, refresh_token, expires_in } = tokens
-
-    // Get user email from Microsoft Graph
-    const userInfoResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-      },
-    })
-
-    if (!userInfoResponse.ok) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=failed_to_get_email`
-      )
-    }
-
-    const userInfo = await userInfoResponse.json()
-    const email = userInfo.mail || userInfo.userPrincipalName
+    const { access_token, refresh_token, expires_in, email, display_name } = tokenResult
 
     // Calculate token expiration
     const expiresAt = new Date(Date.now() + (expires_in * 1000)).toISOString()
@@ -116,7 +89,7 @@ export async function GET(request: NextRequest) {
       smtp_password: null
     })
 
-    // Save mailbox to database (reuse existing supabase client)
+    // Save mailbox to database
     const supabase = supabaseAuth
     const { error: dbError } = await supabase
       .from('mailboxes')
@@ -124,7 +97,7 @@ export async function GET(request: NextRequest) {
         user_id: user.id,
         provider: 'outlook',
         email,
-        display_name: userInfo.displayName || email,
+        display_name: display_name || email,
         access_token: encrypted.access_token || access_token,
         refresh_token: encrypted.refresh_token || refresh_token,
         token_expires_at: expiresAt,
@@ -146,9 +119,11 @@ export async function GET(request: NextRequest) {
     )
   } catch (error) {
     console.error('Error in Outlook OAuth callback:', error)
+    const errorMessage = error instanceof Error 
+      ? getUserFriendlyErrorMessage(error)
+      : 'internal_error'
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=internal_error`
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=${encodeURIComponent(errorMessage)}`
     )
   }
 }
-

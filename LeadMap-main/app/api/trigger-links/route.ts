@@ -46,10 +46,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, link_url, link_key, description } = body
+    const { name, link_url, link_key, description, actions } = body
 
     if (!name || !link_url || !link_key) {
       return NextResponse.json({ error: 'Name, link URL, and link key are required' }, { status: 400 })
+    }
+    
+    // Validate actions if provided
+    if (actions !== undefined) {
+      if (!Array.isArray(actions)) {
+        return NextResponse.json({ error: 'Actions must be an array' }, { status: 400 })
+      }
+      
+      // Validate action structure
+      for (const action of actions) {
+        if (!action.type || !action.config) {
+          return NextResponse.json({ error: 'Each action must have type and config' }, { status: 400 })
+        }
+        
+        const validTypes = ['add_to_segment', 'remove_from_segment', 'trigger_campaign', 'update_contact', 'webhook']
+        if (!validTypes.includes(action.type)) {
+          return NextResponse.json({ error: `Invalid action type: ${action.type}` }, { status: 400 })
+        }
+      }
     }
 
     // Validate URL format
@@ -83,6 +102,7 @@ export async function POST(request: NextRequest) {
         link_url,
         link_key,
         description: description || null,
+        actions: actions || [],
       })
       .select()
       .single()

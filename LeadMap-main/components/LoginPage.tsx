@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { MapPin, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { executeWithRateLimit } from '@/lib/auth/rate-limit'
 
 function LoginPageContent() {
   const [email, setEmail] = useState('')
@@ -46,10 +47,25 @@ function LoginPageContent() {
     setSuccessMessage('') // Clear success message on new login attempt
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      // Use rate-limited authentication with exponential backoff and request deduplication
+      // This ensures scalability for 1,000+ concurrent workers
+      const { data, error } = await executeWithRateLimit(
+        `login:${email}`, // Deduplication key based on email
+        async () => {
+          return await supabase.auth.signInWithPassword({
+            email,
+            password,
+          })
+        },
+        {
+          maxRequests: 100, // Allow 100 requests per minute per user
+          windowMs: 60000, // 1 minute window
+          initialDelay: 1000, // 1 second initial delay
+          maxDelay: 30000, // 30 seconds max delay
+          backoffMultiplier: 2,
+          maxRetries: 3, // Retry up to 3 times on rate limit errors
+        }
+      )
 
       if (error) throw error
 

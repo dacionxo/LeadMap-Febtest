@@ -239,13 +239,19 @@ async function runCronJob(req: NextRequest) {
 
     const duration = Date.now() - startTime
 
-    return createSuccessResponse({
-      processed,
-      errors,
-      total: enrollments.length,
-      duration,
-      errorDetails: errorsList.length > 0 ? errorsList : undefined
-    }, `Processed ${processed} enrollments (${errors} errors)`)
+    return createSuccessResponse(
+      {
+        processed,
+        errors,
+        total: enrollments.length,
+        duration,
+        errorDetails: errorsList.length > 0 ? errorsList : undefined
+      },
+      {
+        message: `Processed ${processed} enrollments (${errors} errors)`,
+        processed
+      }
+    )
   } catch (error) {
     return handleCronError(error, {
       cronJob: 'sms-drip-run',

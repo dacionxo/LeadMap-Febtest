@@ -29,11 +29,11 @@ export interface EmailMessagePayload {
  */
 export class EmailMessage implements Message {
   type = 'EmailMessage'
-  payload: EmailMessagePayload
+  payload: Record<string, unknown>
   metadata?: Record<string, unknown>
 
   constructor(payload: EmailMessagePayload, metadata?: Record<string, unknown>) {
-    this.payload = payload
+    this.payload = payload as Record<string, unknown>
     this.metadata = metadata
   }
 }
@@ -54,14 +54,14 @@ export interface CampaignMessagePayload {
  */
 export class CampaignMessage implements Message {
   type = 'CampaignMessage'
-  payload: CampaignMessagePayload
+  payload: Record<string, unknown>
   metadata?: Record<string, unknown>
 
   constructor(
     payload: CampaignMessagePayload,
     metadata?: Record<string, unknown>
   ) {
-    this.payload = payload
+    this.payload = payload as Record<string, unknown>
     this.metadata = metadata
   }
 }
@@ -82,11 +82,11 @@ export interface SMSMessagePayload {
  */
 export class SMSMessage implements Message {
   type = 'SMSMessage'
-  payload: SMSMessagePayload
+  payload: Record<string, unknown>
   metadata?: Record<string, unknown>
 
   constructor(payload: SMSMessagePayload, metadata?: Record<string, unknown>) {
-    this.payload = payload
+    this.payload = payload as Record<string, unknown>
     this.metadata = metadata
   }
 }

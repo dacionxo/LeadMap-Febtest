@@ -64,7 +64,9 @@ export function getRetryCount(envelope: MessageEnvelope): number {
  * Get max retries from envelope
  */
 export function getMaxRetries(envelope: MessageEnvelope): number {
-  return envelope.metadata.maxRetries || 3
+  return typeof envelope.metadata.maxRetries === 'number' 
+    ? envelope.metadata.maxRetries 
+    : 3
 }
 
 /**

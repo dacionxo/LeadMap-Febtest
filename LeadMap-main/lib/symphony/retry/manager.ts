@@ -75,7 +75,9 @@ export class RetryManager {
     error: Error
   ): RetryResult {
     const messageType = envelope.message.type
-    const currentRetryCount = envelope.metadata.retryCount || 0
+    const currentRetryCount = (typeof envelope.metadata.retryCount === 'number' 
+      ? envelope.metadata.retryCount 
+      : 0)
     const maxRetries = this.strategy.getMaxRetries(messageType)
 
     // Check if error is retryable

@@ -233,7 +233,7 @@ export interface EmailComposerFooterProps {
   sending: boolean
   isValid: boolean
   validationErrors?: EmailValidationError[]
-  sendType?: 'now' | 'schedule'
+  sendType?: 'now' | 'schedule' | 'batch' | 'rss' | 'smart'
 }
 
 export interface EmailSendResponse {

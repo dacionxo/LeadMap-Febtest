@@ -22,12 +22,14 @@ interface TriggerLinkSelectorProps {
   onSelect: (linkKey: string, linkUrl: string) => void
   onClose?: () => void
   baseUrl?: string
+  refreshTrigger?: number | string // Trigger refresh when this value changes
 }
 
 export default function TriggerLinkSelector({
   onSelect,
   onClose,
   baseUrl,
+  refreshTrigger,
 }: TriggerLinkSelectorProps) {
   const [triggerLinks, setTriggerLinks] = useState<TriggerLink[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,7 +39,7 @@ export default function TriggerLinkSelector({
 
   useEffect(() => {
     fetchTriggerLinks()
-  }, [])
+  }, [refreshTrigger]) // Refresh when refreshTrigger changes
 
   const fetchTriggerLinks = async () => {
     try {
@@ -53,7 +55,7 @@ export default function TriggerLinkSelector({
       }
 
       const data = await response.json()
-      setTriggerLinks(data.triggerLinks || [])
+      setTriggerLinks(data.links || [])
     } catch (err) {
       console.error('Error fetching trigger links:', err)
       setError(err instanceof Error ? err.message : 'Failed to load trigger links')

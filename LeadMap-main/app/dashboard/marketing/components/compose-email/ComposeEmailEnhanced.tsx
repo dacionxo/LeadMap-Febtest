@@ -98,6 +98,7 @@ export default function ComposeEmailEnhanced({
   const [showPreview, setShowPreview] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [showTriggerLinkSelector, setShowTriggerLinkSelector] = useState(false)
+  const [triggerLinkRefreshKey, setTriggerLinkRefreshKey] = useState(0)
   const [showDraftSelector, setShowDraftSelector] = useState(false)
   const [showABTestCreator, setShowABTestCreator] = useState(false)
   const [showCampaignSelector, setShowCampaignSelector] = useState(false)
@@ -640,7 +641,10 @@ export default function ComposeEmailEnhanced({
           </button>
 
           <button
-            onClick={() => setShowTriggerLinkSelector(!showTriggerLinkSelector)}
+            onClick={() => {
+              setShowTriggerLinkSelector(true)
+              setTriggerLinkRefreshKey(prev => prev + 1) // Refresh trigger links when opening
+            }}
             className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
             aria-label="Insert trigger link"
           >
@@ -946,6 +950,8 @@ export default function ComposeEmailEnhanced({
                 <TriggerLinkSelector
                   onSelect={handleTriggerLinkInsert}
                   onClose={() => setShowTriggerLinkSelector(false)}
+                  baseUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
+                  refreshTrigger={triggerLinkRefreshKey}
                 />
               </div>
             </div>

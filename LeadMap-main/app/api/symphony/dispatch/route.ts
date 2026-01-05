@@ -95,8 +95,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       {
         success: true,
         messageId: result.messageId,
-        transport: result.transport,
-        queue: result.queue,
+        transport: result.transportName,
+        queue: result.queueName,
         scheduledAt: result.scheduledAt?.toISOString(),
         idempotencyKey: result.idempotencyKey,
       },

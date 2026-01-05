@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Monitor, Smartphone, Tablet, Mail, X, Maximize2 } from 'lucide-react'
-import type { EmailPreviewProps, PreviewDevice, EmailClientType } from '../types'
+import type { EmailPreviewProps, PreviewDeviceOption, EmailClientOption } from '../types'
 
 /**
  * Email Preview Component
@@ -10,13 +10,13 @@ import type { EmailPreviewProps, PreviewDevice, EmailClientType } from '../types
  * Following .cursorrules: TailwindCSS, accessibility, TypeScript interfaces
  */
 
-const DEVICES: PreviewDevice[] = [
+const DEVICES: PreviewDeviceOption[] = [
   { id: 'desktop', label: 'Desktop', icon: Monitor, width: '100%' },
   { id: 'tablet', label: 'Tablet', icon: Tablet, width: '768px' },
   { id: 'mobile', label: 'Mobile', icon: Smartphone, width: '375px' },
 ]
 
-const EMAIL_CLIENTS: EmailClientType[] = [
+const EMAIL_CLIENTS: EmailClientOption[] = [
   { id: 'gmail', label: 'Gmail', className: 'gmail-preview' },
   { id: 'outlook', label: 'Outlook', className: 'outlook-preview' },
   { id: 'apple', label: 'Apple Mail', className: 'apple-preview' },
@@ -33,8 +33,8 @@ export default function EmailPreview({
   onClose,
   onSendTest,
 }: EmailPreviewProps) {
-  const [selectedDevice, setSelectedDevice] = useState<PreviewDevice>(DEVICES[0])
-  const [selectedClient, setSelectedClient] = useState<EmailClientType>(EMAIL_CLIENTS[3]) // Default
+  const [selectedDevice, setSelectedDevice] = useState<PreviewDeviceOption>(DEVICES[0])
+  const [selectedClient, setSelectedClient] = useState<EmailClientOption>(EMAIL_CLIENTS[3]) // Default
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [sendingTest, setSendingTest] = useState(false)
 

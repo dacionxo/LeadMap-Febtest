@@ -127,6 +127,19 @@ export interface EmailBuilderState {
 export type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'email-client'
 export type EmailClientType = 'gmail' | 'outlook' | 'apple-mail' | 'yahoo' | 'generic'
 
+export interface PreviewDeviceOption {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  width: string
+}
+
+export interface EmailClientOption {
+  id: string
+  label: string
+  className: string
+}
+
 export interface EmailPreviewConfig {
   device: PreviewDevice
   emailClient?: EmailClientType

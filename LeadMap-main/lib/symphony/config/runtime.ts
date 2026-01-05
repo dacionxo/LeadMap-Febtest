@@ -3,8 +3,9 @@
  * Runtime configuration updates and management
  */
 
-import type { SymphonyConfig, TransportConfig, RetryStrategyConfig } from '../config'
-import { getConfig, setConfig, validateConfig } from '../config'
+import type { SymphonyConfig } from './config'
+import type { TransportConfig, RetryStrategyConfig } from '@/lib/types/symphony'
+import { getConfig, setConfig, validateConfig } from './config'
 import { ConfigurationError } from '../errors'
 
 /**

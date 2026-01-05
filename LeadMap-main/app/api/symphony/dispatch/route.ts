@@ -98,7 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         transport: result.transportName,
         queue: result.queueName,
         scheduledAt: result.scheduledAt?.toISOString(),
-        idempotencyKey: result.idempotencyKey,
+        ...(options?.idempotencyKey && { idempotencyKey: options.idempotencyKey }),
       },
       { status: 201 }
     )

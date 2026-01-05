@@ -23,7 +23,6 @@ import {
 } from '@/lib/cron/responses'
 import { Worker } from '@/lib/symphony/worker'
 import { SupabaseTransport } from '@/lib/symphony/transports'
-import { getCronSupabaseClient } from '@/lib/cron/database'
 import type { CronJobResult } from '@/lib/types/cron'
 
 export const runtime = 'nodejs'
@@ -68,11 +67,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return authError
     }
 
-    // Get Supabase client
-    const supabase = getCronSupabaseClient()
-
-    // Create transport
-    const transport = new SupabaseTransport('default', supabase)
+    // Create transport (SupabaseTransport uses getServiceRoleClient internally)
+    const transport = new SupabaseTransport('default')
 
     // Create worker
     const worker = new Worker({

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const cronSupabase = getCronSupabaseClient()
 
     // Create transport to get queue depth
-    const transport = new SupabaseTransport(transportName, cronSupabase)
+    const transport = new SupabaseTransport(transportName)
 
     // Get queue statistics
     const queueDepth = await transport.getQueueDepth()

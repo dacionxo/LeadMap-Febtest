@@ -12,7 +12,6 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { HealthMonitor } from '@/lib/symphony/monitoring'
 import { SupabaseTransport } from '@/lib/symphony/transports'
-import { getCronSupabaseClient } from '@/lib/cron/database'
 
 export const runtime = 'nodejs'
 
@@ -37,11 +36,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url)
     const transportName = searchParams.get('transport') || 'default'
 
-    // Get Supabase client
-    const cronSupabase = getCronSupabaseClient()
-
     // Create transport
-    const transport = new SupabaseTransport(transportName, cronSupabase)
+    const transport = new SupabaseTransport(transportName)
 
     // Create health monitor
     const monitor = new HealthMonitor(transport)

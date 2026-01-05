@@ -12,7 +12,6 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { Worker } from '@/lib/symphony/worker'
 import { SupabaseTransport } from '@/lib/symphony/transports'
-import { getCronSupabaseClient } from '@/lib/cron/database'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -58,12 +57,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Body is optional, continue with defaults
     }
 
-    // Get Supabase client
-    const cronSupabase = getCronSupabaseClient()
-
     // Create transport
     const transportName = body?.transport || 'default'
-    const transport = new SupabaseTransport(transportName, cronSupabase)
+    const transport = new SupabaseTransport(transportName)
 
     // Create worker with configuration
     const worker = new Worker({

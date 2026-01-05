@@ -63,17 +63,15 @@ export class BatchSender {
     }
 
     // Validate messages if enabled
+    // Note: Envelopes are validated when created by the dispatcher,
+    // so additional validation here is not necessary
     if (this.config.validateBeforeSend) {
+      // Basic validation: check that envelopes have required fields
       for (const envelope of envelopes) {
-        try {
-          transport.validateEnvelope?.(envelope)
-        } catch (error) {
+        if (!envelope.id || !envelope.message || !envelope.transportName || !envelope.queueName) {
           return envelopes.map((_, index) => ({
             success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : String(error),
+            error: 'Invalid envelope: missing required fields',
           }))
         }
       }

@@ -226,15 +226,15 @@ export class ErrorNotificationManager {
 
     // Send to all registered handlers
     const promises: Promise<void>[] = []
-    for (const handlers of this.handlers.values()) {
-      for (const handler of handlers) {
+    Array.from(this.handlers.values()).forEach((handlers) => {
+      handlers.forEach((handler) => {
         promises.push(
           handler.send(notification).catch((err) => {
             console.error('Failed to send notification:', err)
           })
         )
-      }
-    }
+      })
+    })
 
     await Promise.allSettled(promises)
   }

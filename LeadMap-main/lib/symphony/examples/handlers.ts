@@ -24,6 +24,8 @@ import {
  * Processes email messages and sends them
  */
 export class EmailMessageHandler implements MessageHandler {
+  type = 'EmailMessage'
+
   async handle(
     message: Message,
     context: HandlerContext
@@ -62,6 +64,8 @@ export class EmailMessageHandler implements MessageHandler {
  * Processes campaign messages
  */
 export class CampaignMessageHandler implements MessageHandler {
+  type = 'CampaignMessage'
+
   async handle(
     message: Message,
     context: HandlerContext
@@ -137,6 +141,8 @@ export class CampaignMessageHandler implements MessageHandler {
  * Processes SMS messages and sends them
  */
 export class SMSMessageHandler implements MessageHandler {
+  type = 'SMSMessage'
+
   async handle(
     message: Message,
     context: HandlerContext

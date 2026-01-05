@@ -26,7 +26,6 @@ import {
 export class EmailMessageHandler implements MessageHandler {
   async handle(
     message: Message,
-    envelope: MessageEnvelope,
     context: HandlerContext
   ): Promise<void> {
     if (message.type !== 'EmailMessage') {
@@ -65,7 +64,6 @@ export class EmailMessageHandler implements MessageHandler {
 export class CampaignMessageHandler implements MessageHandler {
   async handle(
     message: Message,
-    envelope: MessageEnvelope,
     context: HandlerContext
   ): Promise<void> {
     if (message.type !== 'CampaignMessage') {
@@ -141,7 +139,6 @@ export class CampaignMessageHandler implements MessageHandler {
 export class SMSMessageHandler implements MessageHandler {
   async handle(
     message: Message,
-    envelope: MessageEnvelope,
     context: HandlerContext
   ): Promise<void> {
     if (message.type !== 'SMSMessage') {

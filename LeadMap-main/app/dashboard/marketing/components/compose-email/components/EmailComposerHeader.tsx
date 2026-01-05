@@ -77,3 +77,4 @@ function EmailComposerHeader({
   )
 }
 
+export default EmailComposerHeader

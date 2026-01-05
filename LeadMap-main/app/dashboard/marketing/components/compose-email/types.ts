@@ -203,9 +203,12 @@ export interface TokenSelectorProps {
 export interface EmailPreviewProps {
   htmlContent: string
   subject: string
+  fromName?: string
+  fromEmail?: string
   previewText?: string
-  config: EmailPreviewConfig
   tokenContext?: TokenContext
+  onClose?: () => void
+  onSendTest?: () => Promise<void>
 }
 
 export interface EmailSettingsPanelProps {

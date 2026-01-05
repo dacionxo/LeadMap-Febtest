@@ -403,7 +403,7 @@ export default function ComposeEmailEnhanced({
       }
 
       setCurrentDraftId(draft.id)
-      trackDraftLoaded({ draftId: draft.id })
+      trackDraftLoaded(draft.id)
       setShowDraftSelector(false)
     } catch (error) {
       console.error('Error loading draft:', error)

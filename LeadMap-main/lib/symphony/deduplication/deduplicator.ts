@@ -3,7 +3,8 @@
  * Prevents duplicate message processing using idempotency keys
  */
 
-import type { MessageEnvelope, SupabaseClient } from '@/lib/types/symphony'
+import type { MessageEnvelope } from '@/lib/types/symphony'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { TransportError } from '../errors'
 
 /**
@@ -51,7 +52,7 @@ export class Deduplicator {
     config?: Partial<DeduplicationConfig>
   ) {
     this.supabase = supabase
-    this.config = { ...getDefaultConfig(), ...config }
+    this.config = { ...defaultConfig, ...config }
   }
 
   /**

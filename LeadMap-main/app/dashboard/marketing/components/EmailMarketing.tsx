@@ -43,7 +43,7 @@ import {
 } from 'recharts'
 import UniboxWrapper from './UniboxWrapper'
 import EmailTemplates from './EmailTemplates'
-import ComposeEmail from './ComposeEmail'
+import ComposeEmailEnhanced from './compose-email/ComposeEmailEnhanced'
 import type { EmailTemplate } from '@/types'
 
 interface Mailbox {
@@ -479,7 +479,21 @@ function EmailMarketingContent() {
 
       {/* Tab Content */}
       {activeTab === 'compose-email' && (
-        <ComposeEmail />
+        <ComposeEmailEnhanced
+          mode="create"
+          onSend={async (composition) => {
+            // Email already sent via handleSend in ComposeEmailEnhanced
+            console.log('Email sent:', composition)
+          }}
+          onSave={async (composition) => {
+            // Draft saved via handleSaveDraft in ComposeEmailEnhanced
+            console.log('Draft saved:', composition)
+          }}
+          onCancel={() => {
+            // Handle cancel if needed
+            console.log('Compose cancelled')
+          }}
+        />
       )}
       {activeTab === 'campaigns' && (
         <EmailCampaigns emails={emails} />

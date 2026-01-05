@@ -199,13 +199,13 @@ export class RuntimeConfigManager {
    * Notify all callbacks of configuration update
    */
   private notifyCallbacks(config: SymphonyConfig): void {
-    for (const callback of this.updateCallbacks) {
+    this.updateCallbacks.forEach((callback) => {
       try {
         callback(config)
       } catch (error) {
         console.error('Error in config update callback:', error)
       }
-    }
+    })
   }
 
   /**

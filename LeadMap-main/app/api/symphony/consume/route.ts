@@ -67,10 +67,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       batchSize: body?.batchSize || 10,
       maxConcurrency: body?.maxConcurrency || 5,
       pollInterval: 1000,
-      messageLimit: body?.messageLimit || null,
+      messageLimit: body?.messageLimit ?? undefined,
       timeLimit: body?.timeLimit || 50000,
-      memoryLimit: null,
-      failureLimit: null,
+      memoryLimit: undefined,
+      failureLimit: undefined,
       logger: {
         info: (message, meta) => {
           console.log(`[Symphony Consume] ${message}`, meta || '')

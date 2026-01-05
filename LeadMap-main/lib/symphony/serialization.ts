@@ -163,7 +163,9 @@ export function deserializeMessageBody(
     return {
       type: body.type,
       payload: body.payload as Record<string, unknown>,
-      ...(body.metadata && { metadata: body.metadata as Record<string, unknown> }),
+      ...(body.metadata && typeof body.metadata === 'object' && body.metadata !== null 
+        ? { metadata: body.metadata as Record<string, unknown> } 
+        : {}),
     }
   } catch (error) {
     if (error instanceof SerializationError) {

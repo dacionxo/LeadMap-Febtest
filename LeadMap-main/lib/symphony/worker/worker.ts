@@ -61,6 +61,14 @@ export class Worker {
   // Event listeners
   private eventListeners: ((event: WorkerEvent) => void)[] = []
 
+  // Static flag to ensure signal handlers are only set up once
+  private static signalHandlersSetup = false
+  private static activeWorkers: Set<Worker> = new Set()
+  private static signalHandlers: {
+    sigterm?: () => void
+    sigint?: () => void
+  } = {}
+
   constructor(options: WorkerOptions) {
     this.transport = options.transport
     this.batchSize = options.batchSize ?? 10
@@ -96,8 +104,11 @@ export class Worker {
       },
     })
 
-    // Setup signal handlers for graceful shutdown
-    this.setupSignalHandlers()
+    // Register this worker instance
+    Worker.activeWorkers.add(this)
+
+    // Setup signal handlers for graceful shutdown (only once globally)
+    Worker.setupGlobalSignalHandlers()
   }
 
   /**
@@ -177,6 +188,9 @@ export class Worker {
     }
 
     this.running = false
+
+    // Remove from active workers set
+    Worker.activeWorkers.delete(this)
   }
 
   /**
@@ -528,21 +542,79 @@ export class Worker {
   }
 
   /**
-   * Setup signal handlers for graceful shutdown
+   * Setup global signal handlers for graceful shutdown
+   * Only sets up handlers once, even if multiple Worker instances are created
+   * Following Mautic patterns for process signal management
    */
-  private setupSignalHandlers(): void {
+  private static setupGlobalSignalHandlers(): void {
+    if (Worker.signalHandlersSetup) {
+      return // Already set up
+    }
+
     if (typeof process === 'undefined') {
       return
     }
 
-    const shutdown = async (signal: string) => {
-      this.logger.info(`Received ${signal}, shutting down gracefully`)
-      await this.stop('signal')
+    // Increase max listeners to prevent warnings (we manage this centrally)
+    if (process.setMaxListeners) {
+      process.setMaxListeners(20) // Allow for multiple workers and other listeners
+    }
+
+    // Create shared shutdown handler that stops all active workers
+    const shutdownAll = async (signal: string) => {
+      console.log(`[Symphony Worker] Received ${signal}, shutting down all workers gracefully`)
+      
+      // Stop all active workers
+      const stopPromises = Array.from(Worker.activeWorkers).map(async (worker) => {
+        try {
+          await worker.stop('signal')
+        } catch (error) {
+          console.error(`[Symphony Worker] Error stopping worker:`, error)
+        }
+      })
+
+      await Promise.allSettled(stopPromises)
+      
+      // Clear active workers set
+      Worker.activeWorkers.clear()
+      
+      // Exit process
       process.exit(0)
     }
 
-    process.on('SIGTERM', () => shutdown('SIGTERM'))
-    process.on('SIGINT', () => shutdown('SIGINT'))
+    // Register handlers only once
+    Worker.signalHandlers.sigterm = () => shutdownAll('SIGTERM')
+    Worker.signalHandlers.sigint = () => shutdownAll('SIGINT')
+
+    process.on('SIGTERM', Worker.signalHandlers.sigterm)
+    process.on('SIGINT', Worker.signalHandlers.sigint)
+
+    Worker.signalHandlersSetup = true
+  }
+
+  /**
+   * Clean up signal handlers (for testing or cleanup scenarios)
+   * Following Mautic patterns for signal handler restoration
+   */
+  private static cleanupSignalHandlers(): void {
+    if (!Worker.signalHandlersSetup) {
+      return
+    }
+
+    if (typeof process === 'undefined') {
+      return
+    }
+
+    if (Worker.signalHandlers.sigterm) {
+      process.removeListener('SIGTERM', Worker.signalHandlers.sigterm)
+    }
+    if (Worker.signalHandlers.sigint) {
+      process.removeListener('SIGINT', Worker.signalHandlers.sigint)
+    }
+
+    Worker.signalHandlersSetup = false
+    Worker.signalHandlers = {}
+    Worker.activeWorkers.clear()
   }
 
   /**

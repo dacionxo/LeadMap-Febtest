@@ -169,7 +169,7 @@ export class EmailArchivingManager {
   }): RetentionPolicy | null {
     const now = new Date()
 
-    for (const policy of this.retentionPolicies.values()) {
+    for (const policy of Array.from(this.retentionPolicies.values())) {
       if (!policy.enabled) continue
 
       // Check folder inclusion

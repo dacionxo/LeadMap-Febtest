@@ -319,4 +319,87 @@ export function classifyRecipient(address: string, config: Partial<RoutingConfig
   return routeResult.isLocal ? 'local' : 'remote'
 }
 
+/**
+ * Recipient route result
+ */
+export interface RecipientRouteResult {
+  route: 'local' | 'remote' | 'error'
+  errorMessage?: string
+  isLocal?: boolean
+}
+
+/**
+ * Resolve recipient route
+ * 
+ * Determines if recipient is local or remote
+ * 
+ * @param address - Email address
+ * @param config - Optional routing configuration
+ * @returns Route result
+ */
+export function resolveRecipientRoute(
+  address: string,
+  config: Partial<RoutingConfig> = {}
+): RecipientRouteResult {
+  const routeResult = routeRecipient(address, config)
+  
+  if (!routeResult.valid) {
+    return {
+      route: 'error',
+      errorMessage: routeResult.error || 'Invalid recipient address',
+    }
+  }
+  
+  return {
+    route: routeResult.isLocal ? 'local' : 'remote',
+    isLocal: routeResult.isLocal,
+  }
+}
+
+/**
+ * Validate recipient
+ * 
+ * Validates recipient and determines routing based on authentication
+ * 
+ * @param address - Email address
+ * @param senderIsAuthenticated - Whether sender is authenticated
+ * @param config - Optional routing configuration
+ * @returns Validation result
+ */
+export function validateRecipient(
+  address: string,
+  senderIsAuthenticated: boolean = false,
+  config: Partial<RoutingConfig> = {}
+): RecipientRouteResult {
+  const routeResult = routeRecipient(address, config)
+  
+  if (!routeResult.valid) {
+    return {
+      route: 'error',
+      errorMessage: routeResult.error || 'Invalid recipient address',
+    }
+  }
+  
+  // If local, allow delivery
+  if (routeResult.isLocal) {
+    return {
+      route: 'local',
+      isLocal: true,
+    }
+  }
+  
+  // If remote, require authentication for relay
+  if (!senderIsAuthenticated && !config.allowRelay) {
+    return {
+      route: 'error',
+      errorMessage: 'Relay not allowed for unauthenticated senders',
+    }
+  }
+  
+  return {
+    route: 'remote',
+    isLocal: false,
+  }
+}
+
 

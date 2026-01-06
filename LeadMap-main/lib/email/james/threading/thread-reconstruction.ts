@@ -330,7 +330,7 @@ export function buildThreads(messages: Array<{ id: string; headers: ThreadHeader
   }
 
   // Find root messages and build threads
-  for (const [messageId, node] of nodeMap) {
+  for (const [messageId, node] of Array.from(nodeMap.entries())) {
     // Root message has no parent (no in-reply-to and not in any references)
     const isRoot = !node.inReplyTo && !isReferencedByOthers(messageId, nodeMap)
 
@@ -354,7 +354,7 @@ export function buildThreads(messages: Array<{ id: string; headers: ThreadHeader
   }
 
   // Handle orphaned messages (messages that reference non-existent parents)
-  for (const [messageId, node] of nodeMap) {
+  for (const [messageId, node] of Array.from(nodeMap.entries())) {
     if (!threads.has(messageId) && !isInAnyThread(messageId, threads)) {
       // Create thread for orphaned message
       calculateDepths(node)
@@ -383,7 +383,7 @@ export function buildThreads(messages: Array<{ id: string; headers: ThreadHeader
  * @returns true if referenced by others
  */
 function isReferencedByOthers(messageId: string, nodeMap: Map<string, ThreadNode>): boolean {
-  for (const node of nodeMap.values()) {
+  for (const node of Array.from(nodeMap.values())) {
     if (node.messageId !== messageId) {
       if (node.inReplyTo === messageId || node.references.includes(messageId)) {
         return true
@@ -401,7 +401,7 @@ function isReferencedByOthers(messageId: string, nodeMap: Map<string, ThreadNode
  * @returns true if in any thread
  */
 function isInAnyThread(messageId: string, threads: Map<string, Thread>): boolean {
-  for (const thread of threads.values()) {
+  for (const thread of Array.from(threads.values())) {
     if (thread.allMessageIds.has(messageId)) {
       return true
     }
@@ -445,7 +445,7 @@ function collectMessageIds(node: ThreadNode, messageIds: Set<string>): void {
  * @returns Thread or null if not found
  */
 export function findThreadForMessage(messageId: string, threads: Map<string, Thread>): Thread | null {
-  for (const thread of threads.values()) {
+  for (const thread of Array.from(threads.values())) {
     if (thread.allMessageIds.has(messageId)) {
       return thread
     }

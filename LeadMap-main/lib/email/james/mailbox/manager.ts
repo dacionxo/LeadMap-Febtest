@@ -197,45 +197,6 @@ export function validateMailboxMetadata(metadata: MailboxMetadata): {
 }
 
 
-/**
- * Parse mailbox path
- * 
- * @param path - Mailbox path
- * @param delimiter - Path delimiter (default: /)
- * @returns Parsed path components
- */
-export function parseMailboxPath(
-  path: string,
-  delimiter: string = '/'
-): {
-  namespace: string | null
-  user: string | null
-  mailboxName: string
-} {
-  const parts = path.split(delimiter)
-  
-  if (parts.length === 1) {
-    return {
-      namespace: null,
-      user: null,
-      mailboxName: parts[0],
-    }
-  }
-  
-  if (parts.length === 2) {
-    return {
-      namespace: null,
-      user: parts[0] || null,
-      mailboxName: parts[1],
-    }
-  }
-  
-  return {
-    namespace: parts[0] || null,
-    user: parts[1] || null,
-    mailboxName: parts.slice(2).join(delimiter),
-  }
-}
 
 /**
  * Get default mailbox capabilities

@@ -152,7 +152,7 @@ export class NodemailerService {
     
     try {
       // Check cache first
-      const cached = transporterCache.get<nodemailer.Transporter>(cacheKey)
+      const cached = transporterCache.get(cacheKey) as nodemailer.Transporter | undefined
       if (cached) {
         transporter = cached
       } else {

@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { extractThreadHeaders, parseReferences, parseInReplyTo, parseMessageId } from '../james/threading/thread-reconstruction'
 
 export interface OutlookMessage {
   id: string
@@ -259,6 +260,21 @@ export function parseOutlookMessage(message: OutlookMessage, mailboxEmail: strin
   // Determine if inbound
   const isInbound = from.email.toLowerCase() !== mailboxEmail.toLowerCase()
 
+  // Parse threading headers using james-project utilities
+  // Outlook provides internetMessageId and inReplyTo, but we need to normalize them
+  const headerMap: Record<string, string | string[]> = {}
+  if (message.internetMessageId) {
+    headerMap['message-id'] = message.internetMessageId
+  }
+  if (message.inReplyTo) {
+    headerMap['in-reply-to'] = message.inReplyTo
+  }
+  
+  const threadHeaders = extractThreadHeaders(headerMap)
+  const inReplyTo = threadHeaders.inReplyTo ? parseInReplyTo(threadHeaders.inReplyTo)[0] || null : null
+  const references = threadHeaders.references ? parseReferences(threadHeaders.references) : []
+  const messageId = threadHeaders.messageId || null
+
   return {
     subject: message.subject || '(No Subject)',
     from,
@@ -269,9 +285,9 @@ export function parseOutlookMessage(message: OutlookMessage, mailboxEmail: strin
     bodyPlain: bodyPlain || message.bodyPreview,
     sentAt: message.sentDateTime,
     receivedAt: message.receivedDateTime,
-    inReplyTo: message.inReplyTo || null,
-    references: [], // Outlook doesn't provide References header directly
-    messageId: message.internetMessageId || null,
+    inReplyTo,
+    references,
+    messageId,
     isInbound
   }
 }

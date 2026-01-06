@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { extractThreadHeaders, parseReferences, parseInReplyTo } from '../james/threading/thread-reconstruction'
 
 export interface GmailMessage {
   id: string
@@ -246,11 +247,22 @@ export function parseGmailMessage(message: GmailMessage): {
   const sentAt = dateHeader ? new Date(dateHeader).toISOString() : new Date(parseInt(message.internalDate)).toISOString()
   const receivedAt = sentAt
 
-  // Parse message IDs
-  const inReplyTo = getHeader('In-Reply-To') || null
-  const referencesHeader = getHeader('References') || ''
-  const references = referencesHeader.split(/\s+/).filter(Boolean)
-  const messageId = getHeader('Message-ID') || null
+  // Parse message IDs using james-project threading utilities
+  const headerMap: Record<string, string | string[]> = {}
+  message.payload.headers?.forEach((h: { name: string; value: string }) => {
+    const key = h.name.toLowerCase()
+    if (headerMap[key]) {
+      const existing = headerMap[key]
+      headerMap[key] = Array.isArray(existing) ? [...existing, h.value] : [existing, h.value]
+    } else {
+      headerMap[key] = h.value
+    }
+  })
+  
+  const threadHeaders = extractThreadHeaders(headerMap)
+  const inReplyTo = threadHeaders.inReplyTo ? parseInReplyTo(threadHeaders.inReplyTo)[0] || null : null
+  const references = threadHeaders.references ? parseReferences(threadHeaders.references) : []
+  const messageId = threadHeaders.messageId || null
 
   return {
     subject: getHeader('Subject') || '(No Subject)',

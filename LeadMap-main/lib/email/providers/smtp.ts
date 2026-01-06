@@ -1,121 +1,131 @@
 /**
  * SMTP Email Provider
- * Uses Node.js nodemailer to send emails via SMTP
+ * Uses nodemailer service wrapper to send emails via SMTP with OAuth2 support
+ * 
+ * Enhanced with james-project SMTP validation and routing patterns
+ * Following .cursorrules: TypeScript best practices, error handling, early returns
  */
 
-import { Mailbox, EmailPayload, SendResult } from '../types'
+import type { Mailbox, EmailPayload, SendResult } from '../types'
+import { sendEmailViaNodemailer } from '../nodemailer-service'
+import { supportsOAuth2, hasOAuth2Tokens } from '../nodemailer/oauth2-config'
 import { createTokenPersistence } from '../token-persistence'
+import { isValidEmailAddress, parseEmailAddress } from '../james/validation/email-address'
+import { validateRecipient, resolveRecipientRoute } from '../james/smtp/routing'
 
+/**
+ * Send email via SMTP using nodemailer service
+ * 
+ * Supports:
+ * - OAuth2 authentication (Gmail, Outlook)
+ * - Username/password authentication (generic SMTP)
+ * - Connection pooling
+ * - Automatic token refresh
+ * - Retry logic with exponential backoff
+ * 
+ * @param mailbox - The mailbox to send from
+ * @param email - Email payload
+ * @returns Send result
+ */
 export async function smtpSend(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
   try {
-    // Create token persistence instance (handles decryption)
-    const tokenPersistence = createTokenPersistence(mailbox)
-    const decryptedMailbox = tokenPersistence.getDecryptedMailbox()
-    
-    if (!decryptedMailbox.smtp_host || !decryptedMailbox.smtp_port || !decryptedMailbox.smtp_username || !decryptedMailbox.smtp_password) {
+    // Early validation
+    if (!mailbox.active) {
       return {
         success: false,
-        error: 'SMTP credentials are incomplete'
+        error: 'Mailbox is not active',
       }
     }
 
-    // Try to use nodemailer if available
-    try {
-      const nodemailer = await import('nodemailer').catch(() => null)
-      
-      if (nodemailer && nodemailer.default) {
-        return await sendViaNodemailer(decryptedMailbox, email, nodemailer.default)
+    // Validate recipient email addresses using james-project patterns
+    if (!isValidEmailAddress(email.to)) {
+      return {
+        success: false,
+        error: `Invalid recipient email address: ${email.to}`,
       }
-    } catch (error) {
-      // Nodemailer not available, fall through to fetch-based SMTP
     }
 
-    // Fallback: Use a simple SMTP implementation via API route
-    // For now, we'll use a server-side API endpoint
-    return await sendViaSMTPAPI(decryptedMailbox, email)
+    // Validate CC and BCC if provided
+    if (email.cc) {
+      const ccAddresses = email.cc.split(',').map(addr => addr.trim())
+      for (const addr of ccAddresses) {
+        if (!isValidEmailAddress(addr)) {
+          return {
+            success: false,
+            error: `Invalid CC email address: ${addr}`,
+          }
+        }
+      }
+    }
+
+    if (email.bcc) {
+      const bccAddresses = email.bcc.split(',').map(addr => addr.trim())
+      for (const addr of bccAddresses) {
+        if (!isValidEmailAddress(addr)) {
+          return {
+            success: false,
+            error: `Invalid BCC email address: ${addr}`,
+          }
+        }
+      }
+    }
+
+    // Validate sender email address
+    const senderEmail = email.fromEmail || mailbox.from_email || mailbox.email
+    if (!isValidEmailAddress(senderEmail)) {
+      return {
+        success: false,
+        error: `Invalid sender email address: ${senderEmail}`,
+      }
+    }
+
+    // Validate recipient routing using james-project patterns
+    const recipientRoute = resolveRecipientRoute(email.to)
+    if (recipientRoute.route === 'error') {
+      return {
+        success: false,
+        error: recipientRoute.errorMessage || 'Invalid recipient routing',
+      }
+    }
+
+    // Validate recipient (check if relay is allowed for remote recipients)
+    const senderIsAuthenticated = supportsOAuth2(mailbox) || !!mailbox.smtp_username
+    const recipientValidation = validateRecipient(email.to, senderIsAuthenticated)
+    if (recipientValidation.route === 'error') {
+      return {
+        success: false,
+        error: recipientValidation.errorMessage || 'Recipient validation failed',
+      }
+    }
+
+    // Check if OAuth2 is supported and available
+    const useOAuth2 = supportsOAuth2(mailbox) && hasOAuth2Tokens(mailbox)
+
+    // For non-OAuth providers, check SMTP credentials
+    if (!useOAuth2) {
+      const tokenPersistence = createTokenPersistence(mailbox)
+      const decryptedMailbox = tokenPersistence.getDecryptedMailbox()
+
+      if (
+        !decryptedMailbox.smtp_host ||
+        !decryptedMailbox.smtp_port ||
+        !decryptedMailbox.smtp_username ||
+        !decryptedMailbox.smtp_password
+      ) {
+        return {
+          success: false,
+          error: 'SMTP credentials are incomplete',
+        }
+      }
+    }
+
+    // Use nodemailer service to send email
+    // The service handles OAuth2, connection pooling, retry logic, etc.
+    return await sendEmailViaNodemailer(mailbox, email)
   } catch (error: any) {
     return {
       success: false,
-      error: error.message || 'Failed to send email via SMTP'
-    }
-  }
-}
-
-async function sendViaNodemailer(
-  mailbox: Mailbox,
-  email: EmailPayload,
-  nodemailer: any
-): Promise<SendResult> {
-  try {
-    const fromEmail = email.fromEmail || mailbox.from_email || mailbox.email
-    const fromName = email.fromName || mailbox.from_name || mailbox.display_name || fromEmail
-
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      host: mailbox.smtp_host,
-      port: mailbox.smtp_port,
-      secure: mailbox.smtp_port === 465, // true for 465, false for other ports
-      auth: {
-        user: mailbox.smtp_username,
-        pass: mailbox.smtp_password
-      },
-      // Add TLS options for better compatibility
-      tls: {
-        rejectUnauthorized: false // Allow self-signed certificates (adjust for production)
-      }
-    })
-
-    // Verify connection
-    await transporter.verify()
-
-    // Send mail
-    const mailOptions: any = {
-      from: `"${fromName}" <${fromEmail}>`,
-      to: email.to,
-      subject: email.subject,
-      html: email.html,
-      headers: {
-        ...(email.headers || {}),
-        ...(email.inReplyTo ? { 'In-Reply-To': email.inReplyTo } : {}),
-        ...(email.references ? { 'References': email.references } : {})
-      }
-    }
-    if (email.cc) mailOptions.cc = email.cc
-    if (email.bcc) mailOptions.bcc = email.bcc
-    if (email.replyTo) mailOptions.replyTo = email.replyTo
-    
-    const info = await transporter.sendMail(mailOptions)
-
-    return {
-      success: true,
-      providerMessageId: info.messageId || `smtp_${Date.now()}`
-    }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to send email via SMTP (nodemailer)'
-    }
-  }
-}
-
-async function sendViaSMTPAPI(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
-  try {
-    // For server-side SMTP, we need to use a dedicated API endpoint
-    // This is a simplified approach - in production, you might want to use
-    // a proper SMTP library or service
-    
-    // Since we can't directly send SMTP from client-side code,
-    // we'll need to proxy through an API endpoint
-    // For now, return an error asking to use nodemailer
-    
-    return {
-      success: false,
-      error: 'SMTP sending requires nodemailer package. Install it with: npm install nodemailer'
-    }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to send email via SMTP'
+      error: error.message || 'Failed to send email via SMTP',
     }
   }
 }

@@ -306,3 +306,4 @@ this.editor = grapesjs.init({
 **Next Phase**: Phase 2 - Core Components Implementation
 
 
+

@@ -84,8 +84,14 @@ export class EmailComposer {
       bodyHtml = bodyHtml?.replace(new RegExp(placeholder, 'g'), replacement)
     }
 
+    // Ensure 'to' is provided (required by CompositionOptions)
+    if (!options.to) {
+      throw new Error('Recipient (to) is required for email composition')
+    }
+
     return {
       ...options,
+      to: options.to, // Explicitly set to ensure it's not undefined
       subject,
       body,
       bodyHtml,
@@ -120,9 +126,15 @@ export class EmailComposer {
       ? `${originalMessage.references} ${originalMessage.messageId}`
       : originalMessage.messageId
 
+    // Ensure 'to' is provided (required by CompositionOptions)
+    const to = originalMessage.from || options.to
+    if (!to) {
+      throw new Error('Recipient (to) is required for email reply')
+    }
+
     return {
       ...options,
-      to: originalMessage.from || options.to,
+      to, // Explicitly set to ensure it's not undefined
       subject,
       body: replyBody,
       inReplyTo,

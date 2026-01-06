@@ -191,7 +191,7 @@ export class VacationResponseManager {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - this.historyExpirationDays)
 
-    for (const [key, record] of this.responseHistory.entries()) {
+    for (const [key, record] of Array.from(this.responseHistory.entries())) {
       if (record.lastSent < cutoffDate) {
         this.responseHistory.delete(key)
       }

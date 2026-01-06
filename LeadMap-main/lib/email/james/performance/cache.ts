@@ -180,7 +180,7 @@ export class Cache<K = string, V = unknown> {
    */
   private cleanExpired(): void {
     const now = Date.now()
-    for (const [key, entry] of this.entries.entries()) {
+    for (const [key, entry] of Array.from(this.entries.entries())) {
       if (now > entry.expiresAt) {
         this.entries.delete(key)
       }
@@ -206,7 +206,7 @@ export class Cache<K = string, V = unknown> {
     let lruTime = Infinity
     const now = Date.now()
 
-    for (const [key, entry] of this.entries.entries()) {
+    for (const [key, entry] of Array.from(this.entries.entries())) {
       // Skip expired entries
       if (now > entry.expiresAt) {
         this.entries.delete(key)

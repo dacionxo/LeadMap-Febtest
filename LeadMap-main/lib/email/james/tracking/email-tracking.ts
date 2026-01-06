@@ -162,7 +162,7 @@ export class EmailTrackingManager {
     let lastClicked: Date | undefined
     let lastReplied: Date | undefined
 
-    for (const events of this.events.values()) {
+    for (const events of Array.from(this.events.values())) {
       for (const event of events) {
         if (event.recipient !== recipient) continue
 

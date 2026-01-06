@@ -106,7 +106,7 @@ export class WebhookListener implements EventListener {
    */
   getEventTypes(): EventType[] {
     const eventTypes = new Set<EventType>()
-    for (const subscription of this.subscriptions.values()) {
+    for (const subscription of Array.from(this.subscriptions.values())) {
       if (subscription.active) {
         for (const eventType of subscription.eventTypes) {
           eventTypes.add(eventType)

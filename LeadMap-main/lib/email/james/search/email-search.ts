@@ -53,9 +53,9 @@ export interface EmailSearchQuery {
 }
 
 /**
- * Search result
+ * Email search result
  */
-export interface SearchResult {
+export interface EmailSearchResult {
   messageIds: string[]
   total: number
   limit: number
@@ -116,9 +116,9 @@ export class EmailSearchEngine {
    * Search emails
    * 
    * @param query - Email search query
-   * @returns Search results
+   * @returns Email search results
    */
-  search(query: EmailSearchQuery): SearchResult {
+  search(query: EmailSearchQuery): EmailSearchResult {
     const operator = query.operator || 'AND'
     const allEntries = Array.from(this.index.values())
 

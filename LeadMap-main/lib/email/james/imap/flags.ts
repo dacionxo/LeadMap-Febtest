@@ -334,18 +334,18 @@ export function mergeFlags(flags1: FlagSet, flags2: FlagSet): FlagSet {
   const merged = createFlagSet()
   
   // Merge system flags
-  for (const flag of flags1.systemFlags) {
+  for (const flag of Array.from(flags1.systemFlags)) {
     merged.systemFlags.add(flag)
   }
-  for (const flag of flags2.systemFlags) {
+  for (const flag of Array.from(flags2.systemFlags)) {
     merged.systemFlags.add(flag)
   }
   
   // Merge user flags
-  for (const flag of flags1.userFlags) {
+  for (const flag of Array.from(flags1.userFlags)) {
     merged.userFlags.add(flag)
   }
-  for (const flag of flags2.userFlags) {
+  for (const flag of Array.from(flags2.userFlags)) {
     merged.userFlags.add(flag)
   }
   
@@ -395,27 +395,27 @@ export function applyFlagUpdate(
   const result = createFlagSet()
   
   // Start with current flags
-  for (const flag of currentFlags.systemFlags) {
+  for (const flag of Array.from(currentFlags.systemFlags)) {
     result.systemFlags.add(flag)
   }
-  for (const flag of currentFlags.userFlags) {
+  for (const flag of Array.from(currentFlags.userFlags)) {
     result.userFlags.add(flag)
   }
   
   if (mode === 'ADD') {
     // Add update flags
-    for (const flag of updateFlags.systemFlags) {
+    for (const flag of Array.from(updateFlags.systemFlags)) {
       result.systemFlags.add(flag)
     }
-    for (const flag of updateFlags.userFlags) {
+    for (const flag of Array.from(updateFlags.userFlags)) {
       result.userFlags.add(flag)
     }
   } else if (mode === 'REMOVE') {
     // Remove update flags
-    for (const flag of updateFlags.systemFlags) {
+    for (const flag of Array.from(updateFlags.systemFlags)) {
       result.systemFlags.delete(flag)
     }
-    for (const flag of updateFlags.userFlags) {
+    for (const flag of Array.from(updateFlags.userFlags)) {
       result.userFlags.delete(flag)
     }
   }

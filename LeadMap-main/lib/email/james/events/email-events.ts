@@ -148,7 +148,7 @@ export function createMessageSentEvent(payload: MessageSentEventPayload): Event 
       timestamp: new Date(),
       source: 'email-service',
     },
-    payload: payload as Record<string, unknown>,
+    payload: payload as unknown as Record<string, unknown>,
   }
 }
 
@@ -163,7 +163,7 @@ export function createMessageDeliveredEvent(payload: MessageDeliveredEventPayloa
       timestamp: new Date(),
       source: 'email-service',
     },
-    payload: payload as Record<string, unknown>,
+    payload: payload as unknown as Record<string, unknown>,
   }
 }
 
@@ -178,7 +178,7 @@ export function createMessageOpenedEvent(payload: MessageOpenedEventPayload): Ev
       timestamp: new Date(),
       source: 'email-service',
     },
-    payload: payload as Record<string, unknown>,
+    payload: payload as unknown as Record<string, unknown>,
   }
 }
 
@@ -193,7 +193,7 @@ export function createMessageClickedEvent(payload: MessageClickedEventPayload): 
       timestamp: new Date(),
       source: 'email-service',
     },
-    payload: payload as Record<string, unknown>,
+    payload: payload as unknown as Record<string, unknown>,
   }
 }
 
@@ -208,7 +208,7 @@ export function createMessageBouncedEvent(payload: MessageBouncedEventPayload): 
       timestamp: new Date(),
       source: 'email-service',
     },
-    payload: payload as Record<string, unknown>,
+    payload: payload as unknown as Record<string, unknown>,
   }
 }
 
@@ -223,7 +223,7 @@ export function createSyncCompletedEvent(payload: SyncCompletedEventPayload): Ev
       timestamp: new Date(),
       source: 'email-service',
     },
-    payload: payload as Record<string, unknown>,
+    payload: payload as unknown as Record<string, unknown>,
   }
 }
 
@@ -238,7 +238,7 @@ export function createOAuthTokenRefreshedEvent(payload: OAuthTokenRefreshedEvent
       timestamp: new Date(),
       source: 'email-service',
     },
-    payload: payload as Record<string, unknown>,
+    payload: payload as unknown as Record<string, unknown>,
   }
 }
 

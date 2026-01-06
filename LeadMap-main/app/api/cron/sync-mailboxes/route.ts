@@ -439,23 +439,14 @@ async function runCronJob(request: NextRequest) {
         const accessToken = await refreshTokenIfNeeded(mailbox, supabase, now)
 
         if (!accessToken) {
-          // Check if refresh failed due to invalid_grant (needs re-authentication)
-          const refreshResult = await refreshToken(providerMailbox, {
-            supabase,
-            persistToDatabase: false,
-            autoRetry: false,
-          })
-          
-          const errorMessage = refreshResult.errorCode === 'invalid_grant'
-            ? 'OAuth token expired. Please re-authenticate this mailbox.'
-            : 'Access token is missing and could not be refreshed'
-          
+          // Access token refresh already failed in refreshTokenIfNeeded
+          // The error message was already logged and mailbox was marked with last_error
           results.push({
             mailboxId: mailbox.id,
             email: mailbox.email,
             provider: mailbox.provider,
             status: 'failed',
-            error: errorMessage,
+            error: 'Access token is missing and could not be refreshed. Check mailbox last_error for details.',
           })
           continue
         }

@@ -139,7 +139,14 @@ export function decrypt(encryptedText: string): string {
     return decrypted
   } catch (error: any) {
     // If decryption fails, assume it's plain text (for migration period)
-    console.warn('Decryption failed, assuming plain text:', error.message)
+    // Only log if it's not a common decryption error (to reduce noise)
+    const isCommonError = error.message?.includes('Unsupported state') || 
+                          error.message?.includes('unable to authenticate') ||
+                          error.message?.includes('bad decrypt')
+    
+    if (!isCommonError) {
+      console.warn('Decryption failed, assuming plain text:', error.message)
+    }
     return encryptedText
   }
 }

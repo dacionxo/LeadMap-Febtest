@@ -123,8 +123,11 @@ async function refreshGmailTokenInternal(
       const errorCode = data.error || 'UNKNOWN_ERROR'
       const errorDescription = data.error_description || data.error || `Failed to refresh Gmail token (${resp.status})`
       
-      // Determine if error is retryable
-      const shouldRetry = resp.status === 429 || resp.status >= 500 || resp.status === 408
+      // invalid_grant means refresh token is invalid/expired/revoked - user needs to re-authenticate
+      const isInvalidGrant = errorCode === 'invalid_grant'
+      
+      // Determine if error is retryable (don't retry invalid_grant)
+      const shouldRetry = !isInvalidGrant && (resp.status === 429 || resp.status >= 500 || resp.status === 408)
       
       console.error('Gmail token refresh failed:', {
         status: resp.status,
@@ -132,7 +135,8 @@ async function refreshGmailTokenInternal(
         error_description: errorDescription,
         mailbox_id: mailbox.id,
         mailbox_email: mailbox.email,
-        shouldRetry
+        shouldRetry,
+        needsReAuth: isInvalidGrant
       })
 
       return {

@@ -222,7 +222,28 @@ async function refreshTokenIfNeeded(
     accessToken = refreshResult.accessToken
     console.log(`[Sync Mailboxes] Successfully refreshed ${mailbox.provider} access token for mailbox ${mailbox.id}`)
   } else {
+    const errorCode = refreshResult.errorCode || 'UNKNOWN'
+    const isInvalidGrant = errorCode === 'invalid_grant'
+    
     console.error(`[Sync Mailboxes] Failed to refresh ${mailbox.provider} access token for mailbox ${mailbox.id}:`, refreshResult.error)
+    
+    // If refresh token is invalid (invalid_grant), mark mailbox as needing re-authentication
+    if (isInvalidGrant && supabase) {
+      try {
+        await supabase
+          .from('mailboxes')
+          .update({
+            last_error: `OAuth token expired. Please re-authenticate: ${refreshResult.error}`,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', mailbox.id)
+        
+        console.warn(`[Sync Mailboxes] Marked mailbox ${mailbox.id} (${mailbox.email}) as needing re-authentication due to invalid refresh token`)
+      } catch (dbError: any) {
+        console.error(`[Sync Mailboxes] Failed to update mailbox error status:`, dbError.message)
+      }
+    }
+    
     return null
   }
 
@@ -418,12 +439,23 @@ async function runCronJob(request: NextRequest) {
         const accessToken = await refreshTokenIfNeeded(mailbox, supabase, now)
 
         if (!accessToken) {
+          // Check if refresh failed due to invalid_grant (needs re-authentication)
+          const refreshResult = await refreshToken(providerMailbox, {
+            supabase,
+            persistToDatabase: false,
+            autoRetry: false,
+          })
+          
+          const errorMessage = refreshResult.errorCode === 'invalid_grant'
+            ? 'OAuth token expired. Please re-authenticate this mailbox.'
+            : 'Access token is missing and could not be refreshed'
+          
           results.push({
             mailboxId: mailbox.id,
             email: mailbox.email,
             provider: mailbox.provider,
             status: 'failed',
-            error: 'Access token is missing and could not be refreshed',
+            error: errorMessage,
           })
           continue
         }

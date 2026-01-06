@@ -16,6 +16,7 @@ import { SystemFlag, FlagSet, parseFlags, parseSystemFlag, hasFlag } from './fla
  */
 export type SearchCriterionType =
   | 'ALL'
+  | 'AND'
   | 'ANSWERED'
   | 'BCC'
   | 'BEFORE'

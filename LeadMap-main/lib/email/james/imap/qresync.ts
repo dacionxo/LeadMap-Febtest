@@ -8,6 +8,8 @@
  * @see james-project/protocols/imap/src/main/java/org/apache/james/imap/processor/fetch/FetchProcessor.java
  */
 
+import { createCondStoreManager, CondStoreManager } from './condstore'
+
 /**
  * QRESYNC capability
  */
@@ -67,12 +69,14 @@ export interface QResyncResult {
  */
 export class QResyncManager {
   private uidValidity: UidValidity = 0
-  private condStoreManager: ReturnType<typeof import('./condstore').createCondStoreManager>
+  private condStoreManager: CondStoreManager
 
-  constructor(condStoreManager?: ReturnType<typeof import('./condstore').createCondStoreManager>) {
+  constructor(condStoreManager?: CondStoreManager) {
     // In a real implementation, this would use the actual CondStoreManager
     // For now, we'll create a placeholder
     this.uidValidity = Date.now() // Use timestamp as initial UID validity
+    // Initialize condStoreManager - create default if not provided
+    this.condStoreManager = condStoreManager || createCondStoreManager()
   }
 
   /**
@@ -196,7 +200,7 @@ export class QResyncManager {
  * @returns QRESYNC manager instance
  */
 export function createQResyncManager(
-  condStoreManager?: ReturnType<typeof import('./condstore').createCondStoreManager>
+  condStoreManager?: CondStoreManager
 ): QResyncManager {
   return new QResyncManager(condStoreManager)
 }

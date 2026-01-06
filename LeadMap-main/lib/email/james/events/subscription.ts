@@ -96,7 +96,7 @@ export class SubscriptionManager {
     this.listener = {
       getEventTypes: () => {
         const eventTypes = new Set<EventType>()
-        for (const subscription of this.subscriptions.values()) {
+        for (const subscription of Array.from(this.subscriptions.values())) {
           if (subscription.active && subscription.filter.eventTypes) {
             for (const eventType of subscription.filter.eventTypes) {
               eventTypes.add(eventType)

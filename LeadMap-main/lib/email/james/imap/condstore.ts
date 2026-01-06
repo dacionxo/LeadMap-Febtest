@@ -118,7 +118,7 @@ export class CondStoreManager {
    */
   getChangedUids(changedSince: ModSeq): number[] {
     const changed: number[] = []
-    for (const [uid, modseq] of this.perMessageModSeq.entries()) {
+    for (const [uid, modseq] of Array.from(this.perMessageModSeq.entries())) {
       if (modseq > changedSince) {
         changed.push(uid)
       }

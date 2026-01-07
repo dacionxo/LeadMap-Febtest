@@ -314,24 +314,55 @@ export async function POST(request: NextRequest) {
     const processedEmails = syncResult.messagesProcessed
 
     // Update mailbox with latest historyId and last sync time
-    // Prefer latestHistoryId from sync result (from History API), fallback to webhook historyId
-    const latestHistoryId = syncResult.latestHistoryId || historyId
+    // CRITICAL: Following Realtime-Gmail-Listener pattern
+    // - If History API succeeded: use latestHistoryId from API response
+    // - If History API failed (historyId too old): use historyId from notification to reset baseline
+    // - This ensures we don't get stuck with a stale historyId
+    let latestHistoryId: string | undefined = undefined
     
-    if (latestHistoryId || !syncResult.success) {
-      const updateData: any = {
-        last_synced_at: new Date().toISOString(),
-        last_error: syncResult.success ? null : syncResult.errors?.[0]?.error || null // Clear error on success, set on failure
-      }
+    if (syncResult.latestHistoryId) {
+      // History API succeeded - use the latest historyId from API response
+      latestHistoryId = syncResult.latestHistoryId
+    } else if (historyId && !syncResult.success) {
+      // History API failed - check if it was a "historyId too old" error
+      const hasStaleHistoryError = syncResult.errors?.some(e => 
+        e.error?.includes('too old') || 
+        e.error?.includes('History not found') ||
+        e.error?.includes('404')
+      )
       
-      if (latestHistoryId) {
-        updateData.watch_history_id = latestHistoryId
-        console.log(`[Gmail Webhook] Updating mailbox ${mailbox.id} with latest historyId: ${latestHistoryId}`)
+      if (hasStaleHistoryError) {
+        // HistoryId from notification is too old - use it to reset baseline
+        // This prevents getting stuck with an old historyId
+        console.warn(`[Gmail Webhook] History ID ${syncHistoryId} is too old. Resetting baseline to notification historyId: ${historyId}`)
+        latestHistoryId = historyId
       }
-      
-      await supabase
-        .from('mailboxes')
-        .update(updateData)
-        .eq('id', mailbox.id)
+    } else if (historyId) {
+      // No historyId from sync but we have one from notification - use it
+      latestHistoryId = historyId
+    }
+    
+    // Always update last_synced_at and error status
+    // Update watch_history_id only if we have a valid historyId
+    const updateData: any = {
+      last_synced_at: new Date().toISOString(),
+      last_error: syncResult.success ? null : syncResult.errors?.[0]?.error || null // Clear error on success, set on failure
+    }
+    
+    if (latestHistoryId) {
+      updateData.watch_history_id = latestHistoryId
+      console.log(`[Gmail Webhook] Updating mailbox ${mailbox.id} with historyId: ${latestHistoryId}`)
+    }
+    
+    // Update mailbox - use direct Supabase update (faster than executeUpdateOperation for webhooks)
+    const { error: updateError } = await supabase
+      .from('mailboxes')
+      .update(updateData)
+      .eq('id', mailbox.id)
+    
+    if (updateError) {
+      console.error(`[Gmail Webhook] Failed to update mailbox ${mailbox.id}:`, updateError)
+      // Don't return error - webhook was processed, just DB update failed
     }
 
     // Log webhook processing for monitoring

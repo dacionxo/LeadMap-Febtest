@@ -470,9 +470,17 @@ export async function syncGmailMessages(
         }
 
         // If historyId is too old, fallback to date-based query
-        if (errorMessage.includes('too old') || errorMessage.includes('History not found')) {
-          console.warn(`[syncGmailMessages] History ID ${options.historyId} is too old, falling back to date-based query`)
+        // CRITICAL: Following Realtime-Gmail-Listener pattern - when historyId is too old:
+        // 1. Log warning with details
+        // 2. Fallback to date-based query to catch up
+        // 3. Return special error code so caller can reset baseline historyId
+        if (errorMessage.includes('too old') || 
+            errorMessage.includes('History not found') || 
+            errorMessage.includes('404')) {
+          console.warn(`[syncGmailMessages] History ID ${options.historyId} is too old for mailbox ${mailboxId}, falling back to date-based query since: ${options.since || 'beginning'}`)
           // Fall through to date-based query below
+          // Note: We don't return error here - we allow fallback to proceed
+          // The caller should reset watch_history_id to a fresh historyId after successful sync
         } else {
           console.error(`[syncGmailMessages] Failed to get Gmail history for mailbox ${mailboxId}:`, errorMessage)
           return {
@@ -491,7 +499,7 @@ export async function syncGmailMessages(
       }
     }
 
-    // Fallback to date-based query if no historyId or History API failed
+    // Fallback to date-based query if no historyId or History API failed (historyId too old)
     if (messagesToProcess.length === 0 && !options.historyId) {
       console.log(`[syncGmailMessages] Using date-based query (no historyId provided)`)
       

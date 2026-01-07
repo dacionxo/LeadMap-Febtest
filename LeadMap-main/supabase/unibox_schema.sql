@@ -252,10 +252,12 @@ CREATE POLICY "Users can update their own email messages"
   USING (auth.uid() = user_id OR auth.role() = 'service_role');
 
 -- Email Participants policies
+-- CRITICAL: Allow service_role to bypass RLS for cron jobs and webhooks
 DROP POLICY IF EXISTS "Users can view email participants for their messages" ON email_participants;
 CREATE POLICY "Users can view email participants for their messages"
   ON email_participants FOR SELECT
   USING (
+    auth.role() = 'service_role' OR
     EXISTS (
       SELECT 1 FROM email_messages
       WHERE email_messages.id = email_participants.message_id
@@ -267,6 +269,7 @@ DROP POLICY IF EXISTS "Users can insert email participants for their messages" O
 CREATE POLICY "Users can insert email participants for their messages"
   ON email_participants FOR INSERT
   WITH CHECK (
+    auth.role() = 'service_role' OR
     EXISTS (
       SELECT 1 FROM email_messages
       WHERE email_messages.id = email_participants.message_id

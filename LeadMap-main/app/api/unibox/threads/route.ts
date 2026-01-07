@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * pageSize
 
     // Build query
+    // IMPORTANT: Only show threads that have at least one inbound message
+    // Unibox should only display received/incoming emails, not sent emails
     let query = supabase
       .from('email_threads')
       .select(`
@@ -75,6 +77,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: threads, error, count } = await query
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/unibox/threads/route.ts:77',message:'Threads query result',data:{threadCount:threads?.length||0,count,error:error?.message,mailboxId,status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
 
     if (error) {
       console.error('Error fetching threads:', error)
@@ -82,10 +87,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform threads to include unread count and last message preview
-    const transformedThreads = (threads || []).map((thread: any) => {
-      const messages = thread.email_messages || []
-      const lastMessage = messages[messages.length - 1]
-      const unreadCount = messages.filter((m: any) => !m.read && m.direction === 'inbound').length
+    // FILTER: Only include threads that have at least one inbound message
+    // Unibox should only display received/incoming emails, not sent emails
+    const transformedThreads = (threads || [])
+      .map((thread: any) => {
+        const messages = thread.email_messages || []
+        const inboundMessages = messages.filter((m: any) => m.direction === 'inbound')
+        
+        // Skip threads with no inbound messages (only show received emails)
+        if (inboundMessages.length === 0) {
+          return null
+        }
+        
+        const lastMessage = messages[messages.length - 1]
+        const unreadCount = inboundMessages.filter((m: any) => !m.read).length
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/unibox/threads/route.ts:87',message:'Thread transformation',data:{threadId:thread.id,messageCount:messages.length,inboundCount:inboundMessages.length,unreadCount,lastMessageDirection:lastMessage?.direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
 
       return {
         id: thread.id,
@@ -113,7 +131,8 @@ export async function GET(request: NextRequest) {
         createdAt: thread.created_at,
         updatedAt: thread.updated_at
       }
-    })
+      })
+      .filter((thread: any) => thread !== null)  // Remove threads with no inbound messages
 
     return NextResponse.json({
       threads: transformedThreads,

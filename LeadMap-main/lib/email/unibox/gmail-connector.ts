@@ -328,6 +328,9 @@ export async function syncGmailMessages(
   let threadsUpdated = 0
 
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:330',message:'syncGmailMessages started',data:{mailboxId,userId,since:options.since,maxMessages:options.maxMessages},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     // Build query for fetching messages
     let query = options.since 
       ? `newer_than:${Math.floor(new Date(options.since).getTime() / 1000)}`
@@ -339,6 +342,9 @@ export async function syncGmailMessages(
       maxResults: options.maxMessages || 100,
       labelIds: ['INBOX']
     })
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:343',message:'listGmailMessages result',data:{success:listResult.success,messageCount:listResult.messages?.length||0,error:listResult.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
 
     if (!listResult.success || !listResult.messages) {
       return {
@@ -364,12 +370,19 @@ export async function syncGmailMessages(
         const parsed = parseGmailMessage(message)
 
         // Check if message already exists
-        const { data: existing } = await supabase
+        // Use maybeSingle() to avoid PGRST116 error when message doesn't exist
+        const { data: existing, error: existingError } = await supabase
           .from('email_messages')
           .select('id, thread_id')
           .eq('mailbox_id', mailboxId)
           .eq('provider_message_id', msg.id)
-          .single()
+          .maybeSingle()
+
+        if (existingError) {
+          console.error(`[syncGmailMessages] Error checking for existing message ${msg.id}:`, existingError)
+          errors.push({ messageId: msg.id, error: `Failed to check existing message: ${existingError.message}` })
+          continue
+        }
 
         if (existing) {
           // Skip duplicates
@@ -377,14 +390,21 @@ export async function syncGmailMessages(
         }
 
         // Find or create thread
+        // Use maybeSingle() to avoid PGRST116 error when thread doesn't exist
         let threadId: string
-        const { data: existingThread } = await supabase
+        const { data: existingThread, error: threadCheckError } = await supabase
           .from('email_threads')
           .select('id')
           .eq('user_id', userId)
           .eq('mailbox_id', mailboxId)
           .eq('provider_thread_id', message.threadId)
-          .single()
+          .maybeSingle()
+
+        if (threadCheckError) {
+          console.error(`[syncGmailMessages] Error checking for existing thread ${message.threadId}:`, threadCheckError)
+          errors.push({ messageId: msg.id, error: `Failed to check existing thread: ${threadCheckError.message}` })
+          continue
+        }
 
         if (existingThread) {
           threadId = existingThread.id
@@ -406,7 +426,16 @@ export async function syncGmailMessages(
             .single()
 
           if (threadError || !newThread) {
-            errors.push({ messageId: msg.id, error: `Failed to create thread: ${threadError?.message}` })
+            console.error(`[syncGmailMessages] Failed to create thread for message ${msg.id}:`, {
+              error: threadError,
+              messageId: msg.id,
+              providerThreadId: message.threadId,
+              mailboxId,
+              userId,
+              subject: parsed.subject,
+              errorDetails: threadError?.details || threadError?.hint || threadError?.message
+            })
+            errors.push({ messageId: msg.id, error: `Failed to create thread: ${threadError?.message || 'Unknown error'}` })
             continue
           }
 
@@ -415,13 +444,24 @@ export async function syncGmailMessages(
         }
 
         // Determine direction (inbound if not from this mailbox)
-        const { data: mailbox } = await supabase
+        // Use maybeSingle() to avoid PGRST116 error (though mailbox should exist)
+        const { data: mailbox, error: mailboxError } = await supabase
           .from('mailboxes')
           .select('email')
           .eq('id', mailboxId)
-          .single()
+          .maybeSingle()
 
-        const isInbound = parsed.from.email.toLowerCase() !== mailbox?.email?.toLowerCase()
+        if (mailboxError || !mailbox) {
+          console.error(`[syncGmailMessages] Error fetching mailbox ${mailboxId}:`, mailboxError)
+          errors.push({ messageId: msg.id, error: `Failed to fetch mailbox: ${mailboxError?.message || 'Mailbox not found'}` })
+          continue
+        }
+
+        const isInbound = parsed.from.email.toLowerCase() !== mailbox.email.toLowerCase()
+        const direction = isInbound ? 'inbound' : 'outbound'
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:424',message:'Message direction determined',data:{messageId:msg.id,fromEmail:parsed.from.email,mailboxEmail:mailbox?.email,isInbound,direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
 
         // Insert message
         const { data: insertedMessage, error: messageError } = await supabase
@@ -430,7 +470,7 @@ export async function syncGmailMessages(
             thread_id: threadId,
             user_id: userId,
             mailbox_id: mailboxId,
-            direction: isInbound ? 'inbound' : 'outbound',
+            direction,
             provider_message_id: msg.id,
             subject: parsed.subject,
             snippet: message.snippet,
@@ -447,9 +487,25 @@ export async function syncGmailMessages(
           .single()
 
         if (messageError || !insertedMessage) {
-          errors.push({ messageId: msg.id, error: `Failed to insert message: ${messageError?.message}` })
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:449',message:'Message insert failed',data:{messageId:msg.id,error:messageError?.message,direction,threadId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
+          console.error(`[syncGmailMessages] Failed to insert message ${msg.id}:`, {
+            error: messageError,
+            messageId: msg.id,
+            threadId,
+            direction,
+            mailboxId,
+            userId,
+            subject: parsed.subject,
+            errorDetails: messageError?.details || messageError?.hint || messageError?.message
+          })
+          errors.push({ messageId: msg.id, error: `Failed to insert message: ${messageError?.message || 'Unknown error'}` })
           continue
         }
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:454',message:'Message inserted successfully',data:{messageId:msg.id,insertedId:insertedMessage.id,direction,threadId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
 
         // Insert participants
         const participants = [

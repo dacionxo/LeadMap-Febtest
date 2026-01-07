@@ -353,29 +353,40 @@ export async function syncIMAPMessages(
         let providerThreadId = parsed.messageId || `thread_${uid}`
         if (parsed.inReplyTo) {
           // Try to find existing thread by in-reply-to
-          const { data: existingThread } = await supabase
+          // Use maybeSingle() to avoid PGRST116 error when thread doesn't exist
+          const { data: existingThread, error: replyToCheckError } = await supabase
             .from('email_threads')
             .select('provider_thread_id')
             .eq('user_id', userId)
             .eq('mailbox_id', mailboxId)
             .ilike('provider_thread_id', `%${parsed.inReplyTo}%`)
             .limit(1)
-            .single()
+            .maybeSingle()
 
-          if (existingThread) {
+          if (replyToCheckError) {
+            console.warn(`[syncIMAPMessages] Error checking for thread by in-reply-to ${parsed.inReplyTo}:`, replyToCheckError)
+            // Continue with original thread ID, not a fatal error
+          } else if (existingThread) {
             providerThreadId = existingThread.provider_thread_id || providerThreadId
           }
         }
 
         // Find or create thread
+        // Use maybeSingle() to avoid PGRST116 error when thread doesn't exist
         let threadId: string
-        const { data: existingThread } = await supabase
+        const { data: existingThread, error: threadCheckError } = await supabase
           .from('email_threads')
           .select('id')
           .eq('user_id', userId)
           .eq('mailbox_id', mailboxId)
           .eq('provider_thread_id', providerThreadId)
-          .single()
+          .maybeSingle()
+
+        if (threadCheckError) {
+          console.error(`[syncIMAPMessages] Error checking for existing thread ${providerThreadId}:`, threadCheckError)
+          errors.push({ messageId: providerMessageId, error: `Failed to check existing thread: ${threadCheckError.message}` })
+          continue
+        }
 
         if (existingThread) {
           threadId = existingThread.id

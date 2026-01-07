@@ -432,9 +432,8 @@ export async function syncGmailMessages(
   let threadsUpdated = 0
 
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:330',message:'syncGmailMessages started',data:{mailboxId,userId,since:options.since,historyId:options.historyId,maxMessages:options.maxMessages},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    // Debug logging removed - was causing timeouts to non-existent local server
+    // Use console.log for debugging instead
 
     let messagesToProcess: Array<{ id: string; threadId: string }> = []
     let latestHistoryId: string | undefined = undefined
@@ -648,9 +647,7 @@ export async function syncGmailMessages(
 
         const isInbound = parsed.from.email.toLowerCase() !== mailbox.email.toLowerCase()
         const direction = isInbound ? 'inbound' : 'outbound'
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:424',message:'Message direction determined',data:{messageId:msg.id,fromEmail:parsed.from.email,mailboxEmail:mailbox?.email,isInbound,direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
+        // Debug logging removed - was causing timeouts to non-existent local server
 
         // Insert message
         const { data: insertedMessage, error: messageError } = await supabase
@@ -676,9 +673,7 @@ export async function syncGmailMessages(
           .single()
 
         if (messageError || !insertedMessage) {
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:449',message:'Message insert failed',data:{messageId:msg.id,error:messageError?.message,direction,threadId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-          // #endregion
+          // Debug logging removed - was causing timeouts to non-existent local server
           console.error(`[syncGmailMessages] Failed to insert message ${msg.id}:`, {
             error: messageError,
             messageId: msg.id,

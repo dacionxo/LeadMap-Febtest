@@ -19,7 +19,8 @@ When creating the Pub/Sub topic `gmail-notifications`, here are the recommended 
 #### 3. **Enable ingestion** - ✅ **YES (Recommended)**
    - **Reason**: Provides message ordering and exactly-once delivery guarantees
    - **Benefit**: Prevents duplicate email processing (following james-project reliability patterns)
-   - **Action**: Check this option
+   - **Ingestion Source**: **None/Default** (Gmail API publishes directly to topic)
+   - **Action**: Check this option, but **do NOT select an ingestion source** - Gmail API publishes directly
 
 #### 4. **Enable Message Retention** - ✅ **YES (Recommended)**
    - **Reason**: Keeps messages available for 7 days even if webhook is temporarily down

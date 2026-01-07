@@ -223,16 +223,31 @@ export async function getGmailHistory(
       
       // Process history records - following reference pattern
       // Reference: event-handlers.gs lines 102-116
+      // Note: Reference uses record.messages (Apps Script), but REST API uses messagesAdded
+      // Gmail API docs: https://developers.google.com/gmail/api/reference/rest/v1/users.history/list
       const history = historyData.history || []
       for (const record of history) {
-        // Get messagesAdded array from history record
+        // Get messagesAdded array from history record (REST API structure)
+        // Each item has: { message: { id: string, threadId: string } }
         const messagesAdded = record.messagesAdded || []
-        for (const msg of messagesAdded) {
-          // Extract message ID and threadId
-          if (msg.message && msg.message.id) {
+        for (const msgAdded of messagesAdded) {
+          // Extract message ID and threadId from message object
+          if (msgAdded.message && msgAdded.message.id) {
             messageIds.push({
-              id: msg.message.id,
-              threadId: msg.message.threadId || ''
+              id: msgAdded.message.id,
+              threadId: msgAdded.message.threadId || ''
+            })
+          }
+        }
+        
+        // Also check for legacy 'messages' field (for compatibility)
+        // Some API versions or Apps Script wrappers may use this
+        const messages = record.messages || []
+        for (const msg of messages) {
+          if (msg.id && !messageIds.find(m => m.id === msg.id)) {
+            messageIds.push({
+              id: msg.id,
+              threadId: msg.threadId || ''
             })
           }
         }

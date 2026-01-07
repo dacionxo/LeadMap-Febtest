@@ -288,16 +288,16 @@ async function syncGmailMailbox(
   
   // Update mailbox with latest historyId if returned from sync
   if (syncResult.latestHistoryId) {
-    await supabase
+    const { error: updateError } = await supabase
       .from('mailboxes')
       .update({ watch_history_id: syncResult.latestHistoryId })
       .eq('id', mailbox.id)
-      .then(() => {
-        console.log(`[Sync Mailboxes] Updated mailbox ${mailbox.id} with latest historyId: ${syncResult.latestHistoryId}`)
-      })
-      .catch((error) => {
-        console.error(`[Sync Mailboxes] Failed to update historyId for mailbox ${mailbox.id}:`, error)
-      })
+    
+    if (updateError) {
+      console.error(`[Sync Mailboxes] Failed to update historyId for mailbox ${mailbox.id}:`, updateError)
+    } else {
+      console.log(`[Sync Mailboxes] Updated mailbox ${mailbox.id} with latest historyId: ${syncResult.latestHistoryId}`)
+    }
   }
 
   if (!syncResult.success) {

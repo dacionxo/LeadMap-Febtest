@@ -36,7 +36,9 @@ When creating the Pub/Sub topic `gmail-notifications`, here are the recommended 
 #### 6. **Backup Message data to Cloud Storage** - ⚠️ **OPTIONAL**
    - **Reason**: Provides long-term backup of notifications, but not required
    - **Benefit**: Can recover from data loss, audit trail
+   - **Bucket Name**: If enabled, specify your bucket (e.g., `gmail-notifications2`)
    - **Action**: Check if you want backup/audit, skip if not needed
+   - **Note**: See `docs/GMAIL_CLOUD_STORAGE_BACKUP_SETUP.md` for detailed setup
 
 ## Recommended Configuration Summary
 

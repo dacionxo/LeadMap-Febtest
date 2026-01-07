@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { createGmailAuth } from '@/lib/email/auth/gmail'
 import { encryptMailboxTokens } from '@/lib/email/encryption'
 import { AuthenticationError, getUserFriendlyErrorMessage } from '@/lib/email/errors'
+import { setupGmailWatch } from '@/lib/email/providers/gmail-watch'
+import { decryptMailboxTokens } from '@/lib/email/encryption'
 
 export const runtime = 'nodejs'
 
@@ -126,6 +128,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=database_error`
       )
+    }
+
+    // Set up Gmail Watch for push notifications (following james-project patterns)
+    // This enables real-time email delivery via webhooks
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
+      const webhookUrl = `${baseUrl}/api/webhooks/gmail`
+      
+      // Get the mailbox ID that was just created/updated
+      const { data: savedMailbox } = await supabase
+        .from('mailboxes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('email', email)
+        .eq('provider', 'gmail')
+        .single()
+
+      if (savedMailbox?.id) {
+        // Decrypt tokens for Watch setup (setupGmailWatch needs decrypted access token)
+        const decrypted = decryptMailboxTokens({
+          access_token: encrypted.access_token || access_token,
+          refresh_token: encrypted.refresh_token || refresh_token,
+          smtp_password: null
+        })
+
+        const watchResult = await setupGmailWatch({
+          mailboxId: savedMailbox.id,
+          accessToken: decrypted.access_token || access_token,
+          refreshToken: decrypted.refresh_token || refresh_token,
+          webhookUrl
+        })
+
+        if (!watchResult.success) {
+          console.warn(`[Gmail OAuth] Failed to set up Gmail Watch for mailbox ${savedMailbox.id}:`, watchResult.error)
+          // Don't fail the OAuth flow if Watch setup fails - sync cron will still work
+        } else {
+          console.log(`[Gmail OAuth] Gmail Watch set up successfully for mailbox ${savedMailbox.id}, expires: ${watchResult.expiration}`)
+        }
+      }
+    } catch (watchError: any) {
+      console.error('[Gmail OAuth] Error setting up Gmail Watch:', watchError)
+      // Don't fail the OAuth flow if Watch setup fails - sync cron will still work
     }
 
     // Redirect back to emails page

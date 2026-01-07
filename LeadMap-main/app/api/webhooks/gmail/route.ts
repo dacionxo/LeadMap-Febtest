@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchGmailMessage, parseGmailMessage, refreshGmailToken } from '@/lib/email/providers/gmail-watch'
+import { syncGmailMessages } from '@/lib/email/unibox/gmail-connector'
+import { decryptMailboxTokens } from '@/lib/email/encryption'
 
 /**
  * Gmail Webhook Handler
@@ -176,104 +178,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access token is missing' }, { status: 401 })
     }
 
-    // Fetch recent messages from Gmail API
-    // Get messages since last sync (or last 10 messages if first sync)
-    const lastHistoryId = mailbox.watch_history_id || '0'
+    // Use the same sync logic as the cron job to ensure consistency
+    // This saves to email_messages and email_threads tables (not emails table)
+    // Following james-project patterns for unified email processing
+    
+    // Decrypt tokens for sync function
+    const decrypted = decryptMailboxTokens({
+      access_token: mailbox.access_token || '',
+      refresh_token: mailbox.refresh_token || '',
+      smtp_password: null
+    })
 
-    // Fetch messages from Gmail
-    const messagesResponse = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&labelIds=INBOX&q=is:unread`,
+    if (!decrypted.access_token) {
+      return NextResponse.json({ error: 'Access token decryption failed' }, { status: 401 })
+    }
+
+    // Calculate since date (last sync or 1 hour ago for webhook)
+    const since = mailbox.last_synced_at 
+      ? new Date(mailbox.last_synced_at).toISOString()
+      : new Date(Date.now() - 60 * 60 * 1000).toISOString() // Last hour
+
+    // Use the unified sync function (same as cron job)
+    // This ensures webhook and cron use the same logic and save to the same tables
+    const syncResult = await syncGmailMessages(
+      mailbox.id,
+      mailbox.user_id,
+      decrypted.access_token,
       {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        }
+        since,
+        maxMessages: 50 // Process up to 50 messages per webhook call
       }
     )
 
-    if (!messagesResponse.ok) {
-      console.error('Failed to fetch Gmail messages:', await messagesResponse.text())
-      return NextResponse.json({ error: 'Failed to fetch Gmail messages' }, { status: 500 })
-    }
-
-    const messagesData = await messagesResponse.json()
-    const messageIds = (messagesData.messages || []).slice(0, 10).map((m: any) => m.id)
-
-    // Process each message
-    const processedEmails = []
-    for (const messageId of messageIds) {
-      try {
-        // Fetch full message details
-        const fetchResult = await fetchGmailMessage(messageId, accessToken)
-        
-        if (!fetchResult.success || !fetchResult.message) {
-          console.error(`Failed to fetch message ${messageId}:`, fetchResult.error)
-          continue
-        }
-
-        const message = fetchResult.message
-        
-        // Check if email already exists (avoid duplicates)
-        const { data: existing } = await supabase
-          .from('emails')
-          .select('id')
-          .eq('raw_message_id', message.id)
-          .eq('direction', 'received')
-          .single()
-
-        if (existing) {
-          // Already processed
-          continue
-        }
-
-        // Parse email data
-        const emailData = parseGmailMessage(message)
-
-        // Log received email via API
-        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
-        const logResponse = await fetch(`${baseUrl}/api/emails/received`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cookie': request.headers.get('cookie') || '', // Forward auth cookies
-          },
-          body: JSON.stringify({
-            mailbox_id: mailbox.id,
-            from_email: emailData.fromEmail,
-            from_name: emailData.fromName,
-            to_email: emailData.toEmail,
-            subject: emailData.subject,
-            html: emailData.html,
-            received_at: emailData.receivedAt,
-            raw_message_id: emailData.messageId,
-            thread_id: emailData.threadId,
-            in_reply_to: emailData.inReplyTo,
-            references: emailData.references,
-          })
-        })
-
-        if (logResponse.ok) {
-          processedEmails.push(messageId)
-          
-          // Mark email as read in Gmail (optional)
-          // await fetch(
-          //   `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
-          //   {
-          //     method: 'POST',
-          //     headers: {
-          //       'Authorization': `Bearer ${accessToken}`,
-          //       'Content-Type': 'application/json',
-          //     },
-          //     body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
-          //   }
-          // )
-        } else {
-          const errorData = await logResponse.json().catch(() => ({}))
-          console.error(`Failed to log email ${messageId}:`, errorData)
-        }
-      } catch (error: any) {
-        console.error(`Error processing message ${messageId}:`, error)
-      }
-    }
+    const processedEmails = syncResult.messagesProcessed
 
     // Update mailbox with new historyId and last sync time
     if (historyId) {
@@ -288,14 +225,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Log webhook processing for monitoring
-    // You could create a webhook_logs table to track webhook health
-    // For now, we'll just log to console
-    console.log(`Gmail webhook processed: ${processedEmails.length} emails for mailbox ${mailbox.id}`)
+    console.log(`[Gmail Webhook] Processed ${processedEmails} emails for mailbox ${mailbox.id} (${mailbox.email}), threads: ${syncResult.threadsCreated} created, ${syncResult.threadsUpdated} updated`)
 
     return NextResponse.json({
-      success: true,
-      processed: processedEmails.length,
-      messageIds: processedEmails
+      success: syncResult.success,
+      processed: processedEmails,
+      threadsCreated: syncResult.threadsCreated,
+      threadsUpdated: syncResult.threadsUpdated,
+      errors: syncResult.errors?.length || 0
     })
   } catch (error: any) {
     console.error('Gmail webhook error:', error)

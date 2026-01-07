@@ -1,0 +1,3 @@
+[submodule "LeadMap-main/external/realtime-gmail-listener"]
+	path = LeadMap-main/external/realtime-gmail-listener
+	url = https://github.com/sangnandar/Realtime-Gmail-Listener.git

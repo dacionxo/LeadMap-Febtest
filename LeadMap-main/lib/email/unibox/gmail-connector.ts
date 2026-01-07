@@ -39,6 +39,7 @@ export interface GmailSyncResult {
   threadsCreated: number
   threadsUpdated: number
   errors: Array<{ messageId: string; error: string }>
+  latestHistoryId?: string  // Latest historyId from History API (for updating mailbox)
 }
 
 /**
@@ -146,6 +147,12 @@ export async function listGmailMessages(
 
 /**
  * Get Gmail history changes since a specific historyId
+ * Following Realtime-Gmail-Listener pattern for incremental sync
+ * 
+ * @param accessToken - Gmail access token
+ * @param historyId - Starting history ID (from watch notification or stored value)
+ * @param options - Options for history fetch
+ * @returns Array of message IDs that were added, and the latest historyId
  */
 export async function getGmailHistory(
   accessToken: string,
@@ -154,35 +161,102 @@ export async function getGmailHistory(
     maxResults?: number
     labelIds?: string[]
   } = {}
-): Promise<{ success: boolean; history?: any; error?: string }> {
+): Promise<{ 
+  success: boolean
+  messageIds?: Array<{ id: string; threadId: string }>
+  latestHistoryId?: string
+  error?: string 
+}> {
   try {
-    const params = new URLSearchParams()
-    params.append('startHistoryId', historyId)
-    if (options.maxResults) params.append('maxResults', options.maxResults.toString())
-    if (options.labelIds?.length) {
-      options.labelIds.forEach(id => params.append('labelIds', id))
-    }
+    const messageIds: Array<{ id: string; threadId: string }> = []
+    let pageToken: string | undefined = undefined
+    let latestHistoryId = historyId
 
-    const response = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/history?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
+    // Follow reference pattern: paginate through history
+    do {
+      const params = new URLSearchParams()
+      params.append('startHistoryId', historyId)
+      params.append('historyTypes', 'messageAdded') // Only get messageAdded events
+      if (pageToken) params.append('pageToken', pageToken)
+      if (options.maxResults) params.append('maxResults', options.maxResults.toString())
+      if (options.labelIds?.length) {
+        options.labelIds.forEach(id => params.append('labelIds', id))
+      } else {
+        // Default to INBOX if no labelIds specified
+        params.append('labelIds', 'INBOX')
+      }
+
+      const response = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/history?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          }
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error?.message || `Gmail API error: ${response.status}`
+        
+        // Log authentication errors specifically
+        if (response.status === 401 || errorMessage.includes('invalid authentication') || errorMessage.includes('Invalid Credentials')) {
+          console.error(`[getGmailHistory] Authentication error (401):`, errorMessage)
+        }
+        
+        // Handle historyId too old error (404)
+        if (response.status === 404 || errorMessage.includes('History not found')) {
+          console.warn(`[getGmailHistory] History ID ${historyId} is too old. May need to fallback to date-based query.`)
+          return {
+            success: false,
+            error: `History ID ${historyId} is too old. History API only stores history for a limited time.`
+          }
+        }
+        
+        return {
+          success: false,
+          error: errorMessage
         }
       }
-    )
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        success: false,
-        error: errorData.error?.message || `Gmail API error: ${response.status}`
+      const historyData = await response.json()
+      
+      // Process history records - following reference pattern
+      // Reference: event-handlers.gs lines 102-116
+      const history = historyData.history || []
+      for (const record of history) {
+        // Get messagesAdded array from history record
+        const messagesAdded = record.messagesAdded || []
+        for (const msg of messagesAdded) {
+          // Extract message ID and threadId
+          if (msg.message && msg.message.id) {
+            messageIds.push({
+              id: msg.message.id,
+              threadId: msg.message.threadId || ''
+            })
+          }
+        }
       }
-    }
 
-    const history = await response.json()
-    return { success: true, history }
+      // Update latest historyId from response
+      if (historyData.historyId) {
+        latestHistoryId = historyData.historyId
+      }
+
+      // Check for next page
+      pageToken = historyData.nextPageToken
+
+    } while (pageToken)
+
+    console.log(`[getGmailHistory] Found ${messageIds.length} new messages since historyId ${historyId}, latest historyId: ${latestHistoryId}`)
+
+    return { 
+      success: true, 
+      messageIds,
+      latestHistoryId
+    }
   } catch (error: any) {
+    console.error(`[getGmailHistory] Error fetching history:`, error)
     return {
       success: false,
       error: error.message || 'Failed to get Gmail history'
@@ -315,8 +389,9 @@ export async function syncGmailMessages(
   userId: string,
   accessToken: string,
   options: {
-    since?: string  // ISO date string
+    since?: string  // ISO date string (fallback if historyId not available)
     maxMessages?: number
+    historyId?: string  // Gmail history ID for incremental sync (preferred method)
   } = {}
 ): Promise<GmailSyncResult> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -343,56 +418,120 @@ export async function syncGmailMessages(
 
   try {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:330',message:'syncGmailMessages started',data:{mailboxId,userId,since:options.since,maxMessages:options.maxMessages},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    // Build query for fetching messages
-    let query = options.since 
-      ? `newer_than:${Math.floor(new Date(options.since).getTime() / 1000)}`
-      : 'in:inbox'
-
-    // List messages
-    const listResult = await listGmailMessages(accessToken, {
-      query,
-      maxResults: options.maxMessages || 100,
-      labelIds: ['INBOX']
-    })
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:343',message:'listGmailMessages result',data:{success:listResult.success,messageCount:listResult.messages?.length||0,error:listResult.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:330',message:'syncGmailMessages started',data:{mailboxId,userId,since:options.since,historyId:options.historyId,maxMessages:options.maxMessages},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
 
-    if (!listResult.success || !listResult.messages) {
-      const errorMessage = listResult.error || 'Failed to list messages'
+    let messagesToProcess: Array<{ id: string; threadId: string }> = []
+    let latestHistoryId: string | undefined = undefined
+
+    // CRITICAL FIX: Use Gmail History API for incremental sync when historyId is available
+    // Following Realtime-Gmail-Listener pattern for efficient, real-time email processing
+    if (options.historyId) {
+      console.log(`[syncGmailMessages] Using History API for incremental sync with historyId: ${options.historyId}`)
       
-      // Check for authentication errors
-      if (errorMessage.includes('invalid authentication') || 
-          errorMessage.includes('Invalid Credentials') ||
-          errorMessage.includes('401') ||
-          errorMessage.includes('Unauthorized')) {
-        console.error(`[syncGmailMessages] Authentication error for mailbox ${mailboxId}:`, errorMessage)
+      const historyResult = await getGmailHistory(accessToken, options.historyId, {
+        maxResults: options.maxMessages || 100,
+        labelIds: ['INBOX']
+      })
+
+      if (!historyResult.success) {
+        const errorMessage = historyResult.error || 'Failed to get Gmail history'
+        
+        // Check for authentication errors
+        if (errorMessage.includes('invalid authentication') || 
+            errorMessage.includes('Invalid Credentials') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('Unauthorized')) {
+          console.error(`[syncGmailMessages] Authentication error for mailbox ${mailboxId}:`, errorMessage)
+          return {
+            success: false,
+            messagesProcessed: 0,
+            threadsCreated: 0,
+            threadsUpdated: 0,
+            errors: [{ 
+              messageId: 'auth', 
+              error: `Authentication failed: ${errorMessage}. Token may be expired or invalid. Please refresh the access token.` 
+            }]
+          }
+        }
+
+        // If historyId is too old, fallback to date-based query
+        if (errorMessage.includes('too old') || errorMessage.includes('History not found')) {
+          console.warn(`[syncGmailMessages] History ID ${options.historyId} is too old, falling back to date-based query`)
+          // Fall through to date-based query below
+        } else {
+          console.error(`[syncGmailMessages] Failed to get Gmail history for mailbox ${mailboxId}:`, errorMessage)
+          return {
+            success: false,
+            messagesProcessed: 0,
+            threadsCreated: 0,
+            threadsUpdated: 0,
+            errors: [{ messageId: 'history', error: errorMessage }]
+          }
+        }
+      } else {
+        // Successfully got history - use message IDs from History API
+        messagesToProcess = historyResult.messageIds || []
+        latestHistoryId = historyResult.latestHistoryId
+        console.log(`[syncGmailMessages] History API returned ${messagesToProcess.length} new messages, latest historyId: ${latestHistoryId}`)
+      }
+    }
+
+    // Fallback to date-based query if no historyId or History API failed
+    if (messagesToProcess.length === 0 && !options.historyId) {
+      console.log(`[syncGmailMessages] Using date-based query (no historyId provided)`)
+      
+      // Build query for fetching messages
+      let query = options.since 
+        ? `newer_than:${Math.floor(new Date(options.since).getTime() / 1000)}`
+        : 'in:inbox'
+
+      // List messages
+      const listResult = await listGmailMessages(accessToken, {
+        query,
+        maxResults: options.maxMessages || 100,
+        labelIds: ['INBOX']
+      })
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:343',message:'listGmailMessages result',data:{success:listResult.success,messageCount:listResult.messages?.length||0,error:listResult.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+
+      if (!listResult.success || !listResult.messages) {
+        const errorMessage = listResult.error || 'Failed to list messages'
+        
+        // Check for authentication errors
+        if (errorMessage.includes('invalid authentication') || 
+            errorMessage.includes('Invalid Credentials') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('Unauthorized')) {
+          console.error(`[syncGmailMessages] Authentication error for mailbox ${mailboxId}:`, errorMessage)
+          return {
+            success: false,
+            messagesProcessed: 0,
+            threadsCreated: 0,
+            threadsUpdated: 0,
+            errors: [{ 
+              messageId: 'auth', 
+              error: `Authentication failed: ${errorMessage}. Token may be expired or invalid. Please refresh the access token.` 
+            }]
+          }
+        }
+        
+        console.error(`[syncGmailMessages] Failed to list messages for mailbox ${mailboxId}:`, errorMessage)
         return {
           success: false,
           messagesProcessed: 0,
           threadsCreated: 0,
           threadsUpdated: 0,
-          errors: [{ 
-            messageId: 'auth', 
-            error: `Authentication failed: ${errorMessage}. Token may be expired or invalid. Please refresh the access token.` 
-          }]
+          errors: [{ messageId: 'list', error: errorMessage }]
         }
       }
-      
-      console.error(`[syncGmailMessages] Failed to list messages for mailbox ${mailboxId}:`, errorMessage)
-      return {
-        success: false,
-        messagesProcessed: 0,
-        threadsCreated: 0,
-        threadsUpdated: 0,
-        errors: [{ messageId: 'list', error: errorMessage }]
-      }
+
+      messagesToProcess = listResult.messages
     }
 
     // Process each message
-    for (const msg of listResult.messages) {
+    for (const msg of messagesToProcess) {
       try {
         // Fetch full message
         const fetchResult = await fetchGmailMessage(msg.id, accessToken)
@@ -458,7 +597,7 @@ export async function syncGmailMessages(
               unread: true
             })
             .select()
-            .single()
+            .maybeSingle()
 
           if (threadError || !newThread) {
             console.error(`[syncGmailMessages] Failed to create thread for message ${msg.id}:`, {
@@ -574,12 +713,20 @@ export async function syncGmailMessages(
     }
 
     // Update mailbox sync state
+    // If we have a latestHistoryId from History API, update it
+    const updateData: any = {
+      last_synced_at: new Date().toISOString(),
+      sync_state: 'running'
+    }
+    
+    if (latestHistoryId) {
+      updateData.watch_history_id = latestHistoryId
+      console.log(`[syncGmailMessages] Updating mailbox ${mailboxId} with latest historyId: ${latestHistoryId}`)
+    }
+
     await supabase
       .from('mailboxes')
-      .update({
-        last_synced_at: new Date().toISOString(),
-        sync_state: 'running'
-      })
+      .update(updateData)
       .eq('id', mailboxId)
 
     return {
@@ -587,16 +734,19 @@ export async function syncGmailMessages(
       messagesProcessed,
       threadsCreated,
       threadsUpdated,
-      errors
+      errors,
+      latestHistoryId  // Return latest historyId for webhook to use
     }
 
   } catch (error: any) {
+    console.error(`[syncGmailMessages] Fatal error for mailbox ${mailboxId}:`, error)
     return {
       success: false,
       messagesProcessed,
       threadsCreated,
       threadsUpdated,
-      errors: [...errors, { messageId: 'system', error: error.message || 'Unknown error' }]
+      errors: [...errors, { messageId: 'system', error: error.message || 'Unknown error' }],
+      latestHistoryId: undefined
     }
   }
 }

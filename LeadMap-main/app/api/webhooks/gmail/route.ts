@@ -253,10 +253,17 @@ export async function POST(request: NextRequest) {
       }, { status: 200 })
     }
 
-    // Calculate since date (last sync or 1 hour ago for webhook)
+    // CRITICAL FIX: Use History API for incremental sync when historyId is available
+    // Following Realtime-Gmail-Listener pattern for efficient, real-time email processing
+    // Prefer historyId from webhook notification, fallback to stored watch_history_id, then date-based query
+    const syncHistoryId = historyId || mailbox.watch_history_id || undefined
+    
+    // Calculate since date as fallback (last sync or 1 hour ago for webhook)
     const since = mailbox.last_synced_at 
       ? new Date(mailbox.last_synced_at).toISOString()
       : new Date(Date.now() - 60 * 60 * 1000).toISOString() // Last hour
+
+    console.log(`[Gmail Webhook] Syncing with historyId: ${syncHistoryId || 'none (using date-based query)'}, since: ${since}`)
 
     // Use the unified sync function (same as cron job)
     // This ensures webhook and cron use the same logic and save to the same tables
@@ -266,31 +273,32 @@ export async function POST(request: NextRequest) {
       mailbox.user_id,
       accessToken, // Use the validated/refreshed token
       {
-        since,
+        historyId: syncHistoryId,  // CRITICAL: Use History API for incremental sync
+        since,  // Fallback if historyId not available
         maxMessages: 50 // Process up to 50 messages per webhook call
       }
     )
 
     const processedEmails = syncResult.messagesProcessed
 
-    // Update mailbox with new historyId and last sync time
-    if (historyId) {
+    // Update mailbox with latest historyId and last sync time
+    // Prefer latestHistoryId from sync result (from History API), fallback to webhook historyId
+    const latestHistoryId = syncResult.latestHistoryId || historyId
+    
+    if (latestHistoryId || !syncResult.success) {
+      const updateData: any = {
+        last_synced_at: new Date().toISOString(),
+        last_error: syncResult.success ? null : syncResult.errors?.[0]?.error || null // Clear error on success, set on failure
+      }
+      
+      if (latestHistoryId) {
+        updateData.watch_history_id = latestHistoryId
+        console.log(`[Gmail Webhook] Updating mailbox ${mailbox.id} with latest historyId: ${latestHistoryId}`)
+      }
+      
       await supabase
         .from('mailboxes')
-        .update({ 
-          watch_history_id: historyId,
-          last_synced_at: new Date().toISOString(),
-          last_error: syncResult.success ? null : syncResult.errors?.[0]?.error || null // Clear error on success, set on failure
-        })
-        .eq('id', mailbox.id)
-    } else if (!syncResult.success) {
-      // Update error even if no historyId
-      await supabase
-        .from('mailboxes')
-        .update({ 
-          last_error: syncResult.errors?.[0]?.error || 'Sync failed',
-          last_synced_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', mailbox.id)
     }
 

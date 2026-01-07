@@ -111,17 +111,18 @@ function validateGmailMailbox(mailbox: unknown): GmailMailbox {
 
 /**
  * Fetches Gmail mailboxes that need watch renewal
- * Finds mailboxes with watch subscriptions expiring in the next 24 hours or already expired
+ * Finds mailboxes with watch subscriptions expiring in the next 1 hour or already expired
+ * Following Realtime-Gmail-Listener pattern: renew 1 hour before expiration
  * 
  * @param supabase - Supabase client
  * @param now - Current timestamp
- * @param oneDayFromNow - Timestamp 24 hours from now
+ * @param oneHourFromNow - Timestamp 1 hour from now
  * @returns Array of validated Gmail mailboxes
  */
 async function fetchMailboxesNeedingRenewal(
   supabase: ReturnType<typeof getCronSupabaseClient>,
   now: Date,
-  oneDayFromNow: Date
+  oneHourFromNow: Date
 ): Promise<GmailMailbox[]> {
   const result = await executeSelectOperation<GmailMailbox>(
     supabase,
@@ -131,7 +132,7 @@ async function fetchMailboxesNeedingRenewal(
       return (query as any)
         .eq('provider', 'gmail')
         .eq('active', true)
-        .or(`watch_expiration.is.null,watch_expiration.lte.${oneDayFromNow.toISOString()}`)
+        .or(`watch_expiration.is.null,watch_expiration.lte.${oneHourFromNow.toISOString()}`)
     },
     {
       operation: 'fetch_mailboxes_needing_renewal',
@@ -319,12 +320,14 @@ async function runCronJob(request: NextRequest) {
     const supabase = getCronSupabaseClient()
 
     // Calculate time windows
+    // CRITICAL FIX: Renew 1 hour before expiration (not 24 hours) following Realtime-Gmail-Listener pattern
+    // Reference: event-handlers.gs line 145: reinitAt = expiration - 60 * 60 * 1000
     const now = new Date()
-    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour from now
 
-    // Fetch mailboxes needing renewal
-    console.log('[Gmail Watch Renewal] Fetching mailboxes needing watch renewal...')
-    const mailboxes = await fetchMailboxesNeedingRenewal(supabase, now, oneDayFromNow)
+    // Fetch mailboxes needing renewal (expiring within 1 hour or already expired)
+    console.log('[Gmail Watch Renewal] Fetching mailboxes needing watch renewal (expiring within 1 hour)...')
+    const mailboxes = await fetchMailboxesNeedingRenewal(supabase, now, oneHourFromNow)
 
     if (mailboxes.length === 0) {
       console.log('[Gmail Watch Renewal] No Gmail Watch subscriptions need renewal')

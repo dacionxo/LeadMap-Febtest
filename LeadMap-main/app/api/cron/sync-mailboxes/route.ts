@@ -263,20 +263,42 @@ async function syncGmailMailbox(
   accessToken: string,
   supabase: ReturnType<typeof getCronSupabaseClient>
 ): Promise<MailboxSyncResult> {
-  // Calculate since date (last sync or 7 days ago)
+  // CRITICAL FIX: Use History API for incremental sync when watch_history_id is available
+  // Following Realtime-Gmail-Listener pattern for efficient sync
+  // Prefer historyId from stored watch_history_id, fallback to date-based query
+  const historyId = (mailbox as any).watch_history_id || undefined
+  
+  // Calculate since date as fallback (last sync or 7 days ago)
   const since = mailbox.last_synced_at 
     ? new Date(mailbox.last_synced_at).toISOString()
     : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+  console.log(`[Sync Mailboxes] Syncing Gmail mailbox ${mailbox.id} with historyId: ${historyId || 'none (using date-based query)'}, since: ${since}`)
 
   const syncResult: GmailSyncResult = await syncGmailMessages(
     mailbox.id,
     mailbox.user_id,
     accessToken,
     {
-      since,
+      historyId,  // CRITICAL: Use History API for incremental sync
+      since,  // Fallback if historyId not available
       maxMessages: 100,
     }
   )
+  
+  // Update mailbox with latest historyId if returned from sync
+  if (syncResult.latestHistoryId) {
+    await supabase
+      .from('mailboxes')
+      .update({ watch_history_id: syncResult.latestHistoryId })
+      .eq('id', mailbox.id)
+      .then(() => {
+        console.log(`[Sync Mailboxes] Updated mailbox ${mailbox.id} with latest historyId: ${syncResult.latestHistoryId}`)
+      })
+      .catch((error) => {
+        console.error(`[Sync Mailboxes] Failed to update historyId for mailbox ${mailbox.id}:`, error)
+      })
+  }
 
   if (!syncResult.success) {
     return {
@@ -428,15 +450,24 @@ async function runCronJob(request: NextRequest) {
     }
 
     console.log(`[Sync Mailboxes] Found ${mailboxes.length} active mailboxes to sync`)
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/cron/sync-mailboxes/route.ts:430',message:'Sync cron job started',data:{mailboxCount:mailboxes.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     const now = new Date()
     const results: MailboxSyncResult[] = []
     
     // Process each mailbox
     for (const mailbox of mailboxes) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/cron/sync-mailboxes/route.ts:436',message:'Processing mailbox',data:{mailboxId:mailbox.id,email:mailbox.email,provider:mailbox.provider},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       try {
         // Refresh token if needed (unified function handles both Gmail and Outlook)
         const accessToken = await refreshTokenIfNeeded(mailbox, supabase, now)
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/cron/sync-mailboxes/route.ts:441',message:'Token refresh result',data:{mailboxId:mailbox.id,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
 
         if (!accessToken) {
           // Access token refresh already failed in refreshTokenIfNeeded

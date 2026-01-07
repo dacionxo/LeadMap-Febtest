@@ -514,9 +514,8 @@ export async function syncGmailMessages(
         maxResults: options.maxMessages || 100,
         labelIds: ['INBOX']
       })
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:343',message:'listGmailMessages result',data:{success:listResult.success,messageCount:listResult.messages?.length||0,error:listResult.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      
+      console.log(`[syncGmailMessages] Date-based query returned ${listResult.messages?.length || 0} messages for mailbox ${mailboxId}`)
 
       if (!listResult.success || !listResult.messages) {
         const errorMessage = listResult.error || 'Failed to list messages'

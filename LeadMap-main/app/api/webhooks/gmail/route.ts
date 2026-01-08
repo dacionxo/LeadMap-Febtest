@@ -304,17 +304,21 @@ export async function POST(request: NextRequest) {
       }, { status: 200 })
     }
 
-    // CRITICAL FIX: Use History API for incremental sync when historyId is available
-    // Following Realtime-Gmail-Listener pattern for efficient, real-time email processing
+    // CRITICAL FIX: Use stored watch_history_id as the base for History API query
+    // The notification historyId (e.g., 4825661) represents the state AFTER the change.
+    // startHistoryId is EXCLUSIVE - it returns changes AFTER that historyId.
     // 
-    // Priority order for historyId:
-    // 1. historyId from webhook notification (most recent, from Gmail)
-    // 2. Stored watch_history_id from database (last known good historyId)
-    // 3. Fallback to date-based query if no historyId available
+    // Problem: If we use notification historyId (4825661), we query for changes AFTER 4825661,
+    // but the change already happened at 4825661, so we get 0 messages.
     //
-    // CRITICAL: If webhook provides historyId, prefer it over stored value
-    // This ensures we process the exact change that triggered the webhook
-    const syncHistoryId = historyId || mailbox.watch_history_id || undefined
+    // Solution: Use stored watch_history_id (e.g., 4825644) to query for changes between
+    // 4825644 and 4825661 (or current state).
+    //
+    // Priority order:
+    // 1. Stored watch_history_id (last known good state - query from here)
+    // 2. Fallback to date-based query if no stored historyId
+    // 3. Notification historyId is only used to update the stored value after sync
+    const syncHistoryId = mailbox.watch_history_id || undefined
 
     // Calculate since date as fallback (last sync or 24 hours ago for webhook)
     // Using 24h window provides better catch-up if we missed notifications
@@ -322,7 +326,7 @@ export async function POST(request: NextRequest) {
       ? new Date(mailbox.last_synced_at).toISOString()
       : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
 
-    console.log(`[Gmail Webhook] Processing notification for ${mailbox.email} - historyId from notification: ${historyId || 'none'}, stored historyId: ${mailbox.watch_history_id || 'none'}, using: ${syncHistoryId || 'none (date-based fallback)'}`)
+    console.log(`[Gmail Webhook] Processing notification for ${mailbox.email} - notification historyId: ${historyId || 'none'}, stored historyId: ${mailbox.watch_history_id || 'none'}, querying from: ${syncHistoryId || 'none (date-based fallback)'}`)
 
     // #region agent log
     const logEntry12 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:315',message:'Calling syncGmailMessages',data:{mailboxId:mailbox.id,userId:mailbox.user_id,historyId:syncHistoryId,since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});

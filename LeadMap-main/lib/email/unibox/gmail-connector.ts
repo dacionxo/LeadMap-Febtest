@@ -172,19 +172,18 @@ export async function getGmailHistory(
     let pageToken: string | undefined = undefined
     let latestHistoryId = historyId
 
-    // Follow reference pattern: paginate through history
+    // Follow reference pattern EXACTLY: paginate through history
+    // Reference: event-handlers.gs lines 91-95
+    // CRITICAL FIX: Reference does NOT use labelIds in History API call
+    // The watch is set up with labelIds: ['INBOX'], but History API doesn't need them
     do {
       const params = new URLSearchParams()
       params.append('startHistoryId', historyId)
       params.append('historyTypes', 'messageAdded') // Only get messageAdded events
       if (pageToken) params.append('pageToken', pageToken)
       if (options.maxResults) params.append('maxResults', options.maxResults.toString())
-      if (options.labelIds?.length) {
-        options.labelIds.forEach(id => params.append('labelIds', id))
-      } else {
-        // Default to INBOX if no labelIds specified
-        params.append('labelIds', 'INBOX')
-      }
+      // CRITICAL: Reference does NOT use labelIds in History API
+      // The watch subscription already filters for INBOX, History API returns all changes
 
       const response = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/history?${params.toString()}`,
@@ -221,34 +220,39 @@ export async function getGmailHistory(
 
       const historyData = await response.json()
       
-      // Process history records - following reference pattern
+      // Process history records - EXACTLY matching Realtime-Gmail-Listener reference
       // Reference: event-handlers.gs lines 102-116
-      // Note: Reference uses record.messages (Apps Script), but REST API uses messagesAdded
-      // Gmail API docs: https://developers.google.com/gmail/api/reference/rest/v1/users.history/list
+      // CRITICAL: Reference uses record.messages (not messagesAdded) - this is the correct field
+      // The REST API returns messagesAdded, but Apps Script wrapper converts to messages
+      // We need to check BOTH formats but prioritize 'messages' like the reference
       const history = historyData.history || []
       for (const record of history) {
-        // Get messagesAdded array from history record (REST API structure)
-        // Each item has: { message: { id: string, threadId: string } }
-        const messagesAdded = record.messagesAdded || []
-        for (const msgAdded of messagesAdded) {
-          // Extract message ID and threadId from message object
-          if (msgAdded.message && msgAdded.message.id) {
-            messageIds.push({
-              id: msgAdded.message.id,
-              threadId: msgAdded.message.threadId || ''
-            })
-          }
-        }
-        
-        // Also check for legacy 'messages' field (for compatibility)
-        // Some API versions or Apps Script wrappers may use this
+        // CRITICAL FIX: Reference uses record.messages (line 104 in event-handlers.gs)
+        // Check 'messages' first (as reference does), then fallback to messagesAdded
         const messages = record.messages || []
         for (const msg of messages) {
-          if (msg.id && !messageIds.find(m => m.id === msg.id)) {
+          // Reference pattern: directly access msg.id and msg.threadId
+          if (msg.id) {
             messageIds.push({
               id: msg.id,
               threadId: msg.threadId || ''
             })
+          }
+        }
+        
+        // Fallback: If REST API uses messagesAdded format, also check that
+        // This ensures compatibility with different API response formats
+        const messagesAdded = record.messagesAdded || []
+        for (const msgAdded of messagesAdded) {
+          if (msgAdded.message && msgAdded.message.id) {
+            const msgId = msgAdded.message.id
+            // Only add if not already added from 'messages' field
+            if (!messageIds.find(m => m.id === msgId)) {
+              messageIds.push({
+                id: msgId,
+                threadId: msgAdded.message.threadId || ''
+              })
+            }
           }
         }
       }
@@ -432,11 +436,9 @@ export async function syncGmailMessages(
   let threadsUpdated = 0
 
   try {
-    // Debug logging removed - was causing timeouts to non-existent local server
-    // Use console.log for debugging instead
-
     let messagesToProcess: Array<{ id: string; threadId: string }> = []
     let latestHistoryId: string | undefined = undefined
+    let historyIdTooOld = false // Track if historyId was too old for fallback
 
     // CRITICAL FIX: Use Gmail History API for incremental sync when historyId is available
     // Following Realtime-Gmail-Listener pattern for efficient, real-time email processing

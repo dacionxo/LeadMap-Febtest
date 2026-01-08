@@ -413,7 +413,9 @@ export async function syncGmailMessages(
   } = {}
 ): Promise<GmailSyncResult> {
   // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:405',message:'syncGmailMessages entry',data:{mailboxId,userId,hasHistoryId:!!options.historyId,historyId:options.historyId,since:options.since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  const logEntry2 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:405',message:'syncGmailMessages entry',data:{mailboxId,userId,hasHistoryId:!!options.historyId,historyId:options.historyId,since:options.since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry2}).catch(()=>{});
+  console.log('[DEBUG]', logEntry2);
   // #endregion
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -703,7 +705,9 @@ export async function syncGmailMessages(
         const direction = isInbound ? 'inbound' : 'outbound'
         
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:685',message:'Before insert',data:{messageId:msg.id,direction,threadId,userId,mailboxId,fromEmail:parsed.from.email,mailboxEmail:mailbox.email,isInbound},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        const logEntry6 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:705',message:'Before insert',data:{messageId:msg.id,direction,threadId,userId,mailboxId,fromEmail:parsed.from.email,mailboxEmail:mailbox.email,isInbound},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry6}).catch(()=>{});
+        console.log('[DEBUG]', logEntry6);
         // #endregion
 
         // Insert message
@@ -732,7 +736,9 @@ export async function syncGmailMessages(
           .maybeSingle()
 
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:714',message:'After insert',data:{messageId:msg.id,hasInsertedMessage:!!insertedMessage,hasError:!!messageError,errorCode:(messageError as any)?.code,errorMessage:messageError?.message,direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        const logEntry7 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:734',message:'After insert',data:{messageId:msg.id,hasInsertedMessage:!!insertedMessage,hasError:!!messageError,errorCode:(messageError as any)?.code,errorMessage:messageError?.message,direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry7}).catch(()=>{});
+        console.log('[DEBUG]', logEntry7);
         // #endregion
 
         if (messageError || !insertedMessage) {
@@ -771,7 +777,9 @@ export async function syncGmailMessages(
         messagesProcessed++
         console.log(`[syncGmailMessages] Successfully inserted message ${msg.id} for mailbox ${mailboxId}`)
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:748',message:'Message inserted successfully',data:{messageId:msg.id,insertedMessageId:insertedMessage.id,direction,messagesProcessed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        const logEntry8 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:748',message:'Message inserted successfully',data:{messageId:msg.id,insertedMessageId:insertedMessage.id,direction,messagesProcessed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry8}).catch(()=>{});
+        console.log('[DEBUG]', logEntry8);
         // #endregion
 
         // Insert participants
@@ -828,7 +836,9 @@ export async function syncGmailMessages(
     }
     
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:830',message:'syncGmailMessages exit success',data:{messagesProcessed,threadsCreated,threadsUpdated,errorCount:errors.length,latestHistoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    const logEntry9 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:830',message:'syncGmailMessages exit success',data:{messagesProcessed,threadsCreated,threadsUpdated,errorCount:errors.length,latestHistoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry9}).catch(()=>{});
+    console.log('[DEBUG]', logEntry9);
     // #endregion
 
     await supabase
@@ -847,7 +857,9 @@ export async function syncGmailMessages(
 
   } catch (error: any) {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:848',message:'syncGmailMessages exception',data:{error:error.message,errorStack:error.stack?.substring(0,500),mailboxId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    const logEntry10 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:848',message:'syncGmailMessages exception',data:{error:error.message,errorStack:error.stack?.substring(0,500),mailboxId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry10}).catch(()=>{});
+    console.log('[DEBUG]', logEntry10);
     // #endregion
     
     console.error(`[syncGmailMessages] Fatal error for mailbox ${mailboxId}:`, error)

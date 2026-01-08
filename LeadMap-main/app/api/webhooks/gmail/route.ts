@@ -86,7 +86,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:87',message:'Webhook POST entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  const logEntry1 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:87',message:'Webhook POST entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
+  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry1}).catch(()=>{});
+  console.log('[DEBUG]', logEntry1);
   // #endregion
   
   // Declare Supabase variables at the top to avoid duplicate declarations
@@ -323,7 +325,9 @@ export async function POST(request: NextRequest) {
     console.log(`[Gmail Webhook] Processing notification for ${mailbox.email} - historyId from notification: ${historyId || 'none'}, stored historyId: ${mailbox.watch_history_id || 'none'}, using: ${syncHistoryId || 'none (date-based fallback)'}`)
 
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:315',message:'Calling syncGmailMessages',data:{mailboxId:mailbox.id,userId:mailbox.user_id,historyId:syncHistoryId,since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    const logEntry12 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:315',message:'Calling syncGmailMessages',data:{mailboxId:mailbox.id,userId:mailbox.user_id,historyId:syncHistoryId,since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry12}).catch(()=>{});
+    console.log('[DEBUG]', logEntry12);
     // #endregion
 
     // Use the unified sync function (same as cron job)

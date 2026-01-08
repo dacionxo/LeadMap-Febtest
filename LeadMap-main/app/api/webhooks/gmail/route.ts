@@ -85,6 +85,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:87',message:'Webhook POST entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
   // Declare Supabase variables at the top to avoid duplicate declarations
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -92,6 +96,10 @@ export async function POST(request: NextRequest) {
   try {
     // Parse body first
     const body = await request.json().catch(() => ({}))
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:95',message:'Webhook body parsed',data:{hasMessage:!!body.message,hasData:!!body.message?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     
     // Verify Pub/Sub message (if verification token is configured)
     const isValid = await verifyPubSubMessage(body, request.headers)
@@ -314,6 +322,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Gmail Webhook] Processing notification for ${mailbox.email} - historyId from notification: ${historyId || 'none'}, stored historyId: ${mailbox.watch_history_id || 'none'}, using: ${syncHistoryId || 'none (date-based fallback)'}`)
 
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:315',message:'Calling syncGmailMessages',data:{mailboxId:mailbox.id,userId:mailbox.user_id,historyId:syncHistoryId,since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+
     // Use the unified sync function (same as cron job)
     // This ensures webhook and cron use the same logic and save to the same tables
     // Use the accessToken we just validated/refreshed (not decrypted.access_token which might be stale)
@@ -327,6 +339,10 @@ export async function POST(request: NextRequest) {
         maxMessages: 50 // Process up to 50 messages per webhook call
       }
     )
+
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:330',message:'syncGmailMessages returned',data:{success:syncResult.success,messagesProcessed:syncResult.messagesProcessed,threadsCreated:syncResult.threadsCreated,errors:syncResult.errors?.length||0,latestHistoryId:syncResult.latestHistoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
 
     const processedEmails = syncResult.messagesProcessed
 

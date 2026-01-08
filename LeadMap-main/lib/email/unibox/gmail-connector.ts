@@ -412,10 +412,17 @@ export async function syncGmailMessages(
     historyId?: string  // Gmail history ID for incremental sync (preferred method)
   } = {}
 ): Promise<GmailSyncResult> {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:405',message:'syncGmailMessages entry',data:{mailboxId,userId,hasHistoryId:!!options.historyId,historyId:options.historyId,since:options.since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !supabaseServiceKey) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:418',message:'Missing Supabase config',data:{hasUrl:!!supabaseUrl,hasKey:!!supabaseServiceKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     return {
       success: false,
       messagesProcessed: 0,
@@ -498,6 +505,9 @@ export async function syncGmailMessages(
         messagesToProcess = historyResult.messageIds || []
         latestHistoryId = historyResult.latestHistoryId
         console.log(`[syncGmailMessages] History API returned ${messagesToProcess.length} new messages, latest historyId: ${latestHistoryId}`)
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:500',message:'History API success',data:{messageCount:messagesToProcess.length,latestHistoryId,messageIds:messagesToProcess.map(m=>m.id).slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
       }
     }
 
@@ -562,7 +572,14 @@ export async function syncGmailMessages(
       }
 
       messagesToProcess = listResult.messages
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:565',message:'Date-based query result',data:{messageCount:messagesToProcess.length,messageIds:messagesToProcess.map(m=>m.id).slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:568',message:'Starting message processing',data:{totalMessages:messagesToProcess.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
 
     // Process each message
     for (const msg of messagesToProcess) {
@@ -684,7 +701,10 @@ export async function syncGmailMessages(
 
         const isInbound = parsed.from.email.toLowerCase() !== mailbox.email.toLowerCase()
         const direction = isInbound ? 'inbound' : 'outbound'
-        // Debug logging removed - was causing timeouts to non-existent local server
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:685',message:'Before insert',data:{messageId:msg.id,direction,threadId,userId,mailboxId,fromEmail:parsed.from.email,mailboxEmail:mailbox.email,isInbound},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         // Insert message
         // CRITICAL: Use maybeSingle() instead of single() to avoid PGRST116 error
@@ -710,6 +730,10 @@ export async function syncGmailMessages(
           })
           .select()
           .maybeSingle()
+
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:714',message:'After insert',data:{messageId:msg.id,hasInsertedMessage:!!insertedMessage,hasError:!!messageError,errorCode:(messageError as any)?.code,errorMessage:messageError?.message,direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         if (messageError || !insertedMessage) {
           // CRITICAL: Log detailed error information for debugging
@@ -746,6 +770,9 @@ export async function syncGmailMessages(
         // Successfully inserted message
         messagesProcessed++
         console.log(`[syncGmailMessages] Successfully inserted message ${msg.id} for mailbox ${mailboxId}`)
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:748',message:'Message inserted successfully',data:{messageId:msg.id,insertedMessageId:insertedMessage.id,direction,messagesProcessed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         // Insert participants
         const participants = [

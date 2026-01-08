@@ -445,9 +445,12 @@ export async function syncGmailMessages(
     if (options.historyId) {
       console.log(`[syncGmailMessages] Using History API for incremental sync with historyId: ${options.historyId}`)
       
+      // CRITICAL: Reference does NOT use labelIds in History API call
+      // The watch subscription already filters for INBOX, History API doesn't need labelIds
+      // Reference: event-handlers.gs line 91-95 - no labelIds parameter
       const historyResult = await getGmailHistory(accessToken, options.historyId, {
-        maxResults: options.maxMessages || 100,
-        labelIds: ['INBOX']
+        maxResults: options.maxMessages || 100
+        // Removed labelIds - reference doesn't use them in History API
       })
 
       if (!historyResult.success) {

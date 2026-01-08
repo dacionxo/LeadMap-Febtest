@@ -117,15 +117,24 @@ export async function POST(request: NextRequest) {
 
     if (!emailAddress) {
       console.error('[Gmail Webhook] Missing emailAddress in notification:', messageData)
-      return NextResponse.json({ error: 'Missing emailAddress in notification' }, { status: 400 })
+      // Return 200 OK to acknowledge (prevent Pub/Sub retries)
+      return NextResponse.json({ 
+        error: 'Missing emailAddress in notification',
+        acknowledged: true 
+      }, { status: 200 })
     }
 
     // Validate Supabase configuration
-
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[Gmail Webhook] Missing Supabase configuration')
+      // Return 200 OK to acknowledge (prevent Pub/Sub retries)
+      // This is a configuration issue, not a transient error
       return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
+        { 
+          error: 'Missing Supabase configuration',
+          acknowledged: true 
+        },
+        { status: 200 } // Always 200 OK to acknowledge
       )
     }
 
@@ -403,10 +412,23 @@ export async function POST(request: NextRequest) {
       errorDetails: syncResult.errors
     })
   } catch (error: any) {
-    console.error('Gmail webhook error:', error)
+    console.error('[Gmail Webhook] CRITICAL: Unhandled exception:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+    
+    // CRITICAL: Always return 200 OK to acknowledge Pub/Sub message
+    // Even on errors, we acknowledge to prevent retries and message backlog
+    // The error is logged for debugging, but we don't want Pub/Sub to retry
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
+      { 
+        error: 'Internal server error', 
+        details: error.message,
+        acknowledged: true,
+        timestamp: new Date().toISOString()
+      },
+      { status: 200 } // Always 200 OK to acknowledge message
     )
   }
 }

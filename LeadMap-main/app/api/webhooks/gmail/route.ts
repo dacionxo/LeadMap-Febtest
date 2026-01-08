@@ -263,8 +263,8 @@ export async function POST(request: NextRequest) {
         autoRetry: true,
       })
 
-      if (refreshResult.success && refreshResult.accessToken) {
-        accessToken = refreshResult.accessToken
+        if (refreshResult.success && refreshResult.accessToken) {
+          accessToken = refreshResult.accessToken
         console.log(`[Gmail Webhook] Successfully refreshed access token for mailbox ${mailbox.id}`)
       } else {
         console.error(`[Gmail Webhook] Failed to refresh access token for mailbox ${mailbox.id}:`, {
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
     // CRITICAL: If webhook provides historyId, prefer it over stored value
     // This ensures we process the exact change that triggered the webhook
     const syncHistoryId = historyId || mailbox.watch_history_id || undefined
-    
+
     // Calculate since date as fallback (last sync or 24 hours ago for webhook)
     // Using 24h window provides better catch-up if we missed notifications
     const since = mailbox.last_synced_at 
@@ -373,9 +373,9 @@ export async function POST(request: NextRequest) {
     
     // Update mailbox - use direct Supabase update (faster than executeUpdateOperation for webhooks)
     const { error: updateError } = await supabase
-      .from('mailboxes')
+        .from('mailboxes')
       .update(updateData)
-      .eq('id', mailbox.id)
+        .eq('id', mailbox.id)
     
     if (updateError) {
       console.error(`[Gmail Webhook] Failed to update mailbox ${mailbox.id}:`, updateError)

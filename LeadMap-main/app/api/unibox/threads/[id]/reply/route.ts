@@ -169,20 +169,7 @@ export async function POST(
     // Log outbound message to thread
     // CRITICAL: Use service role client to bypass RLS (same pattern as receiving route)
     // This ensures inserts work even if RLS policies aren't fully configured
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('[Reply] Missing Supabase configuration')
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      )
-    }
-    
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    })
+    // Reuse supabaseAdmin that was already created above (line 134)
     
     const { data: outboundMessage, error: messageError } = await supabaseAdmin
       .from('email_messages')

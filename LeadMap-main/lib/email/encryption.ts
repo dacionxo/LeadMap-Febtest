@@ -304,7 +304,7 @@ export function decryptMailboxTokens(mailbox: {
   // Decrypt each token - if any fails and looks encrypted, throw error
   if (mailbox.access_token) {
     try {
-      decrypted.access_token = decrypt(mailbox.access_token)
+    decrypted.access_token = decrypt(mailbox.access_token)
     } catch (error: any) {
       // Re-throw with context for access_token (critical for API calls)
       throw new Error(`Failed to decrypt access_token: ${error.message}`)
@@ -313,7 +313,7 @@ export function decryptMailboxTokens(mailbox: {
 
   if (mailbox.refresh_token) {
     try {
-      decrypted.refresh_token = decrypt(mailbox.refresh_token)
+    decrypted.refresh_token = decrypt(mailbox.refresh_token)
     } catch (error: any) {
       // Re-throw with context for refresh_token (critical for token refresh)
       throw new Error(`Failed to decrypt refresh_token: ${error.message}`)
@@ -322,7 +322,7 @@ export function decryptMailboxTokens(mailbox: {
 
   if (mailbox.smtp_password) {
     try {
-      decrypted.smtp_password = decrypt(mailbox.smtp_password)
+    decrypted.smtp_password = decrypt(mailbox.smtp_password)
     } catch (error: any) {
       // SMTP password errors are less critical - log but continue
       console.error(`Failed to decrypt smtp_password: ${error.message}`)

@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     // Unibox should only display received/incoming emails, not sent emails
     const transformedThreads = (threads || [])
       .map((thread: any) => {
-        const messages = thread.email_messages || []
+      const messages = thread.email_messages || []
         const inboundMessages = messages.filter((m: any) => m.direction === 'inbound')
         
         // Skip threads with no inbound messages (only show received emails)
@@ -99,8 +99,8 @@ export async function GET(request: NextRequest) {
           return null
         }
         
-        const lastMessage = messages[messages.length - 1]
-        const unreadCount = inboundMessages.filter((m: any) => !m.read).length
+      const lastMessage = messages[messages.length - 1]
+      const unreadCount = inboundMessages.filter((m: any) => !m.read).length
       // #region agent log
       fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/unibox/threads/route.ts:87',message:'Thread transformation',data:{threadId:thread.id,messageCount:messages.length,inboundCount:inboundMessages.length,unreadCount,lastMessageDirection:lastMessage?.direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
       // #endregion
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
         createdAt: thread.created_at,
         updatedAt: thread.updated_at
       }
-      })
+    })
       .filter((thread: any) => thread !== null)  // Remove threads with no inbound messages
 
     return NextResponse.json({

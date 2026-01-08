@@ -86,12 +86,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // #region agent log
-  const logEntry1 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:87',message:'Webhook POST entry',data:{url:request.url,method:request.method,hasHeaders:!!request.headers},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
+  const logEntry1 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:87',message:'Webhook POST entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
   fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry1}).catch(()=>{});
   console.log('[DEBUG]', logEntry1);
-  console.log('[Gmail Webhook] ===== WEBHOOK CALLED =====');
-  console.log('[Gmail Webhook] Request URL:', request.url);
-  console.log('[Gmail Webhook] Request method:', request.method);
   // #endregion
   
   // Declare Supabase variables at the top to avoid duplicate declarations
@@ -348,7 +345,9 @@ export async function POST(request: NextRequest) {
     )
 
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:330',message:'syncGmailMessages returned',data:{success:syncResult.success,messagesProcessed:syncResult.messagesProcessed,threadsCreated:syncResult.threadsCreated,errors:syncResult.errors?.length||0,latestHistoryId:syncResult.latestHistoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    const logEntry13 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:347',message:'syncGmailMessages returned',data:{success:syncResult.success,messagesProcessed:syncResult.messagesProcessed,threadsCreated:syncResult.threadsCreated,threadsUpdated:syncResult.threadsUpdated,errors:syncResult.errors?.length||0,errorDetails:syncResult.errors,latestHistoryId:syncResult.latestHistoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry13}).catch(()=>{});
+    console.log('[DEBUG]', logEntry13);
     // #endregion
 
     const processedEmails = syncResult.messagesProcessed

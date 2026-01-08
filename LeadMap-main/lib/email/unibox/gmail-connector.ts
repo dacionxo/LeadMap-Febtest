@@ -483,9 +483,7 @@ export async function syncGmailMessages(
             errorMessage.includes('History not found') || 
             errorMessage.includes('404')) {
           console.warn(`[syncGmailMessages] History ID ${options.historyId} is too old for mailbox ${mailboxId}, falling back to date-based query since: ${options.since || 'beginning'}`)
-          // Fall through to date-based query below
-          // Note: We don't return error here - we allow fallback to proceed
-          // The caller should reset watch_history_id to a fresh historyId after successful sync
+          historyIdTooOld = true // Set flag to trigger fallback
         } else {
           console.error(`[syncGmailMessages] Failed to get Gmail history for mailbox ${mailboxId}:`, errorMessage)
           return {

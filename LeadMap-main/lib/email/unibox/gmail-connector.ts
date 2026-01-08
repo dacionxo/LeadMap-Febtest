@@ -227,12 +227,20 @@ export async function getGmailHistory(
 
     const historyData = await response.json()
     
+    // DEBUG: Log the raw response to understand structure
+    console.log(`[getGmailHistory] Raw response: history records: ${(historyData.history || []).length}, historyId: ${historyData.historyId}, nextPageToken: ${historyData.nextPageToken ? 'yes' : 'no'}`)
+    
     // Process history records - EXACTLY matching Realtime-Gmail-Listener reference
     // Reference: event-handlers.gs lines 102-116
     // CRITICAL: Reference uses record.messages (line 104), NOT messagesAdded
     const history = historyData.history || []
     for (const record of history) {
+      // DEBUG: Log each record to see what we're getting
+      console.log(`[getGmailHistory] Processing history record: has messages: ${!!record.messages}, messages count: ${(record.messages || []).length}, has messagesAdded: ${!!record.messagesAdded}, messagesAdded count: ${(record.messagesAdded || []).length}`)
+      
       // Reference pattern: const added = record.messages || [] (line 104)
+      // CRITICAL: Gmail REST API uses 'messages' field, not 'messagesAdded'
+      // The 'messages' field contains an array of {id, threadId} objects
       const added = record.messages || []
       for (const msg of added) {
         try {
@@ -243,6 +251,7 @@ export async function getGmailHistory(
               id: msg.id,
               threadId: msg.threadId || ''
             })
+            console.log(`[getGmailHistory] Added message from 'messages' field: ${msg.id}`)
           }
         } catch (err: any) {
           // Reference pattern: Log and skip messages that cause errors (reference line 109-114)
@@ -251,7 +260,7 @@ export async function getGmailHistory(
         }
       }
       
-      // Fallback: Also check messagesAdded format (REST API might use this)
+      // Fallback: Also check messagesAdded format (some API versions might use this)
       // But prioritize 'messages' field as reference does
       const messagesAdded = record.messagesAdded || []
       for (const msgAdded of messagesAdded) {
@@ -263,6 +272,7 @@ export async function getGmailHistory(
               id: msgId,
               threadId: msgAdded.message.threadId || ''
             })
+            console.log(`[getGmailHistory] Added message from 'messagesAdded' field: ${msgId}`)
           }
         }
       }

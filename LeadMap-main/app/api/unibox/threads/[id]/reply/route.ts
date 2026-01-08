@@ -167,7 +167,24 @@ export async function POST(
     }
 
     // Log outbound message to thread
-    const { data: outboundMessage, error: messageError } = await supabase
+    // CRITICAL: Use service role client to bypass RLS (same pattern as receiving route)
+    // This ensures inserts work even if RLS policies aren't fully configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[Reply] Missing Supabase configuration')
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+    
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+    
+    const { data: outboundMessage, error: messageError } = await supabaseAdmin
       .from('email_messages')
       .insert({
         thread_id: id,
@@ -185,7 +202,38 @@ export async function POST(
         read: true
       })
       .select()
-      .single()
+      .maybeSingle()
+    
+    if (messageError || !outboundMessage) {
+      // CRITICAL: Log detailed error information
+      const errorDetails = messageError?.details || messageError?.hint || messageError?.message || 'Unknown error'
+      const errorCode = (messageError as any)?.code || 'UNKNOWN'
+      
+      console.error(`[Reply] Failed to insert outbound message:`, {
+        error: messageError,
+        errorCode,
+        errorDetails,
+        threadId: id,
+        userId: user.id,
+        mailboxId,
+        possibleCauses: [
+          errorCode === '42501' ? 'RLS policy violation - check if service_role is allowed' : null,
+          errorCode === '23505' ? 'Duplicate message (unique constraint violation)' : null,
+          errorCode === '23503' ? 'Foreign key violation - thread_id or mailbox_id invalid' : null,
+          'Check SUPABASE_SERVICE_ROLE_KEY is set correctly',
+          'Verify RLS policies allow service_role access',
+          'Run supabase/unibox_rls_service_role_fix.sql migration'
+        ].filter(Boolean)
+      })
+      
+      return NextResponse.json(
+        { 
+          error: 'Failed to save message to database',
+          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+        },
+        { status: 500 }
+      )
+    }
 
     // Insert participants for outbound message
     if (outboundMessage) {
@@ -197,7 +245,7 @@ export async function POST(
       ]
 
       for (const participant of allParticipants) {
-        await supabase
+        const { error: participantError } = await supabaseAdmin
           .from('email_participants')
           .insert({
             message_id: outboundMessage.id,
@@ -205,17 +253,27 @@ export async function POST(
             email: participant.email,
             name: participant.name || null
           })
+        
+        if (participantError) {
+          console.error(`[Reply] Failed to insert participant ${participant.email}:`, participantError)
+          // Continue - don't fail the whole request if participant insert fails
+        }
       }
     }
 
-    // Update thread status
-    await supabase
+    // Update thread status (use service role client)
+    const { error: threadUpdateError } = await supabaseAdmin
       .from('email_threads')
       .update({
         status: 'open',
         unread: false
       })
       .eq('id', id)
+    
+    if (threadUpdateError) {
+      console.error(`[Reply] Failed to update thread status:`, threadUpdateError)
+      // Continue - don't fail the whole request if thread update fails
+    }
 
     return NextResponse.json({
       success: true,

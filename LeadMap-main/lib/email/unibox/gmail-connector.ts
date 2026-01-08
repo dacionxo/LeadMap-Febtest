@@ -758,7 +758,7 @@ export async function syncGmailMessages(
         for (const participant of participants) {
           if (!participant.email) continue
 
-          await supabase
+          const { error: participantError } = await supabase
             .from('email_participants')
             .insert({
               message_id: insertedMessage.id,
@@ -766,6 +766,16 @@ export async function syncGmailMessages(
               email: participant.email,
               name: participant.name || null
             })
+          
+          if (participantError) {
+            console.error(`[syncGmailMessages] Failed to insert participant ${participant.email} for message ${msg.id}:`, {
+              error: participantError,
+              errorCode: (participantError as any)?.code,
+              messageId: msg.id,
+              participantEmail: participant.email
+            })
+            // Continue - don't fail the whole message if participant insert fails
+          }
         }
 
         messagesProcessed++

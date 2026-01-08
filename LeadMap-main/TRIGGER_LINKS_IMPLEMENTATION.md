@@ -360,3 +360,4 @@ This implementation follows Mautic's approach to trigger links:
 
 
 
+

@@ -146,8 +146,9 @@ export async function listGmailMessages(
 }
 
 /**
- * Get Gmail history changes since a specific historyId
- * Following Realtime-Gmail-Listener pattern for incremental sync
+ * Pull all Gmail messages arrived since the given historyId
+ * EXACTLY matching Realtime-Gmail-Listener reference pattern
+ * Reference: event-handlers.gs lines 82-126 (pullEmailsSince function)
  * 
  * @param accessToken - Gmail access token
  * @param historyId - Starting history ID (from watch notification or stored value)
@@ -159,7 +160,6 @@ export async function getGmailHistory(
   historyId: string,
   options: {
     maxResults?: number
-    labelIds?: string[]
   } = {}
 ): Promise<{ 
   success: boolean
@@ -167,16 +167,21 @@ export async function getGmailHistory(
   latestHistoryId?: string
   error?: string 
 }> {
-  try {
-    const messageIds: Array<{ id: string; threadId: string }> = []
-    let pageToken: string | undefined = undefined
-    let latestHistoryId = historyId
+  let pageToken: string | undefined = undefined
+  let lastHistoryId = historyId
+  const messageIds: Array<{ id: string; threadId: string }> = []
 
-    // Follow reference pattern EXACTLY: paginate through history
-    // Reference: event-handlers.gs lines 91-95
-    // CRITICAL FIX: Reference does NOT use labelIds in History API call
-    // The watch is set up with labelIds: ['INBOX'], but History API doesn't need them
-    do {
+  // Follow reference pattern EXACTLY: paginate through history
+  // Reference: event-handlers.gs lines 88-121
+  do {
+    let response
+    try {
+      // CRITICAL: Reference uses Gmail.Users.History.list with:
+      // - startHistoryId: historyId
+      // - pageToken: pageToken (if exists)
+      // - historyTypes: ['messageAdded']
+      // NO labelIds parameter (reference doesn't use it)
+      // Reference: event-handlers.gs lines 91-95
       const params = new URLSearchParams()
       params.append('startHistoryId', historyId)
       params.append('historyTypes', 'messageAdded') // Only get messageAdded events
@@ -185,7 +190,7 @@ export async function getGmailHistory(
       // CRITICAL: Reference does NOT use labelIds in History API
       // The watch subscription already filters for INBOX, History API returns all changes
 
-      const response = await fetch(
+      response = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/history?${params.toString()}`,
         {
           headers: {
@@ -198,88 +203,82 @@ export async function getGmailHistory(
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.error?.message || `Gmail API error: ${response.status}`
         
-        // Log authentication errors specifically
-        if (response.status === 401 || errorMessage.includes('invalid authentication') || errorMessage.includes('Invalid Credentials')) {
-          console.error(`[getGmailHistory] Authentication error (401):`, errorMessage)
-        }
-        
-        // Handle historyId too old error (404)
-        if (response.status === 404 || errorMessage.includes('History not found')) {
-          console.warn(`[getGmailHistory] History ID ${historyId} is too old. May need to fallback to date-based query.`)
-          return {
-            success: false,
-            error: `History ID ${historyId} is too old. History API only stores history for a limited time.`
-          }
-        }
-        
+        // Reference pattern: Log error and return null (reference line 97-99)
+        console.error(`[getGmailHistory] Failed to retrieve history list: ${errorMessage}`)
         return {
           success: false,
           error: errorMessage
         }
       }
+    } catch (err: any) {
+      // Reference pattern: Catch exception, log, and return null (reference line 96-99)
+      console.error(`[getGmailHistory] Exception fetching history:`, err)
+      return {
+        success: false,
+        error: err.message || 'Failed to fetch Gmail history'
+      }
+    }
 
-      const historyData = await response.json()
-      
-      // Process history records - EXACTLY matching Realtime-Gmail-Listener reference
-      // Reference: event-handlers.gs lines 102-116
-      // CRITICAL: Reference uses record.messages (not messagesAdded) - this is the correct field
-      // The REST API returns messagesAdded, but Apps Script wrapper converts to messages
-      // We need to check BOTH formats but prioritize 'messages' like the reference
-      const history = historyData.history || []
-      for (const record of history) {
-        // CRITICAL FIX: Reference uses record.messages (line 104 in event-handlers.gs)
-        // Check 'messages' first (as reference does), then fallback to messagesAdded
-        const messages = record.messages || []
-        for (const msg of messages) {
-          // Reference pattern: directly access msg.id and msg.threadId
+    const historyData = await response.json()
+    
+    // Process history records - EXACTLY matching Realtime-Gmail-Listener reference
+    // Reference: event-handlers.gs lines 102-116
+    // CRITICAL: Reference uses record.messages (line 104), NOT messagesAdded
+    const history = historyData.history || []
+    for (const record of history) {
+      // Reference pattern: const added = record.messages || [] (line 104)
+      const added = record.messages || []
+      for (const msg of added) {
+        try {
+          // Reference pattern: Check msg.id and msg.threadId directly
+          // Reference: line 105 - msg.id and msg.threadId are directly accessible
           if (msg.id) {
             messageIds.push({
               id: msg.id,
               threadId: msg.threadId || ''
             })
           }
+        } catch (err: any) {
+          // Reference pattern: Log and skip messages that cause errors (reference line 109-114)
+          // Note: Reference fetches message here, we just collect IDs for now
+          console.warn(`[getGmailHistory] Skipping message ${msg.id}:`, err.message)
         }
-        
-        // Fallback: If REST API uses messagesAdded format, also check that
-        // This ensures compatibility with different API response formats
-        const messagesAdded = record.messagesAdded || []
-        for (const msgAdded of messagesAdded) {
-          if (msgAdded.message && msgAdded.message.id) {
-            const msgId = msgAdded.message.id
-            // Only add if not already added from 'messages' field
-            if (!messageIds.find(m => m.id === msgId)) {
-              messageIds.push({
-                id: msgId,
-                threadId: msgAdded.message.threadId || ''
-              })
-            }
+      }
+      
+      // Fallback: Also check messagesAdded format (REST API might use this)
+      // But prioritize 'messages' field as reference does
+      const messagesAdded = record.messagesAdded || []
+      for (const msgAdded of messagesAdded) {
+        if (msgAdded.message && msgAdded.message.id) {
+          const msgId = msgAdded.message.id
+          // Only add if not already added from 'messages' field
+          if (!messageIds.find(m => m.id === msgId)) {
+            messageIds.push({
+              id: msgId,
+              threadId: msgAdded.message.threadId || ''
+            })
           }
         }
       }
-
-      // Update latest historyId from response
-      if (historyData.historyId) {
-        latestHistoryId = historyData.historyId
-      }
-
-      // Check for next page
-      pageToken = historyData.nextPageToken
-
-    } while (pageToken)
-
-    console.log(`[getGmailHistory] Found ${messageIds.length} new messages since historyId ${historyId}, latest historyId: ${latestHistoryId}`)
-
-    return { 
-      success: true, 
-      messageIds,
-      latestHistoryId
     }
-  } catch (error: any) {
-    console.error(`[getGmailHistory] Error fetching history:`, error)
-    return {
-      success: false,
-      error: error.message || 'Failed to get Gmail history'
+
+    // Reference pattern: Update lastHistoryId from response (reference line 118)
+    if (historyData.historyId) {
+      lastHistoryId = historyData.historyId
     }
+
+    // Reference pattern: Get next page token (reference line 119)
+    pageToken = historyData.nextPageToken
+
+  } while (pageToken)
+
+  // Reference pattern: Log results (reference stores in Script Properties, we return)
+  console.log(`[getGmailHistory] Found ${messageIds.length} new messages since historyId ${historyId}, latest historyId: ${lastHistoryId}`)
+
+  return { 
+    success: true, 
+    messageIds,
+    latestHistoryId: lastHistoryId
   }
 }
 

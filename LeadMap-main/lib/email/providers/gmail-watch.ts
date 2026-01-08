@@ -78,7 +78,18 @@ export async function setupGmailWatch(config: GmailWatchConfig): Promise<{
 
     const data = await response.json()
 
-    // Update mailbox with watch expiration
+    // CRITICAL: Following Realtime-Gmail-Listener pattern
+    // Reference: event-handlers.gs lines 135-141 (initWatch function)
+    // Response contains: { expiration: number (milliseconds UTC), historyId: string }
+    const expirationMs = data.expiration 
+      ? Number(data.expiration)  // Convert to number (milliseconds UTC, as per reference)
+      : Date.now() + (7 * 24 * 60 * 60 * 1000)  // Fallback: 7 days from now
+    
+    const historyId = data.historyId
+
+    // Update mailbox with watch expiration and historyId
+    // Following Realtime-Gmail-Listener pattern - store expiration and historyId
+    // Reference stores these in Script Properties, we store in database
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -87,19 +98,21 @@ export async function setupGmailWatch(config: GmailWatchConfig): Promise<{
         auth: { autoRefreshToken: false, persistSession: false }
       })
 
+      // CRITICAL: Store expiration as milliseconds UTC (as per reference)
+      // Convert to ISO string for database storage
       await supabase
         .from('mailboxes')
         .update({
-          watch_expiration: new Date(expiration).toISOString(),
-          watch_history_id: data.historyId,
+          watch_expiration: new Date(expirationMs).toISOString(),
+          watch_history_id: historyId,  // Store historyId from watch response
         })
         .eq('id', config.mailboxId)
     }
 
     return {
       success: true,
-      expiration: data.expiration || expiration,
-      historyId: data.historyId
+      expiration: expirationMs,  // Return as milliseconds UTC (as per reference)
+      historyId: historyId
     }
   } catch (error: any) {
     return {

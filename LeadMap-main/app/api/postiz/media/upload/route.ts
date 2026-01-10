@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { getServiceRoleClient } from '@/lib/supabase-singleton'
+import type { MediaType, ProcessingStatus } from '@/lib/postiz/data-model'
 
 export const runtime = 'nodejs'
 
@@ -117,30 +118,53 @@ export async function POST(request: NextRequest) {
       .from('media')
       .getPublicUrl(filePath)
 
-    // Calculate hash for deduplication
-    const crypto = await import('crypto')
-    const hash = crypto.default.createHash('sha256').update(buffer).digest('hex')
+    // Store metadata in database (matching actual schema from migration)
+    interface MediaAssetInsert {
+      workspace_id: string
+      name: string
+      storage_path: string
+      storage_bucket: string
+      file_size_bytes: number
+      mime_type: string
+      media_type: MediaType
+      width: number | null
+      height: number | null
+      duration_seconds: number | null
+      processing_status: ProcessingStatus
+      alt_text: string | null
+    }
 
-    // Store metadata in database
-    const { data: mediaAsset, error: dbError } = await serviceSupabase
+    interface MediaAssetSelect {
+      id: string
+      media_type: MediaType
+      file_size_bytes: number
+      width: number | null
+      height: number | null
+      duration_seconds: number | null
+    }
+
+    const insertData: MediaAssetInsert = {
+      workspace_id: workspaceId,
+      name: file.name,
+      storage_path: filePath,
+      storage_bucket: 'postiz-media',
+      file_size_bytes: buffer.length,
+      mime_type: file.type,
+      media_type: validation.type || 'image',
+      width: validation.width || null,
+      height: validation.height || null,
+      duration_seconds: validation.duration || null,
+      processing_status: 'completed' as ProcessingStatus,
+      alt_text: null,
+    }
+
+    const { data: mediaAssetResult, error: dbError } = await (serviceSupabase
       .from('media_assets')
-      .insert({
-        workspace_id: workspaceId,
-        storage_path: filePath,
-        public_url: publicUrl,
-        type: validation.type,
-        size_bytes: buffer.length,
-        mime_type: file.type,
-        original_name: file.name,
-        hash,
-        metadata: {
-          width: validation.width,
-          height: validation.height,
-          duration: validation.duration,
-        },
-      })
-      .select('id, type, size_bytes, metadata')
-      .single()
+      .insert(insertData as any)
+      .select('id, media_type, file_size_bytes, width, height, duration_seconds')
+      .single() as Promise<{ data: MediaAssetSelect | null; error: any }>)
+
+    const mediaAsset = mediaAssetResult as MediaAssetSelect | null
 
     if (dbError || !mediaAsset) {
       console.error('[POST /api/postiz/media/upload] Database error:', dbError)
@@ -158,10 +182,14 @@ export async function POST(request: NextRequest) {
       success: true,
       media: {
         id: mediaAsset.id,
-        type: mediaAsset.type,
+        type: mediaAsset.media_type,
         url: publicUrl,
-        size: mediaAsset.size_bytes,
-        metadata: mediaAsset.metadata,
+        size: mediaAsset.file_size_bytes,
+        metadata: {
+          width: mediaAsset.width,
+          height: mediaAsset.height,
+          duration: mediaAsset.duration_seconds,
+        },
       },
     })
   } catch (error: any) {
@@ -182,7 +210,7 @@ export async function POST(request: NextRequest) {
 async function validateFile(file: File): Promise<{
   valid: boolean
   error?: string
-  type?: 'image' | 'video'
+  type?: MediaType
   extension?: string
   width?: number
   height?: number
@@ -198,11 +226,16 @@ async function validateFile(file: File): Promise<{
   const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
   const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo']
 
-  let type: 'image' | 'video'
+  let type: MediaType | undefined
   let extension: string
 
   if (allowedImageTypes.includes(file.type)) {
-    type = 'image'
+    // Check if it's a GIF specifically
+    if (file.type === 'image/gif') {
+      type = 'gif'
+    } else {
+      type = 'image'
+    }
     extension = file.type.split('/')[1]
   } else if (allowedVideoTypes.includes(file.type)) {
     type = 'video'

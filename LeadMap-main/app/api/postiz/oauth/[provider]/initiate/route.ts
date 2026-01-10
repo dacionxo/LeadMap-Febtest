@@ -58,7 +58,7 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams
     const workspaceIdParam = searchParams.get('workspace_id')
 
-    let workspaceId = workspaceIdParam
+    let workspaceId: string | null = workspaceIdParam
 
     if (!workspaceId) {
       // Get user's primary workspace (check workspace_members for active membership)
@@ -71,7 +71,7 @@ export async function GET(
         .limit(1)
         .maybeSingle()
 
-      if (workspaceError || !workspaceMembers) {
+      if (workspaceError || !workspaceMembers || !workspaceMembers.workspace_id) {
         return NextResponse.json(
           { error: 'No workspace found. Please create a workspace first.' },
           { status: 400 }
@@ -79,6 +79,14 @@ export async function GET(
       }
 
       workspaceId = workspaceMembers.workspace_id
+    }
+
+    // Ensure workspaceId is not null before proceeding
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: 'Workspace ID is required' },
+        { status: 400 }
+      )
     }
 
     // Get provider implementation

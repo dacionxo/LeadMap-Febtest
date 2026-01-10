@@ -158,11 +158,16 @@ export async function POST(request: NextRequest) {
       alt_text: null,
     }
 
-    const { data: mediaAssetResult, error: dbError } = await (serviceSupabase
+    const insertResult = await (serviceSupabase
       .from('media_assets')
       .insert(insertData as any)
       .select('id, media_type, file_size_bytes, width, height, duration_seconds')
-      .single() as Promise<{ data: MediaAssetSelect | null; error: any }>)
+      .single() as any)
+
+    const { data: mediaAssetResult, error: dbError } = insertResult as {
+      data: MediaAssetSelect | null
+      error: any
+    }
 
     const mediaAsset = mediaAssetResult as MediaAssetSelect | null
 

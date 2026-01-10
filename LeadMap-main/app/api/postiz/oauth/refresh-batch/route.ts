@@ -16,6 +16,17 @@ import {
 export const runtime = 'nodejs'
 
 /**
+ * Refresh candidate returned by refresh_expiring_tokens RPC function
+ */
+interface RefreshCandidate {
+  credential_id: string
+  social_account_id: string
+  workspace_id: string
+  user_id: string
+  provider_type: string
+}
+
+/**
  * POST /api/postiz/oauth/refresh-batch
  * Batch refresh tokens for multiple accounts
  * Called by cron job or background worker
@@ -33,9 +44,8 @@ export async function POST(request: NextRequest) {
     const supabase = getServiceRoleClient()
 
     // Call database function to get credentials needing refresh
-    const { data: refreshCandidates, error: queryError } = await supabase.rpc(
-      'refresh_expiring_tokens'
-    )
+    const rpcResult = await supabase.rpc('refresh_expiring_tokens')
+    const { data: refreshCandidatesData, error: queryError } = rpcResult
 
     if (queryError) {
       console.error('[POST /api/postiz/oauth/refresh-batch] Error fetching candidates:', queryError)
@@ -44,6 +54,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    // Type assert the result from RPC function
+    const refreshCandidates = (refreshCandidatesData as RefreshCandidate[]) || null
 
     if (!refreshCandidates || refreshCandidates.length === 0) {
       return NextResponse.json({
@@ -66,7 +79,7 @@ export async function POST(request: NextRequest) {
       const batch = refreshCandidates.slice(i, i + BATCH_SIZE)
 
       await Promise.allSettled(
-        batch.map(async (candidate: any) => {
+        batch.map(async (candidate: RefreshCandidate) => {
           try {
             // Get provider implementation (provider_type is already in candidate)
             const provider = getProvider(candidate.provider_type)

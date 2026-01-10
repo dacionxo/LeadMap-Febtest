@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { getProvider } from '@/lib/postiz/oauth/providers'
@@ -27,16 +27,29 @@ export const runtime = 'nodejs'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { provider: string } }
+  { params }: { params: Promise<{ provider: string }> }
 ) {
   let user: any = null
 
   try {
-    const { provider } = params
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({
-      cookies: () => cookieStore,
-    })
+    const { provider } = await params
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
 
     const correlationId = `oauth-${provider}-${Date.now()}`
     const logger = createLogger(correlationId, { provider })
@@ -299,8 +312,9 @@ export async function GET(
       new URL(`/dashboard/postiz?success=connected&provider=${provider}`, request.url)
     )
   } catch (error: any) {
-    const logger = createLogger(`oauth-${params.provider}-${Date.now()}`, {
-      provider: params.provider,
+    const { provider } = await params
+    const logger = createLogger(`oauth-${provider}-${Date.now()}`, {
+      provider,
       userId: user?.id,
     })
     logger.error('OAuth callback error', error)
@@ -309,7 +323,7 @@ export async function GET(
       await postizAudit.auditOAuthOperation(
         user.id,
         '',
-        params.provider,
+        provider,
         'failed',
         {
           error: error.message,

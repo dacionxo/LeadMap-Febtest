@@ -244,12 +244,11 @@ export abstract class AnalyticsIngestor {
 
     // Insert events in batch (upsert to avoid duplicates)
     if (eventsToInsert.length > 0) {
-      await this.supabase
-        .from('analytics_events')
-        .upsert(eventsToInsert, {
-          onConflict: 'workspace_id,post_target_id,event_type,event_timestamp',
-          ignoreDuplicates: false,
-        })
+      const upsertQuery = this.supabase.from('analytics_events') as any
+      await upsertQuery.upsert(eventsToInsert, {
+        onConflict: 'workspace_id,post_target_id,event_type,event_timestamp',
+        ignoreDuplicates: false,
+      })
     }
   }
 }

@@ -39,6 +39,15 @@ interface CredentialQueryResult {
   user_id: string
 }
 
+/**
+ * Social account query result for ingestSocialAccountAnalytics function
+ */
+interface SocialAccountIngestQueryResult {
+  id: string
+  provider_type: string
+  workspace_id: string
+}
+
 export interface ProviderAnalyticsMetrics {
   impressions?: number
   clicks?: number
@@ -270,15 +279,19 @@ export async function ingestSocialAccountAnalytics(
   const supabase = getServiceRoleClient()
 
   // Get social account info
-  const { data: socialAccount, error } = await supabase
+  const socialAccountQuery = await supabase
     .from('social_accounts')
     .select('id, provider_type, workspace_id')
     .eq('id', socialAccountId)
     .single()
 
-  if (error || !socialAccount) {
+  const { data: socialAccountData, error } = socialAccountQuery
+
+  if (error || !socialAccountData) {
     throw new Error(`Social account ${socialAccountId} not found: ${error?.message}`)
   }
+
+  const socialAccount = socialAccountData as SocialAccountIngestQueryResult
 
   // Get user_id from credentials (needed for getOAuthCredentials)
   const credentialQuery = await supabase

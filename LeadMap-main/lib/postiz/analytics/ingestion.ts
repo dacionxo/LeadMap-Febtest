@@ -12,6 +12,12 @@ import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { getOAuthCredentials } from '../oauth/credentials'
 import type { SocialProviderIdentifier } from '../oauth/types'
 import { AnalyticsEventType } from '../data-model'
+import {
+  XAnalyticsIngestor,
+  LinkedInAnalyticsIngestor,
+  InstagramAnalyticsIngestor,
+  FacebookAnalyticsIngestor,
+} from './providers'
 
 /**
  * Post target query result for analytics ingestion

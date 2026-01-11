@@ -14,6 +14,22 @@ import { publisher } from '@/lib/postiz/publishing/publisher'
 export const runtime = 'nodejs'
 
 /**
+ * Post insert payload for database
+ */
+interface PostInsertPayload {
+  workspace_id: string
+  content: string
+  state: 'draft' | 'queued' | 'publishing' | 'published' | 'failed' | 'canceled'
+  publish_date: string
+  primary_media_id: string | null
+  media_ids: string[]
+  settings: Record<string, any>
+  title?: string | null
+  description?: string | null
+  timezone?: string
+}
+
+/**
  * GET /api/postiz/posts
  * List posts for the authenticated user's workspace
  */
@@ -246,17 +262,20 @@ export async function POST(request: NextRequest) {
     const serviceSupabase = getServiceRoleClient()
 
     // Create the post
-    const { data: post, error: postError } = await serviceSupabase
-      .from('posts')
-      .insert({
-        workspace_id: workspaceId,
-        content,
-        state: scheduledAt ? 'draft' : 'published', // If no schedule, publish immediately
-        publish_date: scheduledAt || new Date().toISOString(),
-        primary_media_id: mediaIds?.[0] || null,
-        media_ids: mediaIds?.slice(1) || [],
-        settings: JSON.stringify(settings || {}),
-      })
+    const insertPayload: PostInsertPayload = {
+      workspace_id: workspaceId,
+      content,
+      state: scheduledAt ? 'draft' : 'published', // If no schedule, publish immediately
+      publish_date: scheduledAt || new Date().toISOString(),
+      primary_media_id: mediaIds?.[0] || null,
+      media_ids: mediaIds?.slice(1) || [],
+      settings: settings || {}, // JSONB field - should be object, not stringified
+      timezone: 'UTC', // Default timezone
+    }
+
+    const insertQuery = serviceSupabase.from('posts') as any
+    const { data: post, error: postError } = await insertQuery
+      .insert(insertPayload)
       .select('id')
       .single()
 

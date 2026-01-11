@@ -13,6 +13,13 @@ import type { SocialProviderIdentifier } from '../../oauth/types'
 import { createLogger, logAnalyticsOperation } from '../../observability/logging'
 
 /**
+ * Credentials query result for Facebook analytics provider
+ */
+interface CredentialQueryResult {
+  user_id: string
+}
+
+/**
  * Facebook Analytics Ingestor
  * 
  * Fetches analytics from Facebook Graph API:
@@ -61,12 +68,13 @@ export class FacebookAnalyticsIngestor extends AnalyticsIngestor {
       }
 
       // Get OAuth credentials
-      const { data: credentialData } = await supabase
+      const credentialQuery = await supabase
         .from('credentials')
         .select('user_id')
         .eq('social_account_id', socialAccountId)
         .single()
 
+      const credentialData = credentialQuery.data as CredentialQueryResult | null
       const userId = credentialData?.user_id || null
       if (!userId) {
         throw new Error(`No credentials found for social account ${socialAccountId}`)

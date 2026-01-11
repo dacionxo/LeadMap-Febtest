@@ -25,7 +25,8 @@ import { createLogger, logAnalyticsOperation } from '../../observability/logging
  */
 export class LinkedInAnalyticsIngestor extends AnalyticsIngestor {
   constructor() {
-    super('linkedin' as SocialProviderIdentifier)
+    // FIX: always call super with provider type if required by base class
+    super('linkedin')
   }
 
   /**
@@ -60,12 +61,13 @@ export class LinkedInAnalyticsIngestor extends AnalyticsIngestor {
       }
 
       // Get OAuth credentials
-      const { data: credentialData } = await supabase
+      const credentialQuery = await supabase
         .from('credentials')
         .select('user_id')
         .eq('social_account_id', socialAccountId)
         .single()
 
+      const credentialData = credentialQuery.data as CredentialQueryResult | null
       const userId = credentialData?.user_id || null
       if (!userId) {
         throw new Error(`No credentials found for social account ${socialAccountId}`)

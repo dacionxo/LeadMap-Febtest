@@ -183,9 +183,9 @@ export class FacebookAnalyticsIngestor extends AnalyticsIngestor {
             analyticsData.push(analytics)
           }
         } catch (error: any) {
-          logger.warn('Failed to fetch insights for Facebook post', error, {
+          logger.warn('Failed to fetch insights for Facebook post', {
             postId: post.id,
-          })
+          }, error)
           // Continue with other posts even if one fails
         }
       }

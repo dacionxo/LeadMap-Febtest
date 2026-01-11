@@ -171,9 +171,9 @@ export class InstagramAnalyticsIngestor extends AnalyticsIngestor {
             analyticsData.push(analytics)
           }
         } catch (error: any) {
-          logger.warn('Failed to fetch insights for Instagram media', error, {
+          logger.warn('Failed to fetch insights for Instagram media', {
             mediaId: media.id,
-          })
+          }, error)
           // Continue with other media even if one fails
         }
       }

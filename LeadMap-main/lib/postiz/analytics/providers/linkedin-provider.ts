@@ -193,9 +193,9 @@ export class LinkedInAnalyticsIngestor extends AnalyticsIngestor {
             analyticsData.push(analyticsItem)
           }
         } catch (error: any) {
-          logger.warn('Failed to fetch analytics for LinkedIn post', error, {
+          logger.warn('Failed to fetch analytics for LinkedIn post', {
             postId,
-          })
+          }, error)
           // Continue with other posts even if one fails
         }
       }

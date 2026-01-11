@@ -23,6 +23,15 @@ interface PostTargetQueryResult {
   published_post_id: string | null
 }
 
+/**
+ * Social account query result for analytics ingestion
+ */
+interface SocialAccountQueryResult {
+  id: string
+  provider_type: string
+  provider_identifier: string
+}
+
 export interface ProviderAnalyticsMetrics {
   impressions?: number
   clicks?: number
@@ -94,11 +103,13 @@ export abstract class AnalyticsIngestor {
       postsProcessed = analyticsData.length
 
       // Get social account info
-      const { data: socialAccount } = await this.supabase
+      const socialAccountQuery = await this.supabase
         .from('social_accounts')
         .select('id, provider_type, provider_identifier')
         .eq('id', socialAccountId)
         .single()
+
+      const socialAccount = socialAccountQuery.data as SocialAccountQueryResult | null
 
       if (!socialAccount) {
         throw new Error(`Social account ${socialAccountId} not found`)

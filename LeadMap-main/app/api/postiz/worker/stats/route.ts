@@ -19,6 +19,18 @@ interface OldestPendingJobResult {
 }
 
 /**
+ * Workspace statistics query result
+ */
+interface WorkspaceStatsResult {
+  id: string
+  name: string
+  created_at: string
+  workspace_members: Array<{ status: string; deleted_at: string | null }>
+  posts: Array<{ count: number }>
+  social_accounts: Array<{ count: number }>
+}
+
+/**
  * GET /api/postiz/worker/stats
  * Get comprehensive statistics for monitoring
  */
@@ -85,7 +97,7 @@ export async function GET(request: NextRequest) {
     const oldestPendingJob = oldestPendingJobQuery.data as OldestPendingJobResult | null
 
     // Get workspace statistics
-    const { data: workspaceStats } = await supabase
+    const workspaceStatsQuery = await supabase
       .from('workspaces')
       .select(`
         id,
@@ -98,6 +110,8 @@ export async function GET(request: NextRequest) {
       .is('workspace_members.deleted_at', null)
       .eq('workspace_members.status', 'active')
       .limit(10)
+
+    const workspaceStats = workspaceStatsQuery.data as WorkspaceStatsResult[] | null
 
     return NextResponse.json({
       timestamp: new Date().toISOString(),

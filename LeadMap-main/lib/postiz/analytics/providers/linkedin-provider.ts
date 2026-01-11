@@ -41,7 +41,7 @@ interface SocialAccountQueryResult {
 export class LinkedInAnalyticsIngestor extends AnalyticsIngestor {
   constructor() {
     // FIX: always call super with provider type if required by base class
-    super('linkedin')
+    super('linkedin' as SocialProviderIdentifier)
   }
 
   /**

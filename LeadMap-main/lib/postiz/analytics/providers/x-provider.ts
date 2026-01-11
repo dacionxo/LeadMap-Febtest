@@ -32,7 +32,7 @@ interface CredentialQueryResult {
  * - Engagement (calculated)
  */
 export class XAnalyticsIngestor extends AnalyticsIngestor {
-  protected provider: SocialProviderIdentifier = 'x'
+  protected provider: SocialProviderIdentifier = 'x' as SocialProviderIdentifier
 
   /**
    * Fetch analytics data from X/Twitter API

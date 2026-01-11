@@ -157,7 +157,9 @@ export class FacebookAnalyticsIngestor extends AnalyticsIngestor {
               if (insight.name === 'post_reactions_by_type_total' && insight.values) {
                 // Sum all reaction types
                 value = insight.values.reduce((sum: number, v: any) => {
-                  const reactionValue = typeof v.value === 'object' ? Object.values(v.value).reduce((s: number, r: any) => s + (r || 0), 0) : 0
+                  const reactionValue = typeof v.value === 'object' 
+                    ? Object.values(v.value).reduce((s: number, r: any) => s + (typeof r === 'number' ? r : 0), 0) 
+                    : 0
                   return sum + reactionValue
                 }, 0)
               }

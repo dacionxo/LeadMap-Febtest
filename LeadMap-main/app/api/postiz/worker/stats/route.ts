@@ -10,6 +10,15 @@ import { getServiceRoleClient } from '@/lib/supabase-singleton'
 export const runtime = 'nodejs'
 
 /**
+ * Queue job query result for oldest pending job
+ */
+interface OldestPendingJobResult {
+  id: string
+  created_at: string
+  scheduled_at: string
+}
+
+/**
  * GET /api/postiz/worker/stats
  * Get comprehensive statistics for monitoring
  */
@@ -65,13 +74,15 @@ export async function GET(request: NextRequest) {
     ])
 
     // Get oldest pending job
-    const { data: oldestPendingJob } = await supabase
+    const oldestPendingJobQuery = await supabase
       .from('queue_jobs')
       .select('id, created_at, scheduled_at')
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
+
+    const oldestPendingJob = oldestPendingJobQuery.data as OldestPendingJobResult | null
 
     // Get workspace statistics
     const { data: workspaceStats } = await supabase

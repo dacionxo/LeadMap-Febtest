@@ -26,7 +26,7 @@ import { createLogger, logAnalyticsOperation } from '../../observability/logging
  */
 export class InstagramAnalyticsIngestor extends AnalyticsIngestor {
   constructor() {
-    super('instagram')
+    super('instagram' as SocialProviderIdentifier)
   }
 
   /**

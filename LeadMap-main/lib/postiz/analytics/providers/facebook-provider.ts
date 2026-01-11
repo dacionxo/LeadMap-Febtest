@@ -26,7 +26,7 @@ import { createLogger, logAnalyticsOperation } from '../../observability/logging
  */
 export class FacebookAnalyticsIngestor extends AnalyticsIngestor {
   constructor() {
-    super('facebook')
+    super('facebook' as SocialProviderIdentifier)
   }
 
   /**

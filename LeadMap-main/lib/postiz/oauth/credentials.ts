@@ -3,8 +3,6 @@
  * Handles encryption/decryption and storage of OAuth credentials in Supabase
  */
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { encrypt, decrypt } from '@/lib/email/encryption'
 import { AuthTokenDetails } from './types'

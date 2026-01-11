@@ -32,6 +32,13 @@ interface SocialAccountQueryResult {
   provider_identifier: string
 }
 
+/**
+ * Credentials query result for analytics ingestion
+ */
+interface CredentialQueryResult {
+  user_id: string
+}
+
 export interface ProviderAnalyticsMetrics {
   impressions?: number
   clicks?: number
@@ -274,12 +281,14 @@ export async function ingestSocialAccountAnalytics(
   }
 
   // Get user_id from credentials (needed for getOAuthCredentials)
-  const { data: credentialData } = await supabase
+  const credentialQuery = await supabase
     .from('credentials')
     .select('user_id')
     .eq('social_account_id', socialAccountId)
     .limit(1)
     .maybeSingle()
+
+  const credentialData = credentialQuery.data as CredentialQueryResult | null
 
   if (!credentialData || !credentialData.user_id) {
     throw new Error(`No credentials found for social account ${socialAccountId}`)

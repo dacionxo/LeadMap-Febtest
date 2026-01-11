@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
       .from('social_accounts')
       .select('id, provider_type, workspace_id')
       .eq('id', socialAccountId)
-      .eq('user_id', user.id)
       .maybeSingle()
 
     const { data: socialAccountData, error: accountError } = queryResult
@@ -89,6 +88,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Social account not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify user has access to the workspace that owns this social account
+    const { data: member, error: memberError } = await supabase
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', socialAccountData.workspace_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .maybeSingle()
+
+    if (memberError || !member) {
+      return NextResponse.json(
+        { error: 'Access denied to this workspace' },
+        { status: 403 }
       )
     }
 

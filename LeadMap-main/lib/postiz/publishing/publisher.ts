@@ -6,10 +6,8 @@
 
 import { getProvider } from '../oauth/providers'
 import { getOAuthCredentials } from '../oauth/credentials'
-import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { AuthTokenDetails } from '../oauth/types'
 import { createLogger, logProviderCall } from '../observability/logging'
-import { postizMetrics } from '../observability/metrics'
 
 export interface PublishResult {
   success: boolean
@@ -102,17 +100,8 @@ export class Publisher {
 
       // Call provider to publish
       const publishStartTime = Date.now()
-      const authDetails: AuthTokenDetails = {
-        id: socialAccountId,
-        accessToken: credentials.accessToken,
-        refreshToken: credentials.refreshToken,
-        expiresIn: credentials.expiresAt
-          ? Math.floor((credentials.expiresAt.getTime() - Date.now()) / 1000)
-          : undefined,
-        name: '', // Will be filled by provider if needed
-        picture: '',
-        username: '',
-      }
+      // Note: authDetails is prepared for future implementation when provider.post() is used
+      // For now, callProviderPublish uses simplified approach with accessToken only
 
       // For now, we'll use a simplified posting approach
       // In full implementation, this would use the provider's post method

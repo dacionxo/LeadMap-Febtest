@@ -189,13 +189,16 @@ export class Scheduler {
    * Get schedules that are due for processing
    */
   private async getDueSchedules(): Promise<Schedule[]> {
-    const { data, error } = await this.supabase
+    const queryResult = await this.supabase
       .from('schedules')
       .select('*')
       .eq('active', true)
       .or('next_run_at.is.null,next_run_at.lte.' + dayjs().toISOString())
       .order('priority', { ascending: false })
       .order('created_at', { ascending: true })
+
+    const data = queryResult.data as Schedule[] | null
+    const error = queryResult.error
 
     if (error) {
       throw new Error(`Failed to get due schedules: ${error.message}`)
@@ -208,11 +211,14 @@ export class Scheduler {
    * Get post targets for a given post
    */
   private async getPostTargets(postId: string): Promise<PostTarget[]> {
-    const { data, error } = await this.supabase
+    const queryResult = await this.supabase
       .from('post_targets')
       .select('id, post_id, social_account_id, workspace_id')
       .eq('post_id', postId)
       .eq('publish_status', 'pending')
+
+    const data = queryResult.data as PostTarget[] | null
+    const error = queryResult.error
 
     if (error) {
       throw new Error(`Failed to get post targets: ${error.message}`)
@@ -229,8 +235,7 @@ export class Scheduler {
     target: PostTarget,
     scheduledAt: string
   ): Promise<void> {
-    const { error } = await this.supabase
-      .from('queue_jobs')
+    const { error } = await (this.supabase.from('queue_jobs') as any)
       .insert({
         workspace_id: schedule.workspace_id,
         post_id: target.post_id,
@@ -269,9 +274,15 @@ export class Scheduler {
   /**
    * Get next post from evergreen queue
    */
-  private async getNextEvergreenPost(queueName: string, workspaceId: string): Promise<any> {
+  private async getNextEvergreenPost(queueName: string, workspaceId: string): Promise<{
+    id: string
+    content: string
+    primary_media_id: string | null
+    media_ids: string[] | null
+    settings: string | null
+  } | null> {
     // Find posts with is_evergreen = true and not yet scheduled
-    const { data, error } = await this.supabase
+    const queryResult = await this.supabase
       .from('posts')
       .select('id, content, primary_media_id, media_ids, settings')
       .eq('workspace_id', workspaceId)
@@ -280,6 +291,15 @@ export class Scheduler {
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
+
+    const data = queryResult.data as {
+      id: string
+      content: string
+      primary_media_id: string | null
+      media_ids: string[] | null
+      settings: string | null
+    } | null
+    const error = queryResult.error
 
     if (error) {
       throw new Error(`Failed to get evergreen post: ${error.message}`)
@@ -304,8 +324,7 @@ export class Scheduler {
    * Mark evergreen post as scheduled
    */
   private async markPostAsScheduled(postId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('posts')
+    const { error } = await (this.supabase.from('posts') as any)
       .update({
         state: 'queued',
         updated_at: dayjs().toISOString(),
@@ -334,8 +353,7 @@ export class Scheduler {
       }
     }
 
-    const { error } = await this.supabase
-      .from('schedules')
+    const { error } = await (this.supabase.from('schedules') as any)
       .update(updates)
       .eq('id', schedule.id)
 
@@ -374,8 +392,7 @@ export class Scheduler {
     userId: string
   ): Promise<string> {
     // Create single schedule
-    const { data, error } = await this.supabase
-      .from('schedules')
+    const insertResult = await (this.supabase.from('schedules') as any)
       .insert({
         workspace_id: workspaceId,
         post_id: postId,
@@ -387,8 +404,11 @@ export class Scheduler {
       .select('id')
       .single()
 
-    if (error) {
-      throw new Error(`Failed to create schedule: ${error.message}`)
+    const data = insertResult.data as { id: string } | null
+    const error = insertResult.error
+
+    if (error || !data) {
+      throw new Error(`Failed to create schedule: ${error?.message || 'Unknown error'}`)
     }
 
     // Immediately process the schedule
@@ -404,11 +424,14 @@ export class Scheduler {
    * Get schedule by ID
    */
   private async getScheduleById(scheduleId: string): Promise<Schedule | null> {
-    const { data, error } = await this.supabase
+    const queryResult = await this.supabase
       .from('schedules')
       .select('*')
       .eq('id', scheduleId)
       .maybeSingle()
+
+    const data = queryResult.data as Schedule | null
+    const error = queryResult.error
 
     if (error) {
       console.error('[Scheduler.getScheduleById] Error:', error)

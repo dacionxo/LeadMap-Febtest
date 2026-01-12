@@ -157,7 +157,8 @@ export class PostizMetrics {
       providerGroups.get(provider)!.push(job)
     }
 
-    for (const [provider, providerJobs] of providerGroups.entries()) {
+    // Convert Map to array for iteration (ES5 compatibility)
+    for (const [provider, providerJobs] of Array.from(providerGroups.entries())) {
       const providerTotal = providerJobs.length
       const providerSuccess = providerJobs.filter((j) => j.status === 'completed').length
       const providerFailed = providerJobs.filter((j) => j.status === 'failed').length

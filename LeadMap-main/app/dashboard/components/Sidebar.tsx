@@ -21,7 +21,8 @@ import {
   BarChart3,
   CheckCircle2,
   Megaphone,
-  MessageCircle
+  MessageCircle,
+  Share2
 } from 'lucide-react'
 import { useApp } from '@/app/providers'
 import { useSidebar } from './SidebarContext'
@@ -69,7 +70,8 @@ const navSections: NavSection[] = [
   {
     title: 'MARKETING',
     items: [
-      { label: 'Social Planner', icon: Megaphone, href: '/dashboard/marketing' },
+      { label: 'Social Planner', icon: Megaphone, href: '/dashboard/social-planner' },
+      { label: 'Postiz', icon: Share2, href: '/dashboard/postiz' },
       { label: 'Email Campaigns', icon: Mail, href: '/dashboard/email/campaigns' },
       { label: 'Email Analytics', icon: BarChart3, href: '/dashboard/marketing/analytics' },
       { label: 'Conversations', icon: MessageCircle, href: '/dashboard/conversations' }

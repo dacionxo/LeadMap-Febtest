@@ -253,7 +253,7 @@ export class Publisher {
    * Generate mock URL for testing
    */
   private generateMockURL(platform: string, accountId: string): string {
-    const baseUrls = {
+    const baseUrls: Record<string, string> = {
       x: 'https://twitter.com',
       twitter: 'https://twitter.com',
       linkedin: 'https://linkedin.com',

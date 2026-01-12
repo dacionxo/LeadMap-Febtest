@@ -66,22 +66,27 @@ export function useWorkspace(): WorkspaceContext {
       }
 
       const { workspaces: fetchedWorkspaces } = await response.json()
-      setWorkspaces(fetchedWorkspaces || [])
+      const workspacesList = fetchedWorkspaces || []
+      setWorkspaces(workspacesList)
 
       // Set current workspace from localStorage or use primary workspace
-      if (fetchedWorkspaces && fetchedWorkspaces.length > 0) {
+      if (workspacesList.length > 0) {
         const savedWorkspaceId = localStorage.getItem('postiz_current_workspace_id')
-        const savedWorkspace = fetchedWorkspaces.find((w: Workspace) => w.workspace_id === savedWorkspaceId)
+        const savedWorkspace = workspacesList.find((w: Workspace) => w.workspace_id === savedWorkspaceId)
         
         if (savedWorkspace) {
           setCurrentWorkspaceId(savedWorkspace.workspace_id)
         } else {
           // Use primary workspace (owner workspace or first)
-          const ownerWorkspace = fetchedWorkspaces.find((w: Workspace) => w.role === 'owner')
-          const primaryWorkspace = ownerWorkspace || fetchedWorkspaces[0]
+          const ownerWorkspace = workspacesList.find((w: Workspace) => w.role === 'owner')
+          const primaryWorkspace = ownerWorkspace || workspacesList[0]
           setCurrentWorkspaceId(primaryWorkspace.workspace_id)
           localStorage.setItem('postiz_current_workspace_id', primaryWorkspace.workspace_id)
         }
+      } else {
+        // No workspaces found - this should be handled by the API route creating one automatically
+        // But if it still fails, we'll set to null and let PostizWrapper show the error
+        setCurrentWorkspaceId(null)
       }
     } catch (err: any) {
       console.error('Error fetching workspaces:', err)

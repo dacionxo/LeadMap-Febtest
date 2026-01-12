@@ -44,9 +44,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const workspaces = await getUserWorkspaces(user.id)
+    let workspaces = await getUserWorkspaces(user.id)
 
-    return NextResponse.json({ workspaces })
+    // If user has no workspaces, automatically create a default workspace
+    if (!workspaces || workspaces.length === 0) {
+      try {
+        const workspaceId = await createDefaultWorkspaceForUser(user.id, user.email || '')
+        if (workspaceId) {
+          // Refresh workspaces after creation
+          workspaces = await getUserWorkspaces(user.id)
+        }
+      } catch (workspaceError: any) {
+        console.error('Error creating default workspace:', workspaceError)
+        // Continue even if workspace creation fails - return empty array
+      }
+    }
+
+    return NextResponse.json({ workspaces: workspaces || [] })
   } catch (error: any) {
     console.error('Error fetching workspaces:', error)
     return NextResponse.json(

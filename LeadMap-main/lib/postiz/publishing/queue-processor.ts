@@ -52,7 +52,7 @@ export class QueueProcessor {
       logger.info('Processing queue job')
 
       // Get job details
-      const { data: job, error } = await this.supabase
+      const queryResult = await this.supabase
         .from('queue_jobs')
         .select(`
           *,
@@ -78,6 +78,31 @@ export class QueueProcessor {
         .eq('status', 'pending')
         .single()
 
+      const job = queryResult.data as {
+        id: string
+        workspace_id: string
+        post_target_id: string
+        attempt_number: number
+        post_targets: {
+          id: string
+          social_account_id: string
+          content_override: string | null
+          title_override: string | null
+          description_override: string | null
+          media_override: string[] | null
+          settings_override: string | null
+          posts: {
+            id: string
+            content: string
+            primary_media_id: string | null
+            media_ids: string[] | null
+            settings: string | null
+            workspace_id: string
+          }
+        }
+      } | null
+      const error = queryResult.error
+
       if (error || !job) {
         logger.error('Job not found or not in pending status', error as Error)
         return {
@@ -97,11 +122,17 @@ export class QueueProcessor {
       logQueueJob(logger, 'started', jobId, { attemptNumber: job.attempt_number })
 
       // Get social account details
-      const { data: socialAccount } = await this.supabase
+      const accountQueryResult = await this.supabase
         .from('social_accounts')
         .select('id, provider_type, user_id')
         .eq('id', job.post_targets.social_account_id)
         .single()
+
+      const socialAccount = accountQueryResult.data as {
+        id: string
+        provider_type: string
+        user_id: string
+      } | null
 
       if (!socialAccount) {
         logger.error('Social account not found', undefined, {
@@ -120,9 +151,9 @@ export class QueueProcessor {
       const content = {
         message: job.post_targets.content_override || post.content,
         media: await this.prepareMedia(
-          post.primary_media_id,
+          post.primary_media_id || undefined,
           post.media_ids || [],
-          job.post_targets.media_override
+          job.post_targets.media_override || undefined
         ),
         settings: {
           ...JSON.parse(post.settings || '{}'),
@@ -139,10 +170,10 @@ export class QueueProcessor {
 
       const publishResult = await publisher.publish(
         {
-          socialAccountId: socialAccount.id,
-          userId: socialAccount.user_id,
+          socialAccountId: socialAccount.id!,
+          userId: socialAccount.user_id!,
           content,
-          platform: socialAccount.provider_type,
+          platform: socialAccount.provider_type!,
         },
         logger.getCorrelationId()
       )
@@ -150,16 +181,17 @@ export class QueueProcessor {
       const publishDuration = Date.now() - publishStartTime
 
       // Record metrics
-      await postizMetrics.recordMetric('post_publish_attempt', 1, {
-        workspaceId: job.workspace_id,
-        providerType: socialAccount.provider_type,
+      const attemptTags: Record<string, string> = {
         success: publishResult.success ? 'true' : 'false',
-      })
+      }
+      if (job.workspace_id) attemptTags.workspaceId = job.workspace_id
+      if (socialAccount.provider_type) attemptTags.providerType = socialAccount.provider_type
+      await postizMetrics.recordMetric('post_publish_attempt', 1, attemptTags)
 
-      await postizMetrics.recordMetric('post_publish_latency', publishDuration, {
-        workspaceId: job.workspace_id,
-        providerType: socialAccount.provider_type,
-      })
+      const latencyTags: Record<string, string> = {}
+      if (job.workspace_id) latencyTags.workspaceId = job.workspace_id
+      if (socialAccount.provider_type) latencyTags.providerType = socialAccount.provider_type
+      await postizMetrics.recordMetric('post_publish_latency', publishDuration, latencyTags)
 
       if (publishResult.success) {
         logger.info('Post published successfully', {
@@ -175,7 +207,7 @@ export class QueueProcessor {
           publishResult,
         }
       } else {
-        logger.warn('Post publish failed', undefined, {
+        logger.warn('Post publish failed', {
           error: publishResult.error,
           attemptNumber: job.attempt_number,
           durationMs: publishDuration,
@@ -196,7 +228,7 @@ export class QueueProcessor {
    * Get next pending job to process
    */
   async getNextJob(): Promise<QueueJob | null> {
-    const { data: job, error } = await this.supabase
+    const queryResult = await this.supabase
       .from('queue_jobs')
       .select('*')
       .eq('status', 'pending')
@@ -206,19 +238,19 @@ export class QueueProcessor {
       .limit(1)
       .maybeSingle()
 
-    if (error) {
-      console.error('[QueueProcessor.getNextJob] Error:', error)
+    if (queryResult.error) {
+      console.error('[QueueProcessor.getNextJob] Error:', queryResult.error)
       return null
     }
 
-    return job
+    return queryResult.data as QueueJob | null
   }
 
   /**
    * Get jobs ready for retry
    */
   async getRetryJobs(): Promise<QueueJob[]> {
-    const { data: jobs, error } = await this.supabase
+    const queryResult = await this.supabase
       .from('queue_jobs')
       .select('*')
       .eq('status', 'retrying')
@@ -226,12 +258,12 @@ export class QueueProcessor {
       .order('next_retry_at', { ascending: true })
       .limit(10) // Process up to 10 retry jobs at once
 
-    if (error) {
-      console.error('[QueueProcessor.getRetryJobs] Error:', error)
+    if (queryResult.error) {
+      console.error('[QueueProcessor.getRetryJobs] Error:', queryResult.error)
       return []
     }
 
-    return jobs || []
+    return (queryResult.data as QueueJob[] | null) || []
   }
 
   /**
@@ -249,10 +281,17 @@ export class QueueProcessor {
     }
 
     // Get media details from database
-    const { data: mediaAssets } = await this.supabase
+    const mediaQueryResult = await this.supabase
       .from('media_assets')
       .select('id, type, storage_path, alt_text')
       .in('id', finalMediaIds)
+
+    const mediaAssets = mediaQueryResult.data as Array<{
+      id: string
+      type: string
+      storage_path: string
+      alt_text: string | null
+    }> | null
 
     if (!mediaAssets) {
       return undefined
@@ -269,8 +308,7 @@ export class QueueProcessor {
    * Update job status
    */
   private async updateJobStatus(jobId: string, status: string, updates: any = {}): Promise<void> {
-    const { error } = await this.supabase
-      .from('queue_jobs')
+    const { error } = await (this.supabase.from('queue_jobs') as any)
       .update({
         status,
         updated_at: new Date().toISOString(),
@@ -306,15 +344,18 @@ export class QueueProcessor {
     }
 
     // Update post target with publish results
-    const { data: job } = await this.supabase
+    const jobQueryResult = await this.supabase
       .from('queue_jobs')
       .select('post_target_id')
       .eq('id', jobId)
       .single()
 
+    const job = jobQueryResult.data as {
+      post_target_id: string
+    } | null
+
     if (job) {
-      await this.supabase
-        .from('post_targets')
+      await (this.supabase.from('post_targets') as any)
         .update({
           publish_status: 'published',
           published_at: new Date().toISOString(),
@@ -340,11 +381,17 @@ export class QueueProcessor {
     error: string,
     logger?: ReturnType<typeof createLogger>
   ): Promise<ProcessingResult> {
-    const { data: job } = await this.supabase
+    const jobQueryResult = await this.supabase
       .from('queue_jobs')
       .select('attempt_number, max_attempts, status')
       .eq('id', jobId)
       .single()
+
+    const job = jobQueryResult.data as {
+      attempt_number: number | null
+      max_attempts: number | null
+      status: string
+    } | null
 
     if (!job) {
       return { success: false, error: 'Job not found' }
@@ -364,7 +411,7 @@ export class QueueProcessor {
       })
 
       if (logger) {
-        logger.warn('Job scheduled for retry', undefined, {
+        logger.warn('Job scheduled for retry', {
           attemptNumber: currentAttempt + 1,
           nextRetryAt: nextRetryAt.toISOString(),
           delayMs,
@@ -378,8 +425,8 @@ export class QueueProcessor {
       // Record retry metric
       await postizMetrics.recordMetric('queue_job_retry', 1, {
         jobId,
-        attemptNumber: currentAttempt + 1,
-      })
+        attemptNumber: String(currentAttempt + 1),
+      } as Record<string, string>)
 
       return {
         success: false,
@@ -416,15 +463,19 @@ export class QueueProcessor {
     })
 
     // Update post target status
-    const { data: job } = await this.supabase
+    const jobQueryResult = await this.supabase
       .from('queue_jobs')
       .select('post_target_id, workspace_id')
       .eq('id', jobId)
       .single()
 
+    const job = jobQueryResult.data as {
+      post_target_id: string
+      workspace_id: string
+    } | null
+
     if (job) {
-      await this.supabase
-        .from('post_targets')
+      await (this.supabase.from('post_targets') as any)
         .update({
           publish_status: 'failed',
           publish_error: error,
@@ -434,11 +485,10 @@ export class QueueProcessor {
         .eq('id', job.post_target_id)
 
       // Record failure metric
-      await postizMetrics.recordMetric('queue_job_failed', 1, {
-        jobId,
-        workspaceId: job.workspace_id,
-        errorCode,
-      })
+      const failureTags: Record<string, string> = { jobId }
+      if (job.workspace_id) failureTags.workspaceId = job.workspace_id
+      if (errorCode) failureTags.errorCode = errorCode
+      await postizMetrics.recordMetric('queue_job_failed', 1, failureTags)
     }
 
     if (logger) {
@@ -484,7 +534,7 @@ export class QueueProcessor {
    * Log analytics event
    */
   private async logAnalyticsEvent(jobId: string, eventType: string, data: any): Promise<void> {
-    const { data: job } = await this.supabase
+    const jobQueryResult = await this.supabase
       .from('queue_jobs')
       .select(`
         workspace_id,
@@ -497,9 +547,19 @@ export class QueueProcessor {
       .eq('id', jobId)
       .single()
 
+    const job = jobQueryResult.data as {
+      workspace_id: string
+      post_target_id: string
+      post_targets: {
+        social_account_id: string
+        posts: {
+          id: string
+        }
+      } | null
+    } | null
+
     if (job) {
-      await this.supabase
-        .from('analytics_events')
+      await (this.supabase.from('analytics_events') as any)
         .insert({
           workspace_id: job.workspace_id,
           post_id: job.post_targets?.posts?.id,

@@ -17,7 +17,8 @@ export async function storeOAuthState(state: OAuthState): Promise<void> {
 
   const expiresAt = new Date(Date.now() + STATE_EXPIRY_MINUTES * 60 * 1000)
 
-  const { error } = await supabase.from('oauth_states').insert({
+  const insertQuery = supabase.from('oauth_states') as any
+  const { error } = await insertQuery.insert({
     state: state.state,
     workspace_id: state.workspaceId,
     user_id: state.userId,
@@ -41,12 +42,23 @@ export async function getOAuthState(
 ): Promise<OAuthState | null> {
   const supabase = getServiceRoleClient()
 
-  const { data, error } = await supabase
+  const queryResult = await supabase
     .from('oauth_states')
     .select('*')
     .eq('state', state)
     .gt('expires_at', new Date().toISOString()) // Only get non-expired states
     .maybeSingle()
+
+  const data = queryResult.data as {
+    workspace_id: string
+    user_id: string
+    provider: string
+    code_verifier: string
+    state: string
+    redirect_uri: string | null
+    expires_at: string
+  } | null
+  const error = queryResult.error
 
   if (error) {
     console.error('[getOAuthState] Error retrieving OAuth state:', error)
@@ -74,8 +86,8 @@ export async function getOAuthState(
 export async function deleteOAuthState(state: string): Promise<void> {
   const supabase = getServiceRoleClient()
 
-  const { error } = await supabase
-    .from('oauth_states')
+  const deleteQuery = supabase.from('oauth_states') as any
+  const { error } = await deleteQuery
     .delete()
     .eq('state', state)
 
@@ -92,13 +104,17 @@ export async function cleanupExpiredOAuthStates(): Promise<number> {
   const supabase = getServiceRoleClient()
 
   // Call the database function to clean up expired states
-  const { data, error } = await supabase.rpc('cleanup_expired_oauth_states')
+  const rpcResult = await (supabase.rpc as any)('cleanup_expired_oauth_states')
+  const { data, error } = rpcResult as {
+    data: number | null
+    error: any
+  }
 
   if (error) {
     console.error('[cleanupExpiredOAuthStates] Error cleaning up states:', error)
     // Fallback: Manual delete
-    const { error: deleteError } = await supabase
-      .from('oauth_states')
+    const deleteQuery = supabase.from('oauth_states') as any
+    const { error: deleteError } = await deleteQuery
       .delete()
       .lt('expires_at', new Date().toISOString())
 

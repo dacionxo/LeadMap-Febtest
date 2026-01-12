@@ -31,24 +31,23 @@ export async function storeOAuthCredentials(
     : null
 
   // Store credentials (upsert to handle updates)
-  const { error } = await supabase
-    .from('credentials')
-    .upsert(
-      {
-        social_account_id: socialAccountId,
-        workspace_id: workspaceId,
-        user_id: userId,
-        access_token_encrypted: encryptedAccessToken, // TEXT: hex string from encryption
-        refresh_token_encrypted: encryptedRefreshToken, // TEXT: hex string or null
-        token_expires_at: expiresAt?.toISOString(),
-        scopes: scopes,
-        token_type: 'Bearer',
-        encryption_key_id: 'default',
-      },
-      {
-        onConflict: 'social_account_id',
-      }
-    )
+  const upsertQuery = supabase.from('credentials') as any
+  const { error } = await upsertQuery.upsert(
+    {
+      social_account_id: socialAccountId,
+      workspace_id: workspaceId,
+      user_id: userId,
+      access_token_encrypted: encryptedAccessToken, // TEXT: hex string from encryption
+      refresh_token_encrypted: encryptedRefreshToken, // TEXT: hex string or null
+      token_expires_at: expiresAt?.toISOString(),
+      scopes: scopes,
+      token_type: 'Bearer',
+      encryption_key_id: 'default',
+    },
+    {
+      onConflict: 'social_account_id',
+    }
+  )
 
   if (error) {
     console.error('[storeOAuthCredentials] Error storing credentials:', error)
@@ -72,12 +71,21 @@ export async function getOAuthCredentials(
   const supabase = getServiceRoleClient()
 
   // Get credentials (with RLS, only user can access their own)
-  const { data, error } = await supabase
+  const queryResult = await supabase
     .from('credentials')
     .select('access_token_encrypted, refresh_token_encrypted, token_expires_at, scopes, token_type')
     .eq('social_account_id', socialAccountId)
     .eq('user_id', userId)
     .maybeSingle()
+
+  const data = queryResult.data as {
+    access_token_encrypted: string
+    refresh_token_encrypted: string | null
+    token_expires_at: string | null
+    scopes: string[] | null
+    token_type: string | null
+  } | null
+  const error = queryResult.error
 
   if (error) {
     console.error('[getOAuthCredentials] Error fetching credentials:', error)
@@ -147,8 +155,8 @@ export async function updateOAuthCredentials(
 
   updateData.updated_at = new Date().toISOString()
 
-  const { error } = await supabase
-    .from('credentials')
+  const updateQuery = supabase.from('credentials') as any
+  const { error } = await updateQuery
     .update(updateData)
     .eq('social_account_id', socialAccountId)
     .eq('user_id', userId)
@@ -168,8 +176,8 @@ export async function deleteOAuthCredentials(
 ): Promise<void> {
   const supabase = getServiceRoleClient()
 
-  const { error } = await supabase
-    .from('credentials')
+  const deleteQuery = supabase.from('credentials') as any
+  const { error } = await deleteQuery
     .delete()
     .eq('social_account_id', socialAccountId)
     .eq('user_id', userId)

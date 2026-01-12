@@ -47,16 +47,27 @@ export async function GET(request: NextRequest) {
     let workspaces = await getUserWorkspaces(user.id)
 
     // If user has no workspaces, automatically create a default workspace
+    // This ensures all LeadMap users can use Postiz without manual setup
+    // Uses the same user.id from Supabase auth.users that LeadMap uses throughout
     if (!workspaces || workspaces.length === 0) {
       try {
-        const workspaceId = await createDefaultWorkspaceForUser(user.id, user.email || '')
+        // Get user email from user object or metadata (consistent with LeadMap)
+        const userEmail = user.email || user.user_metadata?.email || user.user_metadata?.email_address || ''
+        
+        const workspaceId = await createDefaultWorkspaceForUser(
+          user.id, // Same UUID from auth.users that LeadMap uses everywhere
+          userEmail
+        )
+        
         if (workspaceId) {
           // Refresh workspaces after creation
           workspaces = await getUserWorkspaces(user.id)
+          console.log(`[GET /api/postiz/workspaces] Auto-created workspace ${workspaceId} for user ${user.id}`)
         }
       } catch (workspaceError: any) {
-        console.error('Error creating default workspace:', workspaceError)
+        console.error('[GET /api/postiz/workspaces] Error creating default workspace:', workspaceError)
         // Continue even if workspace creation fails - return empty array
+        // The frontend will show the workspace required message if creation fails
       }
     }
 

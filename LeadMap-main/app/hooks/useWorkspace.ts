@@ -7,7 +7,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { useApp } from '@/app/providers'
 
 export interface Workspace {
   workspace_id: string
@@ -27,41 +27,35 @@ export interface WorkspaceContext {
 }
 
 export function useWorkspace(): WorkspaceContext {
+  const { supabase, user } = useApp()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  // Create Supabase client with lazy initialization for SSR safety
-  const [supabase, setSupabase] = useState<ReturnType<typeof createBrowserClient> | null>(null)
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const client = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      setSupabase(client)
-    }
-  }, [])
 
   const fetchWorkspaces = async () => {
-    if (!supabase) return
-    
+    // Use the user from useApp context (same user ID as LeadMap)
+    if (!user) {
+      setWorkspaces([])
+      setCurrentWorkspaceId(null)
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setWorkspaces([])
-        setCurrentWorkspaceId(null)
-        setLoading(false)
-        return
-      }
-
+      // Fetch workspaces using the same user ID that LeadMap uses
       const response = await fetch('/api/postiz/workspaces')
       if (!response.ok) {
+        // If unauthorized, user session might have expired
+        if (response.status === 401) {
+          setWorkspaces([])
+          setCurrentWorkspaceId(null)
+          setLoading(false)
+          return
+        }
         throw new Error('Failed to fetch workspaces')
       }
 
@@ -105,19 +99,18 @@ export function useWorkspace(): WorkspaceContext {
   }
 
   useEffect(() => {
-    if (!supabase) return
-    
-    fetchWorkspaces()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      fetchWorkspaces()
-    })
-
-    return () => {
-      subscription.unsubscribe()
+    // Only fetch workspaces when user is available (from useApp context)
+    // Uses the same user.id from Supabase auth that LeadMap uses throughout
+    if (!user) {
+      setWorkspaces([])
+      setCurrentWorkspaceId(null)
+      setLoading(false)
+      return
     }
-  }, [supabase])
+
+    fetchWorkspaces()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]) // Only depend on user.id to avoid unnecessary re-fetches
 
   const currentWorkspace = workspaces.find(w => w.workspace_id === currentWorkspaceId) || null
 

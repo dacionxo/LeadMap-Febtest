@@ -9,8 +9,6 @@
 
 'use client'
 
-'use client'
-
 import { useRouter } from 'next/navigation'
 import { useContext } from 'react'
 import { PostizContext } from '../providers/PostizProvider'

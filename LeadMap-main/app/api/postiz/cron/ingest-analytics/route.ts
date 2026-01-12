@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { ingestSocialAccountAnalytics } from '@/lib/postiz/analytics/ingestion'
-import type { SocialAccount } from '@/lib/postiz/data-model'
+import type { SocialAccountProvider } from '@/lib/postiz/data-model'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     interface SocialAccountQueryResult {
       id: string
       workspace_id: string
-      provider_type: SocialAccount['provider_type']
+      provider_type: SocialAccountProvider
       disabled: boolean
     }
 

@@ -78,7 +78,8 @@ export class PostizMetrics {
     try {
       const workspaceId = tags.workspaceId
       if (workspaceId) {
-        await this.supabase.from('activity_logs').insert({
+        const insertQuery = this.supabase.from('activity_logs') as any
+        await insertQuery.insert({
           workspace_id: workspaceId,
           activity_type: 'system_metric',
           activity_description: `${metricName}: ${value}`,
@@ -117,16 +118,24 @@ export class PostizMetrics {
       query = query.eq('workspace_id', workspaceId)
     }
 
-    const { data: jobs, error } = await query
+    const queryResult = await query
+    const jobs = (queryResult.data as Array<{
+      status: string
+      provider_type: string | null
+      execution_duration_ms: number | null
+      error_code: string | null
+      attempt_number?: number
+    }> | null) || []
+    const error = queryResult.error
 
-    if (error || !jobs) {
+    if (error || !jobs || jobs.length === 0) {
       return this.getEmptyPublishMetrics()
     }
 
     const total = jobs.length
     const success = jobs.filter((j) => j.status === 'completed').length
     const failed = jobs.filter((j) => j.status === 'failed').length
-    const retried = jobs.filter((j) => j.attempt_number > 1).length
+    const retried = jobs.filter((j) => (j.attempt_number || 0) > 1).length
 
     // Calculate average latency
     const completedJobs = jobs.filter((j) => j.status === 'completed' && j.execution_duration_ms)
@@ -208,7 +217,7 @@ export class PostizMetrics {
     let query = this.supabase
       .from('activity_logs')
       .select('activity_metadata, social_account_id')
-      .eq('activity_type', 'oauth_token_refreshed')
+      .eq('activity_type', 'token_refreshed')
       .gte('occurred_at', start.toISOString())
       .lte('occurred_at', end.toISOString())
 
@@ -216,9 +225,14 @@ export class PostizMetrics {
       query = query.eq('workspace_id', workspaceId)
     }
 
-    const { data: refreshLogs, error } = await query
+    const refreshQueryResult = await query
+    const refreshLogs = (refreshQueryResult.data as Array<{
+      activity_metadata: Record<string, any> | null
+      social_account_id: string | null
+    }> | null) || []
+    const error = refreshQueryResult.error
 
-    if (error || !refreshLogs) {
+    if (error) {
       return this.getEmptyTokenRefreshMetrics()
     }
 
@@ -226,7 +240,7 @@ export class PostizMetrics {
     let failedQuery = this.supabase
       .from('activity_logs')
       .select('activity_metadata, social_account_id')
-      .eq('activity_type', 'oauth_token_refresh_failed')
+      .eq('activity_type', 'token_refresh_failed')
       .gte('occurred_at', start.toISOString())
       .lte('occurred_at', end.toISOString())
 
@@ -234,11 +248,15 @@ export class PostizMetrics {
       failedQuery = failedQuery.eq('workspace_id', workspaceId)
     }
 
-    const { data: failedLogs } = await failedQuery
+    const failedQueryResult = await failedQuery
+    const failedLogs = (failedQueryResult.data as Array<{
+      activity_metadata: Record<string, any> | null
+      social_account_id: string | null
+    }> | null) || []
 
-    const total = refreshLogs.length + (failedLogs?.length || 0)
+    const total = refreshLogs.length + failedLogs.length
     const success = refreshLogs.length
-    const failed = failedLogs?.length || 0
+    const failed = failedLogs.length
 
     // Group by provider
     const providerMetrics: Record<string, { total: number; success: number; failed: number }> = {}
@@ -252,7 +270,7 @@ export class PostizMetrics {
       providerMetrics[provider].success++
     }
 
-    for (const log of failedLogs || []) {
+    for (const log of failedLogs) {
       const provider = log.activity_metadata?.providerType || 'unknown'
       if (!providerMetrics[provider]) {
         providerMetrics[provider] = { total: 0, success: 0, failed: 0 }
@@ -281,9 +299,15 @@ export class PostizMetrics {
       query = query.eq('workspace_id', workspaceId)
     }
 
-    const { data: jobs, error } = await query
+    const queryResult = await query
+    const jobs = (queryResult.data as Array<{
+      status: string
+      created_at: string
+      updated_at: string | null
+    }> | null) || []
+    const error = queryResult.error
 
-    if (error || !jobs) {
+    if (error || !jobs || jobs.length === 0) {
       return this.getEmptyQueueMetrics()
     }
 
@@ -297,7 +321,7 @@ export class PostizMetrics {
     const completedJobs = jobs.filter((j) => j.status === 'completed' && j.created_at && j.updated_at)
     const waitTimes = completedJobs.map((j) => {
       const created = new Date(j.created_at).getTime()
-      const started = new Date(j.updated_at).getTime()
+      const started = new Date(j.updated_at!).getTime()
       return started - created
     })
     const averageWaitTime =

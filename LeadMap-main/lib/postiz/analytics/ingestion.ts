@@ -12,12 +12,7 @@ import { getServiceRoleClient } from '@/lib/supabase-singleton'
 import { getOAuthCredentials } from '../oauth/credentials'
 import type { SocialProviderIdentifier } from '../oauth/types'
 import { AnalyticsEventType } from '../data-model'
-import {
-  XAnalyticsIngestor,
-  LinkedInAnalyticsIngestor,
-  InstagramAnalyticsIngestor,
-  FacebookAnalyticsIngestor,
-} from './providers'
+// Providers are imported dynamically to avoid circular dependency
 
 /**
  * Post target query result for analytics ingestion
@@ -318,8 +313,8 @@ export async function ingestSocialAccountAnalytics(
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)
 
-  // Get provider-specific ingestor
-  const ingestor = getAnalyticsIngestor(socialAccount.provider_type as SocialProviderIdentifier)
+  // Get provider-specific ingestor (using dynamic import to avoid circular dependency)
+  const ingestor = await getAnalyticsIngestor(socialAccount.provider_type as SocialProviderIdentifier)
   if (!ingestor) {
     throw new Error(`No ingestor found for provider ${socialAccount.provider_type}`)
   }
@@ -335,28 +330,44 @@ export async function ingestSocialAccountAnalytics(
 
 /**
  * Get the appropriate analytics ingestor for a provider
+ * Uses dynamic imports to avoid circular dependency
  */
-function getAnalyticsIngestor(
+async function getAnalyticsIngestor(
   provider: SocialProviderIdentifier
-): AnalyticsIngestor | null {
-  switch (provider.toLowerCase()) {
-    case 'x':
-    case 'twitter':
-      return new XAnalyticsIngestor()
-    
-    case 'linkedin':
-    case 'linkedin-page':
-      return new LinkedInAnalyticsIngestor()
-    
-    case 'instagram':
-    case 'instagram-standalone':
-      return new InstagramAnalyticsIngestor()
-    
-    case 'facebook':
-    case 'facebook-page':
-      return new FacebookAnalyticsIngestor()
-    
-    default:
-      return null
+): Promise<AnalyticsIngestor | null> {
+  const providerLower = provider.toLowerCase()
+  
+  try {
+    switch (providerLower) {
+      case 'x':
+      case 'twitter': {
+        const { XAnalyticsIngestor } = await import('./providers/x-provider')
+        return new XAnalyticsIngestor()
+      }
+      
+      case 'linkedin':
+      case 'linkedin-page': {
+        const { LinkedInAnalyticsIngestor } = await import('./providers/linkedin-provider')
+        return new LinkedInAnalyticsIngestor()
+      }
+      
+      case 'instagram':
+      case 'instagram-standalone': {
+        const { InstagramAnalyticsIngestor } = await import('./providers/instagram-provider')
+        return new InstagramAnalyticsIngestor()
+      }
+      
+      case 'facebook':
+      case 'facebook-page': {
+        const { FacebookAnalyticsIngestor } = await import('./providers/facebook-provider')
+        return new FacebookAnalyticsIngestor()
+      }
+      
+      default:
+        return null
+    }
+  } catch (error) {
+    console.error(`[getAnalyticsIngestor] Failed to load provider ${provider}:`, error)
+    return null
   }
 }

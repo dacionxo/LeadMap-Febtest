@@ -42,6 +42,9 @@ paths:
     - "*.js"
     - "*.jsx"
     - "*.py"
+    # Explicitly include cron jobs for review
+    - "app/api/cron/**"
+    - "app/api/calendar/cron/**"
   
   # Exclude node_modules, build outputs, etc.
   exclude:
@@ -111,3 +114,4 @@ instructions: |
   - Code maintainability
   
   The repository owner is Dacionxo.
+

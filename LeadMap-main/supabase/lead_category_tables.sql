@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS expired_listings (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS fsbo_leads (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS frbo_leads (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS imports (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -267,7 +267,7 @@ CREATE TABLE IF NOT EXISTS trash (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -326,7 +326,7 @@ CREATE TABLE IF NOT EXISTS foreclosure_listings (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,

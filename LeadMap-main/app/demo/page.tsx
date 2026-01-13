@@ -78,7 +78,7 @@ export default function DemoPage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden" style={{ backgroundColor: '#E8E3D6' }}>
+    <div className="h-screen overflow-hidden" style={{ backgroundColor: '#f7faff' }}>
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
@@ -86,14 +86,14 @@ export default function DemoPage() {
       </div>
 
       {/* Navigation - Fixed/Sticky with Logo Only */}
-      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#E8E3D6' }}>
+      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#f7faff' }}>
         <div className="mx-4 sm:mx-6 lg:mx-8">
           <div className="flex justify-between items-center h-16 max-w-[1872px] mx-auto">
             <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => router.push('/')}>
               <img 
-                src="/nextdeal-logo.png" 
-                alt="NextDeal" 
-                className="h-12 w-auto"
+                src="/nextdeal-logo.png"
+                alt="NextDeal"
+                className="h-8 w-auto"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';

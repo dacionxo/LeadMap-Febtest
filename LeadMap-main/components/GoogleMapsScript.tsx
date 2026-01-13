@@ -52,14 +52,14 @@ export default function GoogleMapsScript() {
 
   return (
     <Script
-      src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places,geometry&loading=async`}
+      src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places,geometry,streetView&loading=async`}
       strategy="afterInteractive"
       onLoad={() => {
         if (typeof window !== 'undefined') {
           ;(window as any).initMap =
             (window as any).initMap ||
             (() => {
-              console.log('Google Maps API loaded successfully')
+              console.log('Google Maps API loaded successfully with Street View support')
             })
         }
       }}

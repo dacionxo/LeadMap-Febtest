@@ -15,11 +15,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isHomePage = pathname === '/'
-  const isSignupPage = pathname === '/signup'
-  const isLoginPage = pathname === '/login'
-  const isDemoPage = pathname === '/demo'
-  const isLightModePage = isHomePage || isSignupPage || isLoginPage || isDemoPage
+  // Use Set for O(1) lookup and easier maintenance
+  const LIGHT_MODE_PAGES = new Set(['/', '/signup', '/login', '/demo', '/forgot-password'])
+  const isLightModePage = LIGHT_MODE_PAGES.has(pathname)
   const [theme, setTheme] = useState<Theme>('system')
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
   const [mounted, setMounted] = useState(false)
@@ -41,7 +39,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     let resolved: 'light' | 'dark' = 'light'
 
-    // Force light mode on home, signup, login, and demo pages
+    // Force light mode on home, signup, login, demo, and forgot-password pages
     if (isLightModePage) {
       resolved = 'light'
       root.classList.add('light')

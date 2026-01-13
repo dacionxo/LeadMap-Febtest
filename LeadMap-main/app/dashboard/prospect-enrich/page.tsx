@@ -26,7 +26,6 @@ import { postEnrichLeads } from '@/lib/api'
 import { 
   Search, 
   Filter, 
-  Download, 
   Plus, 
   Sparkles, 
   Building2, 
@@ -780,36 +779,6 @@ function ProspectEnrichInner() {
     router.replace(window.location.pathname, { scroll: false })
   }
 
-  const handleExportCSV = () => {
-    const headers = ['Listing ID', 'Property URL', 'Street', 'Unit', 'City', 'State', 'Zip Code', 'List Price', 'Beds', 'Baths', 'Sqft', 'Status', 'Agent Name', 'Agent Email', 'Agent Phone', 'MLS', 'AI Score']
-    const rows = listings.map(l => [
-      l.listing_id || '',
-      l.property_url || '',
-      l.street || '',
-      l.unit || '',
-      l.city || '',
-      l.state || '',
-      l.zip_code || '',
-      (l.list_price || 0).toString(),
-      (l.beds || '').toString(),
-      (l.full_baths || '').toString(),
-      (l.sqft || '').toString(),
-      l.status || '',
-      l.agent_name || '',
-      l.agent_email || '',
-      l.agent_phone || '',
-      l.mls || '',
-      (l.ai_investment_score || '').toString()
-    ])
-    
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `prospects-${Array.from(selectedFilters).join('-')}-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-  }
 
   // Fetch counts from each table separately to ensure accurate counts
   useEffect(() => {
@@ -1407,7 +1376,7 @@ function ProspectEnrichInner() {
           textTransform: 'uppercase',
           letterSpacing: '0.5px'
         }}>
-          Text
+          Description
         </span>
       </div>
       <div style={{ 
@@ -1683,7 +1652,6 @@ function ProspectEnrichInner() {
           sortBy={sortBy}
           onSortChange={setSortBy}
           onImport={() => setShowImportModal(true)}
-          onExport={handleExportCSV}
           onSaveSearch={() => alert('Save search functionality coming soon')}
           onCreateWorkflow={() => alert('Create workflow functionality coming soon')}
           onRunAIPrompt={() => {
@@ -2257,7 +2225,7 @@ function ProspectEnrichInner() {
                             </span>
                           </div>
 
-                          {/* Text Column */}
+                          {/* Description Column */}
                           <div style={{ 
                             flex: '0 0 200px', 
                             marginRight: '24px',
@@ -2271,7 +2239,7 @@ function ProspectEnrichInner() {
                               textTransform: 'uppercase',
                               letterSpacing: '0.5px'
                             }}>
-                              Text
+                              Description
                             </span>
                           </div>
 
@@ -2473,7 +2441,16 @@ function ProspectEnrichInner() {
                           }}
                           sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
                           sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
-                          onStatsChange={(stats) => setRemoteListingsCount(stats.totalCount)}
+                          pagination={{
+                            currentPage,
+                            pageSize: itemsPerPage,
+                            onPageChange: setCurrentPage,
+                            onPageSizeChange: setItemsPerPage
+                          }}
+                          onStatsChange={(stats) => {
+                            setRemoteListingsCount(stats.totalCount)
+                            // Update totalPages if needed for proper pagination display
+                          }}
                           onListingClick={(listing) => {
                             setSelectedListingId(listing.listing_id)
                             setShowLeadModal(true)
@@ -2724,7 +2701,7 @@ function ProspectEnrichInner() {
                             </span>
                           </div>
 
-                          {/* Text Column */}
+                          {/* Description Column */}
                           <div style={{ 
                             flex: '0 0 200px', 
                             marginRight: '24px',
@@ -2738,7 +2715,7 @@ function ProspectEnrichInner() {
                               textTransform: 'uppercase',
                               letterSpacing: '0.5px'
                             }}>
-                              Text
+                              Description
                             </span>
                           </div>
 
@@ -2940,7 +2917,16 @@ function ProspectEnrichInner() {
                           }}
                           sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
                           sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
-                          onStatsChange={(stats) => setRemoteListingsCount(stats.totalCount)}
+                          pagination={{
+                            currentPage,
+                            pageSize: itemsPerPage,
+                            onPageChange: setCurrentPage,
+                            onPageSizeChange: setItemsPerPage
+                          }}
+                          onStatsChange={(stats) => {
+                            setRemoteListingsCount(stats.totalCount)
+                            // Update totalPages if needed for proper pagination display
+                          }}
                           onListingClick={(listing) => {
                             setSelectedListingId(listing.listing_id)
                             setShowLeadModal(true)

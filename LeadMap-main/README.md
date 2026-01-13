@@ -171,6 +171,8 @@ Visit [http://localhost:3000](http://localhost:3000) to see your app!
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Detailed deployment guide for Vercel
 - **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** - Detailed file structure and explanations
 - **[CHANGELOG.md](./CHANGELOG.md)** - Complete development history and feature timeline
+- **[EMAIL_RESOURCES.md](./EMAIL_RESOURCES.md)** - Comprehensive reference of open-source email tools, servers, frameworks, and libraries
+- **[HYVOR_RELAY_INTEGRATION.md](./HYVOR_RELAY_INTEGRATION.md)** - Integration guide for Hyvor Relay (self-hosted email API)
 
 ## 🚀 Deployment
 
@@ -462,6 +464,7 @@ This project is licensed under the MIT License.
 - **Setup Guides**: See [SETUP.md](./SETUP.md) for Google Maps, OAuth, and GitHub setup
 - **Development History**: See [CHANGELOG.md](./CHANGELOG.md) for complete feature timeline
 - **Project Structure**: See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for detailed file explanations
+- **Google APIs Client**: See [GOOGLE_APIS_CLIENT_INTEGRATION.md](./GOOGLE_APIS_CLIENT_INTEGRATION.md) for using the Google APIs Node.js client library
 
 ## 🤝 Contributing
 

@@ -3,6 +3,26 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { parse } from 'csv-parse/sync'
 
+/**
+ * TypeScript interfaces for CSV Upload API response
+ * Following .cursorrules: prefer interfaces over types for object shapes
+ */
+interface CsvUploadResponse {
+  message: string
+  count: number
+}
+
+interface CsvUploadErrorResponse {
+  error: string
+  details?: string
+}
+
+/**
+ * CSV Upload API
+ * POST /api/admin/upload-csv
+ * Handles CSV file uploads for listing data import
+ * Following Mautic patterns for data import and validation
+ */
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
@@ -72,7 +92,7 @@ export async function POST(request: NextRequest) {
         state: record.state || null,
         zip_code: record.zip_code || record.zip || null,
         beds: record.beds ? parseInt(record.beds) : null,
-        full_baths: record.full_baths ? parseInt(record.full_baths) : null,
+        full_baths: record.full_baths ? parseFloat(record.full_baths) : null,
         half_baths: record.half_baths ? parseInt(record.half_baths) : null,
         sqft: record.sqft ? parseInt(record.sqft) : null,
         year_built: record.year_built ? parseInt(record.year_built) : null,
@@ -107,22 +127,33 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error inserting listings:', error)
-      return NextResponse.json({ 
+      
+      // Only expose generic error message to client in production
+      const isDev = process.env.NODE_ENV === 'development'
+      const errorResponse: CsvUploadErrorResponse = {
         error: 'Failed to insert listings into database',
-        details: error.message
-      }, { status: 500 })
+        ...(isDev && { details: error.message }),
+      }
+      return NextResponse.json(errorResponse, { status: 500 })
     }
 
-    return NextResponse.json({
+    const response: CsvUploadResponse = {
       message: 'CSV uploaded successfully',
-      count: data.length
-    })
+      count: data.length,
+    }
+
+    return NextResponse.json(response)
 
   } catch (error: any) {
     console.error('Error processing CSV upload:', error)
-    return NextResponse.json({ 
+    
+    // Only expose generic error message to client in production
+    const isDev = process.env.NODE_ENV === 'development'
+    const errorResponse: CsvUploadErrorResponse = {
       error: 'Failed to process CSV file',
-      details: error.message
-    }, { status: 500 })
+      ...(isDev && { details: error.message }),
+    }
+    return NextResponse.json(errorResponse, { status: 500 })
   }
 }
+

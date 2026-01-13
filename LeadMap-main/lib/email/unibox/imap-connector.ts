@@ -16,6 +16,7 @@ import { createClient } from '@supabase/supabase-js'
 import Imap from 'imap'
 // @ts-ignore
 import { simpleParser } from 'mailparser'
+import { extractThreadHeaders, parseReferences, parseInReplyTo, parseMessageId } from '../james/threading/thread-reconstruction'
 
 export interface IMAPConfig {
   host: string
@@ -84,22 +85,16 @@ function parseIMAPMessage(rawMessage: any, mailboxEmail: string): {
   const sentAt = dateHeader ? new Date(dateHeader).toISOString() : new Date().toISOString()
   const receivedAt = sentAt
 
-  // Parse message IDs
-  const inReplyToHeader = headers.get('in-reply-to')
-  const inReplyTo = inReplyToHeader ? (Array.isArray(inReplyToHeader) ? inReplyToHeader[0] : inReplyToHeader) : null
-
-  const referencesHeader = headers.get('references')
-  const references: string[] = []
-  if (referencesHeader) {
-    const refs = Array.isArray(referencesHeader) ? referencesHeader : [referencesHeader]
-    refs.forEach(ref => {
-      if (typeof ref === 'string') {
-        ref.split(/\s+/).forEach(r => references.push(r))
-      }
-    })
-  }
-
-  const messageId = headers.get('message-id') || null
+  // Parse message IDs using james-project threading utilities
+  const headerMap: Record<string, string | string[]> = {}
+  headers.forEach((value: string | string[], key: string) => {
+    headerMap[key.toLowerCase()] = Array.isArray(value) ? value : [value]
+  })
+  
+  const threadHeaders = extractThreadHeaders(headerMap)
+  const inReplyTo = threadHeaders.inReplyTo ? parseInReplyTo(threadHeaders.inReplyTo)[0] || null : null
+  const references = threadHeaders.references ? parseReferences(threadHeaders.references) : []
+  const messageId = threadHeaders.messageId || null
 
   // Determine if inbound
   const isInbound = from.email.toLowerCase() !== mailboxEmail.toLowerCase()
@@ -358,29 +353,40 @@ export async function syncIMAPMessages(
         let providerThreadId = parsed.messageId || `thread_${uid}`
         if (parsed.inReplyTo) {
           // Try to find existing thread by in-reply-to
-          const { data: existingThread } = await supabase
+          // Use maybeSingle() to avoid PGRST116 error when thread doesn't exist
+          const { data: existingThread, error: replyToCheckError } = await supabase
             .from('email_threads')
             .select('provider_thread_id')
             .eq('user_id', userId)
             .eq('mailbox_id', mailboxId)
             .ilike('provider_thread_id', `%${parsed.inReplyTo}%`)
             .limit(1)
-            .single()
+            .maybeSingle()
 
-          if (existingThread) {
+          if (replyToCheckError) {
+            console.warn(`[syncIMAPMessages] Error checking for thread by in-reply-to ${parsed.inReplyTo}:`, replyToCheckError)
+            // Continue with original thread ID, not a fatal error
+          } else if (existingThread) {
             providerThreadId = existingThread.provider_thread_id || providerThreadId
           }
         }
 
         // Find or create thread
+        // Use maybeSingle() to avoid PGRST116 error when thread doesn't exist
         let threadId: string
-        const { data: existingThread } = await supabase
+        const { data: existingThread, error: threadCheckError } = await supabase
           .from('email_threads')
           .select('id')
           .eq('user_id', userId)
           .eq('mailbox_id', mailboxId)
           .eq('provider_thread_id', providerThreadId)
-          .single()
+          .maybeSingle()
+
+        if (threadCheckError) {
+          console.error(`[syncIMAPMessages] Error checking for existing thread ${providerThreadId}:`, threadCheckError)
+          errors.push({ messageId: providerMessageId, error: `Failed to check existing thread: ${threadCheckError.message}` })
+          continue
+        }
 
         if (existingThread) {
           threadId = existingThread.id

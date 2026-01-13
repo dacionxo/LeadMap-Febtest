@@ -56,15 +56,16 @@ SET search_path = public
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  INSERT INTO public.users (id, email, name, role, trial_end, is_subscribed, plan_tier)
+  INSERT INTO public.users (id, email, name, role, trial_end, is_subscribed, plan_tier, subscription_status)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'name', NEW.email::text, 'User'),
     'user',
-    NOW() + INTERVAL '7 days',
+    NOW() + INTERVAL '14 days',
     false,
-    'free'
+    'free',
+    'none'
   )
   ON CONFLICT (id) DO NOTHING; -- Don't error if profile already exists
   RETURN NEW;

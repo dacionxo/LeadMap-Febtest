@@ -49,16 +49,32 @@ export default function ComposePage() {
 
   const fetchMailboxes = async () => {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:50',message:'fetchMailboxes entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       const response = await fetch('/api/mailboxes')
       if (!response.ok) throw new Error('Failed to fetch mailboxes')
       const data = await response.json()
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:55',message:'mailboxes fetched',data:{mailboxCount:data.mailboxes?.length||0,activeCount:(data.mailboxes||[]).filter((m:Mailbox)=>m.active).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       const activeMailboxes = (data.mailboxes || []).filter((m: Mailbox) => m.active)
       setMailboxes(activeMailboxes)
       if (activeMailboxes.length > 0) {
         setFormData(prev => ({ ...prev, mailboxId: activeMailboxes[0].id }))
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:59',message:'default mailbox set',data:{mailboxId:activeMailboxes[0].id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+      } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:62',message:'no active mailboxes',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
       }
     } catch (err) {
       console.error('Error loading mailboxes:', err)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:65',message:'fetchMailboxes error',data:{error:(err as Error).message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
     }
   }
 
@@ -85,7 +101,13 @@ export default function ComposePage() {
   }
 
   const handleSend = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:87',message:'handleSend entry',data:{mailboxId:formData.mailboxId,to:formData.to,hasSubject:!!formData.subject,hasHtml:!!formData.html},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     if (!formData.mailboxId || !formData.to || !formData.subject || !formData.html) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:89',message:'validation failed',data:{mailboxId:!!formData.mailboxId,to:!!formData.to,subject:!!formData.subject,html:!!formData.html},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       alert('Please fill in all required fields')
       return
     }
@@ -103,18 +125,33 @@ export default function ComposePage() {
         payload.scheduleAt = formData.scheduleAt
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:105',message:'fetch request starting',data:{url:'/api/emails/send',method:'POST',payload:{mailboxId:payload.mailboxId,to:payload.to,hasSubject:!!payload.subject,hasHtml:!!payload.html,scheduleAt:payload.scheduleAt}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       const response = await fetch('/api/emails/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
 
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:112',message:'fetch response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       const data = await response.json()
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:114',message:'response data parsed',data:{success:data.success,error:data.error,hasEmail:!!data.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
 
       if (!response.ok) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:115',message:'response not ok',data:{status:response.status,error:data.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D,E'})}).catch(()=>{});
+        // #endregion
         throw new Error(data.error || 'Failed to send email')
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:118',message:'email send success',data:{success:data.success},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       alert(formData.scheduleEnabled ? 'Email scheduled successfully!' : 'Email sent successfully!')
       
       // Reset form
@@ -127,6 +164,9 @@ export default function ComposePage() {
         scheduleEnabled: false
       })
     } catch (err: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'compose/page.tsx:129',message:'handleSend error',data:{error:err?.message,errorType:err?.constructor?.name,stack:err?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E,F,G'})}).catch(()=>{});
+      // #endregion
       alert(err.message || 'Failed to send email')
     } finally {
       setSending(false)

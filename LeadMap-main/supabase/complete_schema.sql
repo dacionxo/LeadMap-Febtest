@@ -106,8 +106,9 @@ CREATE TABLE users (
   email TEXT NOT NULL,
   name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  trial_end TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
+  trial_end TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '14 days'),
   is_subscribed BOOLEAN NOT NULL DEFAULT FALSE,
+  subscription_status TEXT NOT NULL DEFAULT 'none' CHECK (subscription_status IN ('none', 'active', 'trialing', 'past_due', 'canceled', 'incomplete')),
   plan_tier TEXT NOT NULL DEFAULT 'free' CHECK (plan_tier IN ('free', 'starter', 'pro')),
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
@@ -134,7 +135,7 @@ CREATE TABLE listings (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -260,7 +261,7 @@ CREATE TABLE expired_listings (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -316,7 +317,7 @@ CREATE TABLE fsbo_leads (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -372,7 +373,7 @@ CREATE TABLE frbo_leads (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -432,7 +433,7 @@ CREATE TABLE imports (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -493,7 +494,7 @@ CREATE TABLE trash (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -551,7 +552,7 @@ CREATE TABLE foreclosure_listings (
   state TEXT,
   zip_code TEXT,
   beds INTEGER,
-  full_baths INTEGER,
+  full_baths NUMERIC(4,2), -- Changed from INTEGER to NUMERIC(4,2) to support decimal values (e.g., 2.5, 3.5). Run migration: supabase/migrations/change_full_baths_to_numeric.sql
   half_baths INTEGER,
   sqft INTEGER,
   year_built INTEGER,
@@ -824,15 +825,16 @@ SET search_path = public
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  INSERT INTO public.users (id, email, name, role, trial_end, is_subscribed, plan_tier)
+  INSERT INTO public.users (id, email, name, role, trial_end, is_subscribed, plan_tier, subscription_status)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'name', NEW.email::text, 'User'),
     'user',
-    NOW() + INTERVAL '7 days',
+    NOW() + INTERVAL '14 days',
     false,
-    'free'
+    'free',
+    'none'
   )
   ON CONFLICT (id) DO NOTHING; -- Don't error if profile already exists
   RETURN NEW;

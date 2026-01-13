@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { MapPin, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { executeWithRateLimit } from '@/lib/auth/rate-limit'
 
 function LoginPageContent() {
   const [email, setEmail] = useState('')
@@ -46,10 +47,25 @@ function LoginPageContent() {
     setSuccessMessage('') // Clear success message on new login attempt
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Use rate-limited authentication with exponential backoff and request deduplication
+      // This ensures scalability for 1,000+ concurrent workers
+      const { data, error } = await executeWithRateLimit(
+        `login:${email}`, // Deduplication key based on email
+        async () => {
+          return await supabase.auth.signInWithPassword({
         email,
         password,
       })
+        },
+        {
+          maxRequests: 100, // Allow 100 requests per minute per user
+          windowMs: 60000, // 1 minute window
+          initialDelay: 1000, // 1 second initial delay
+          maxDelay: 30000, // 30 seconds max delay
+          backoffMultiplier: 2,
+          maxRetries: 3, // Retry up to 3 times on rate limit errors
+        }
+      )
 
       if (error) throw error
 
@@ -80,28 +96,79 @@ function LoginPageContent() {
   const handleOAuthSignIn = async (provider: 'google' | 'azure') => {
     if (typeof window === 'undefined') return
 
+    setLoading(true)
+    setError('')
+
     try {
-      setLoading(true)
-      setError('')
-      const redirectUrl = `${window.location.origin}/api/auth/callback`
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      })
-      if (error) throw error
-    } catch (err: any) {
-      // Handle rate limit errors specifically
-      if (err.message?.includes('rate limit') || err.message?.includes('Request rate limit')) {
-        setError('Too many requests. Please wait a moment and try again.')
-      } else {
-        setError(err.message || 'An error occurred. Please try again.')
+      // Validate environment variables
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        throw new Error('Supabase configuration is missing. Please contact support.')
       }
+
+      // Construct redirect URL
+      const redirectUrl = `${window.location.origin}/api/auth/callback`
+      console.log(`[OAuth] Initiating ${provider} sign-in with redirect: ${redirectUrl}`)
+      
+      // Provider-specific OAuth parameters
+      const oauthOptions: {
+        redirectTo: string
+        queryParams?: Record<string, string>
+        scopes?: string
+      } = {
+        redirectTo: redirectUrl,
+      }
+
+      // Google-specific parameters
+      if (provider === 'google') {
+        oauthOptions.queryParams = {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      } else if (provider === 'azure') {
+        // Azure uses scopes for offline access, not query parameters
+        oauthOptions.scopes = 'offline_access'
+      }
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: oauthOptions,
+      })
+
+      if (error) {
+        console.error(`[OAuth] ${provider} sign-in error:`, error)
+        throw error
+      }
+
+      if (!data?.url) {
+        console.warn(`[OAuth] No redirect URL received from ${provider} OAuth`)
+        setLoading(false)
+        return
+      }
+
+      console.log(`[OAuth] Redirecting to ${provider} OAuth page`)
+      
+      if (!data.url.startsWith('https://')) {
+        throw new Error('Invalid OAuth redirect URL received - must use HTTPS')
+      }
+    } catch (err: any) {
+      console.error(`[OAuth] ${provider} sign-in failed:`, err)
+      
+      // Handle specific error types
+      const errorMessage = err.message || err.toString() || 'Unknown error'
+      
+      if (errorMessage.includes('rate limit') || errorMessage.includes('Request rate limit')) {
+        setError('Too many requests. Please wait a moment and try again.')
+      } else if (errorMessage.includes('redirect_uri_mismatch') || errorMessage.includes('redirect')) {
+        setError('OAuth configuration error. Please contact support.')
+      } else if (errorMessage.includes('invalid_client') || errorMessage.includes('client')) {
+        setError('OAuth provider not configured. Please contact support.')
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.')
+      } else {
+        setError(`Unable to sign in with ${provider === 'google' ? 'Google' : 'Microsoft'}. ${errorMessage}`)
+      }
+    } finally {
+      // Only set loading to false if we didn't redirect
       setLoading(false)
     }
   }
@@ -144,9 +211,9 @@ function LoginPageContent() {
           <div className="flex justify-between items-center h-16 max-w-[1872px] mx-auto">
             <div className="flex items-center space-x-3 group cursor-pointer mt-6 -ml-[10px]" onClick={() => router.push('/')}>
               <img 
-                src="/nextdeal-logo.png" 
-                alt="NextDeal" 
-                className="h-12 w-auto"
+                src="/nextdeal-logo.png"
+                alt="NextDeal"
+                className="h-8 w-auto"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';

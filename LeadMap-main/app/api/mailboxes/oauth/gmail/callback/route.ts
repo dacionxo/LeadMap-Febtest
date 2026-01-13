@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { createGmailAuth } from '@/lib/email/auth/gmail'
 import { encryptMailboxTokens } from '@/lib/email/encryption'
+import { AuthenticationError, getUserFriendlyErrorMessage } from '@/lib/email/errors'
+import { setupGmailWatch } from '@/lib/email/providers/gmail-watch'
+import { decryptMailboxTokens } from '@/lib/email/encryption'
 
 export const runtime = 'nodejs'
 
 /**
  * GET /api/mailboxes/oauth/gmail/callback
  * Handle Gmail OAuth callback
+ * 
+ * Uses the standardized GmailAuth class for OAuth authentication
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,8 +29,23 @@ export async function GET(request: NextRequest) {
     }
 
     if (!code || !state) {
+      // Log the actual URL parameters for debugging
+      console.error('OAuth callback missing required parameters:', {
+        code: code ? 'present' : 'missing',
+        state: state ? 'present' : 'missing',
+        error: searchParams.get('error'),
+        allParams: Object.fromEntries(searchParams.entries()),
+        url: request.url
+      })
+      
+      const errorMessage = !code && !state 
+        ? 'OAuth callback missing required parameters (code and state). Please start the OAuth flow from the application.'
+        : !code 
+        ? 'OAuth callback missing authorization code. Please try connecting again.'
+        : 'OAuth callback missing state parameter. Please try connecting again.'
+      
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=missing_params`
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=${encodeURIComponent(errorMessage)}`
       )
     }
 
@@ -52,58 +73,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const clientId = process.env.GOOGLE_CLIENT_ID
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET
     const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
     const redirectUri = `${baseUrl}/api/mailboxes/oauth/gmail/callback`
+
+    // Use GmailAuth for authentication
+    const gmailAuth = createGmailAuth()
     
-    if (!clientId || !clientSecret) {
+    let tokenResult
+    try {
+      tokenResult = await gmailAuth.authenticateIntegration(code, state, redirectUri)
+    } catch (authErr) {
+      // Handle authentication errors with user-friendly messages
+      const errorMessage = authErr instanceof AuthenticationError 
+        ? getUserFriendlyErrorMessage(authErr)
+        : 'Gmail authentication failed'
+      
+      console.error('Gmail OAuth authentication error:', authErr)
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=oauth_not_configured`
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=${encodeURIComponent(errorMessage)}`
       )
     }
 
-    // Exchange code for tokens
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        redirect_uri: redirectUri,
-        grant_type: 'authorization_code',
-      }),
-    })
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
-      console.error('Token exchange error:', errorText)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=token_exchange_failed`
-      )
-    }
-
-    const tokens = await tokenResponse.json()
-    const { access_token, refresh_token, expires_in } = tokens
-
-    // Get user email from Google
-    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-      },
-    })
-
-    if (!userInfoResponse.ok) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=failed_to_get_email`
-      )
-    }
-
-    const userInfo = await userInfoResponse.json()
-    const email = userInfo.email
+    const { access_token, refresh_token, expires_in, email, display_name } = tokenResult
 
     // Calculate token expiration
     const expiresAt = new Date(Date.now() + (expires_in * 1000)).toISOString()
@@ -115,7 +106,7 @@ export async function GET(request: NextRequest) {
       smtp_password: null
     })
 
-    // Save mailbox to database (reuse existing supabase client)
+    // Save mailbox to database
     const supabase = supabaseAuth
     const { error: dbError } = await supabase
       .from('mailboxes')
@@ -123,7 +114,7 @@ export async function GET(request: NextRequest) {
         user_id: user.id,
         provider: 'gmail',
         email,
-        display_name: userInfo.name || email,
+        display_name: display_name || email,
         access_token: encrypted.access_token || access_token,
         refresh_token: encrypted.refresh_token || refresh_token,
         token_expires_at: expiresAt,
@@ -139,15 +130,59 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Set up Gmail Watch for push notifications (following james-project patterns)
+    // This enables real-time email delivery via webhooks
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
+      const webhookUrl = `${baseUrl}/api/webhooks/gmail`
+      
+      // Get the mailbox ID that was just created/updated
+      const { data: savedMailbox } = await supabase
+        .from('mailboxes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('email', email)
+        .eq('provider', 'gmail')
+        .single()
+
+      if (savedMailbox?.id) {
+        // Decrypt tokens for Watch setup (setupGmailWatch needs decrypted access token)
+        const decrypted = decryptMailboxTokens({
+          access_token: encrypted.access_token || access_token,
+          refresh_token: encrypted.refresh_token || refresh_token,
+          smtp_password: null
+        })
+
+        const watchResult = await setupGmailWatch({
+          mailboxId: savedMailbox.id,
+          accessToken: decrypted.access_token || access_token,
+          refreshToken: decrypted.refresh_token || refresh_token,
+          webhookUrl
+        })
+
+        if (!watchResult.success) {
+          console.warn(`[Gmail OAuth] Failed to set up Gmail Watch for mailbox ${savedMailbox.id}:`, watchResult.error)
+          // Don't fail the OAuth flow if Watch setup fails - sync cron will still work
+        } else {
+          console.log(`[Gmail OAuth] Gmail Watch set up successfully for mailbox ${savedMailbox.id}, expires: ${watchResult.expiration}`)
+        }
+      }
+    } catch (watchError: any) {
+      console.error('[Gmail OAuth] Error setting up Gmail Watch:', watchError)
+      // Don't fail the OAuth flow if Watch setup fails - sync cron will still work
+    }
+
     // Redirect back to emails page
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&success=gmail_connected`
     )
   } catch (error) {
     console.error('Error in Gmail OAuth callback:', error)
+    const errorMessage = error instanceof Error 
+      ? getUserFriendlyErrorMessage(error)
+      : 'internal_error'
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=internal_error`
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/marketing?tab=emails&error=${encodeURIComponent(errorMessage)}`
     )
   }
 }
-

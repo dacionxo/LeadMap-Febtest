@@ -17,6 +17,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendConversationMessage } from '@/lib/twilio'
 import { renderTemplate } from '@/lib/api'
+import { verifyCronRequestOrError } from '@/lib/cron/auth'
+import { handleCronError } from '@/lib/cron/errors'
+import { createSuccessResponse, createNoDataResponse } from '@/lib/cron/responses'
+import { dispatchSMSDripMessage, type SMSEnrollment, type SMSStep } from '@/lib/symphony/integration/sms-drip'
+import { shouldUseSymphonyForSMSDrip } from '@/lib/symphony/utils/feature-flags'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,12 +34,32 @@ const supabase = createClient(
   }
 )
 
-export async function POST(req: NextRequest) {
+/**
+ * SMS Drip Campaign Runner
+ * 
+ * Processes due campaign enrollments and sends next steps.
+ * Should be called by a cron job every minute.
+ * 
+ * Features:
+ * - Processes enrollments with next_run_at <= now
+ * - Respects quiet hours
+ * - Handles stop-on-reply
+ * - Personalizes messages with template variables
+ * - Logs all events for analytics
+ * 
+ * Authentication: Requires CRON_SECRET or CALENDAR_SERVICE_KEY via:
+ * - Authorization: Bearer <token>
+ * - x-vercel-cron-secret header
+ * - x-service-key header
+ */
+async function runCronJob(req: NextRequest) {
+  const startTime = Date.now()
+
   try {
-    // Optional: auth with a secret header for cron security
-    const auth = req.headers.get('x-cron-secret')
-    if (auth && auth !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Verify authentication using centralized auth utility
+    const authError = verifyCronRequestOrError(req)
+    if (authError) {
+      return authError
     }
 
     const now = new Date().toISOString()
@@ -54,11 +79,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (!enrollments || enrollments.length === 0) {
-      return NextResponse.json({ processed: 0, message: 'No enrollments due' })
+      return createNoDataResponse('No enrollments due')
     }
 
     let processed = 0
     let errors = 0
+    let dispatched = 0
+    let legacy = 0
+    const errorsList: Array<{ enrollmentId: string; error: string }> = []
+
+    // Check if Symphony is enabled for SMS drip
+    const useSymphony = shouldUseSymphonyForSMSDrip()
 
     for (const enrollment of enrollments) {
       try {
@@ -161,7 +192,28 @@ export async function POST(req: NextRequest) {
         // Render template with listing data
         const smsText = renderTemplate(stepRow.template_body, listing || {})
 
-        // Send message
+        // Check if Symphony is enabled and dispatch to Symphony
+        if (useSymphony) {
+          try {
+            const result = await dispatchSMSDripMessage(
+              enrollment as SMSEnrollment,
+              stepRow as SMSStep,
+              smsText
+            )
+            if (!result.useLegacy) {
+              dispatched++
+              processed++
+              continue
+            } else {
+              legacy++
+            }
+          } catch (symphonyError) {
+            console.error('Symphony dispatch failed, falling back to legacy:', symphonyError)
+            legacy++
+          }
+        }
+
+        // Legacy processing: Send message directly
         const msgRow = await sendConversationMessage({
           conversationSid: convo.twilio_conversation_sid,
           conversationId: convo.id,
@@ -201,27 +253,57 @@ export async function POST(req: NextRequest) {
 
         processed++
       } catch (enrollmentError: any) {
+        const errorMessage = enrollmentError instanceof Error 
+          ? enrollmentError.message 
+          : 'Unknown error'
         console.error(`[Drip Runner] Error processing enrollment ${enrollment.id}:`, enrollmentError)
         errors++
+        errorsList.push({
+          enrollmentId: enrollment.id,
+          error: errorMessage
+        })
       }
     }
 
-    return NextResponse.json({
-      processed,
-      errors,
-      total: enrollments.length
-    })
-  } catch (error: any) {
-    console.error('[Drip Runner] Fatal error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
+    const duration = Date.now() - startTime
+
+    return createSuccessResponse(
+      {
+        processed,
+        errors,
+        dispatched: useSymphony ? dispatched : undefined,
+        legacy: useSymphony ? legacy : undefined,
+        total: enrollments.length,
+        duration,
+        errorDetails: errorsList.length > 0 ? errorsList : undefined
+      },
+      {
+        message: useSymphony
+          ? `Processed ${processed} enrollments (${dispatched} via Symphony, ${legacy} legacy, ${errors} errors)`
+          : `Processed ${processed} enrollments (${errors} errors)`,
+        processed
+      }
     )
+  } catch (error) {
+    return handleCronError(error, {
+      cronJob: 'sms-drip-run',
+      operation: 'runCronJob',
+    })
   }
 }
 
-// Also support GET for manual testing
-export async function GET(req: NextRequest) {
-  return POST(req)
+/**
+ * POST handler for cron triggers
+ */
+export async function POST(req: NextRequest) {
+  return runCronJob(req)
 }
+
+/**
+ * GET handler for manual testing
+ */
+export async function GET(req: NextRequest) {
+  return runCronJob(req)
+}
+
 

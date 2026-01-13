@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Calendar, Clock, Save, Plus, ChevronDown, ChevronRight } from 'lucide-react'
+import { Calendar, Clock, Save, Plus, ChevronDown, ChevronRight, CalendarPlus } from 'lucide-react'
 
 interface ScheduleTabProps {
   campaignId: string
@@ -542,8 +542,8 @@ export default function ScheduleTab({ campaignId, campaignStatus, initialSchedul
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="pt-4">
+        {/* Save Button and Push to Calendar */}
+        <div className="pt-4 flex items-center gap-3">
           <button
             onClick={handleSave}
             disabled={saving}
@@ -551,8 +551,139 @@ export default function ScheduleTab({ campaignId, campaignStatus, initialSchedul
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
+          
+          {/* Push to Calendar Button */}
+          {startDate && (
+            <PushToCalendarButton
+              campaignId={campaignId}
+              campaignName={scheduleName}
+              startDate={startDate}
+              endDate={endDate}
+              timezone={timezone}
+            />
+          )}
         </div>
       </div>
     </div>
+  )
+}
+
+// Push to Calendar Button Component
+function PushToCalendarButton({ 
+  campaignId, 
+  campaignName, 
+  startDate, 
+  endDate, 
+  timezone 
+}: { 
+  campaignId: string
+  campaignName: string
+  startDate: string
+  endDate?: string
+  timezone: string
+}) {
+  const [pushing, setPushing] = useState(false)
+  const [hasCalendar, setHasCalendar] = useState(false)
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    // Check if user has calendar connected
+    const checkCalendar = async () => {
+      try {
+        const response = await fetch('/api/calendar/connections', {
+          credentials: 'include',
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setHasCalendar(data.connections && data.connections.length > 0)
+        }
+      } catch (error) {
+        console.error('Error checking calendar connection:', error)
+      } finally {
+        setChecking(false)
+      }
+    }
+    checkCalendar()
+  }, [])
+
+  const handlePushToCalendar = async () => {
+    if (!startDate) {
+      alert('Please set a start date for the campaign')
+      return
+    }
+
+    setPushing(true)
+    try {
+      // Create calendar event for campaign start
+      const startDateTime = new Date(startDate)
+      startDateTime.setHours(9, 0, 0, 0) // Default to 9 AM
+      
+      const endDateTime = endDate ? new Date(endDate) : new Date(startDateTime)
+      if (!endDate) {
+        endDateTime.setHours(17, 0, 0, 0) // Default to 5 PM if no end date
+      }
+
+      const response = await fetch('/api/calendar/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: `Campaign: ${campaignName}`,
+          description: `Email campaign "${campaignName}" starts on ${new Date(startDate).toLocaleDateString()}`,
+          eventType: 'other',
+          startTime: startDateTime.toISOString().split('T')[0] + 'T09:00',
+          endTime: endDateTime.toISOString().split('T')[0] + 'T17:00',
+          timezone: timezone,
+          allDay: false,
+          relatedType: 'campaign',
+          relatedId: campaignId,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create calendar event')
+      }
+
+      alert('Campaign added to calendar successfully!')
+    } catch (error: any) {
+      console.error('Error pushing to calendar:', error)
+      alert(error.message || 'Failed to add campaign to calendar')
+    } finally {
+      setPushing(false)
+    }
+  }
+
+  if (checking) {
+    return null
+  }
+
+  if (!hasCalendar) {
+    return (
+      <button
+        onClick={() => {
+          if (confirm('You need to connect a calendar first. Would you like to go to calendar settings?')) {
+            window.open('/dashboard/crm/calendar', '_blank')
+          }
+        }}
+        className="px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+        title="Connect a calendar to enable this feature"
+      >
+        <CalendarPlus className="w-4 h-4" />
+        Push to Calendar
+      </button>
+    )
+  }
+
+  return (
+    <button
+      onClick={handlePushToCalendar}
+      disabled={pushing || !startDate}
+      className="px-4 py-2.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      title="Add campaign start date to your calendar"
+    >
+      <CalendarPlus className="w-4 h-4" />
+      {pushing ? 'Adding...' : 'Push to Calendar'}
+    </button>
   )
 }

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         state: listing.state || null,
         zip_code: listing.zip_code || listing.zip || null,
         beds: listing.beds ? parseInt(listing.beds) : null,
-        full_baths: listing.full_baths ? parseInt(listing.full_baths) : null,
+        full_baths: listing.full_baths ? parseFloat(listing.full_baths) : null,
         half_baths: listing.half_baths ? parseInt(listing.half_baths) : null,
         sqft: listing.sqft ? parseInt(listing.sqft) : null,
         year_built: listing.year_built ? parseInt(listing.year_built) : null,

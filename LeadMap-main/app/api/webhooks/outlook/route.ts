@@ -94,15 +94,23 @@ export async function POST(request: NextRequest) {
 
         // Find mailbox by subscription ID or resource
         // You'll need to store subscription IDs when creating Outlook subscriptions
-        const { data: mailbox } = await supabase
+        // Use maybeSingle() instead of single() to avoid PGRST116 error when mailbox doesn't exist
+        const { data: mailbox, error: mailboxError } = await supabase
           .from('mailboxes')
           .select('*')
           .eq('provider', 'outlook')
           .contains('webhook_subscription_id', subscriptionId)
-          .single()
+          .maybeSingle()
+
+        // Handle mailbox not found gracefully
+        if (mailboxError) {
+          console.error('[Outlook Webhook] Database error while looking up mailbox for subscription:', subscriptionId, mailboxError)
+          continue
+        }
 
         if (!mailbox || !mailbox.access_token) {
-          console.error('Mailbox not found for subscription:', subscriptionId)
+          // Mailbox not found - likely disconnected or subscription ID mismatch
+          console.warn(`[Outlook Webhook] Mailbox not found for subscription: ${subscriptionId}. This may indicate the mailbox was disconnected or the subscription ID is incorrect.`)
           continue
         }
 

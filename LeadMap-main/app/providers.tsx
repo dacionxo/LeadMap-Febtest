@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { User, SupabaseClient } from '@supabase/supabase-js'
 import { getClientComponentClient } from '@/lib/supabase-singleton'
 import { PageStateProvider } from './contexts/PageStateContext'
@@ -31,13 +31,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   
   // Use singleton client to prevent multiple instances and refresh token storms
-  const supabase = getClientComponentClient()
+  // Lazy initialization: only create client when window is available (client-side)
+  // This prevents errors during SSR/prerendering where window is undefined
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
+  
+  // Initialize Supabase client only after component mounts (client-side only)
+  // This effect runs once on mount to initialize the client
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !supabase) {
+      try {
+        const client = getClientComponentClient()
+        setSupabase(client)
+      } catch (error) {
+        console.error('Failed to initialize Supabase client:', error)
+        setLoading(false)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty dependency array - only run once on mount
   
   // Track if profile refresh is in progress to prevent loops
   const refreshingProfile = useRef(false)
 
   const refreshProfile = useCallback(async () => {
-    if (!user || refreshingProfile.current) return
+    if (!user || refreshingProfile.current || !supabase) return
     
     refreshingProfile.current = true
     
@@ -123,6 +140,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Only initialize auth if supabase client is available
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     // Handle auth state changes - this is event-driven and doesn't trigger refresh
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: any) => {
@@ -143,7 +166,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     // Initial session check - only once, then rely on events
     const getInitialSession = async () => {
-      if (!mounted || refreshInProgress) return
+      if (!mounted || refreshInProgress || !supabase) return
 
       try {
         refreshInProgress = true
@@ -238,18 +261,40 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [user?.id]) // Only depend on user.id, not the whole user object or refreshProfile
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
     setUser(null)
     setProfile(null)
   }
 
+  // Create a safe supabase client that provides a no-op client during SSR
+  // This maintains type safety while allowing lazy initialization
+  // The client will only be used after mount, so this is safe
+  const safeSupabase: SupabaseClient = useMemo(() => {
+    if (supabase) {
+      return supabase
+    }
+    // During SSR or before initialization, return a no-op client
+    // This should never be used in practice since all operations check for supabase first
+    // But we need to satisfy the type system
+    // Using 'unknown' first for proper type assertion
+    return {
+      auth: {
+        getSession: async () => ({ data: { session: null }, error: null }),
+        getUser: async () => ({ data: { user: null }, error: null }),
+        signOut: async () => ({ error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      },
+    } as unknown as SupabaseClient
+  }, [supabase])
 
   return (
     <AppContext.Provider value={{
       user,
       profile,
       loading,
-      supabase,
+      supabase: safeSupabase,
       signOut,
       refreshProfile
     }}>

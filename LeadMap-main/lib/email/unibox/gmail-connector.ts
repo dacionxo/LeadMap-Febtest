@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { extractThreadHeaders, parseReferences, parseInReplyTo } from '../james/threading/thread-reconstruction'
 
 export interface GmailMessage {
   id: string
@@ -38,6 +39,7 @@ export interface GmailSyncResult {
   threadsCreated: number
   threadsUpdated: number
   errors: Array<{ messageId: string; error: string }>
+  latestHistoryId?: string  // Latest historyId from History API (for updating mailbox)
 }
 
 /**
@@ -59,9 +61,16 @@ export async function fetchGmailMessage(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error?.message || `Gmail API error: ${response.status}`
+      
+      // Log authentication errors specifically
+      if (response.status === 401 || errorMessage.includes('invalid authentication') || errorMessage.includes('Invalid Credentials')) {
+        console.error(`[fetchGmailMessage] Authentication error (401) for message ${messageId}:`, errorMessage)
+      }
+      
       return {
         success: false,
-        error: errorData.error?.message || `Gmail API error: ${response.status}`
+        error: errorMessage
       }
     }
 
@@ -109,9 +118,16 @@ export async function listGmailMessages(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error?.message || `Gmail API error: ${response.status}`
+      
+      // Log authentication errors specifically
+      if (response.status === 401 || errorMessage.includes('invalid authentication') || errorMessage.includes('Invalid Credentials')) {
+        console.error(`[listGmailMessages] Authentication error (401):`, errorMessage)
+      }
+      
       return {
         success: false,
-        error: errorData.error?.message || `Gmail API error: ${response.status}`
+        error: errorMessage
       }
     }
 
@@ -130,48 +146,155 @@ export async function listGmailMessages(
 }
 
 /**
- * Get Gmail history changes since a specific historyId
+ * Pull all Gmail messages arrived since the given historyId
+ * EXACTLY matching Realtime-Gmail-Listener reference pattern
+ * Reference: event-handlers.gs lines 82-126 (pullEmailsSince function)
+ * 
+ * @param accessToken - Gmail access token
+ * @param historyId - Starting history ID (from watch notification or stored value)
+ * @param options - Options for history fetch
+ * @returns Array of message IDs that were added, and the latest historyId
  */
 export async function getGmailHistory(
   accessToken: string,
   historyId: string,
   options: {
     maxResults?: number
-    labelIds?: string[]
   } = {}
-): Promise<{ success: boolean; history?: any; error?: string }> {
-  try {
-    const params = new URLSearchParams()
-    params.append('startHistoryId', historyId)
-    if (options.maxResults) params.append('maxResults', options.maxResults.toString())
-    if (options.labelIds?.length) {
-      options.labelIds.forEach(id => params.append('labelIds', id))
-    }
+): Promise<{ 
+  success: boolean
+  messageIds?: Array<{ id: string; threadId: string }>
+  latestHistoryId?: string
+  error?: string 
+}> {
+  let pageToken: string | undefined = undefined
+  let lastHistoryId = historyId
+  const messageIds: Array<{ id: string; threadId: string }> = []
 
-    const response = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/history?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
+  // Follow reference pattern EXACTLY: paginate through history
+  // Reference: event-handlers.gs lines 88-121
+  do {
+    let response
+    try {
+      // CRITICAL: Reference uses Gmail.Users.History.list with:
+      // - startHistoryId: historyId (exclusive - returns changes AFTER this historyId)
+      // - pageToken: pageToken (if exists)
+      // - historyTypes: ['messageAdded']
+      // NO labelIds parameter (reference doesn't use it)
+      // Reference: event-handlers.gs lines 91-95
+      // 
+      // IMPORTANT: startHistoryId is EXCLUSIVE - it returns changes AFTER this historyId.
+      // If notification has historyId: 4825661, that's the state AFTER the change.
+      // We should query from the PREVIOUS historyId (stored one) to get the new messages.
+      // However, if we're using the notification historyId, we need to query from it directly
+      // because the notification historyId represents the state when the change occurred.
+      const params = new URLSearchParams()
+      params.append('startHistoryId', historyId)
+      params.append('historyTypes', 'messageAdded') // Only get messageAdded events
+      if (pageToken) params.append('pageToken', pageToken)
+      if (options.maxResults) params.append('maxResults', options.maxResults.toString())
+      // CRITICAL: Reference does NOT use labelIds in History API
+      // The watch subscription already filters for INBOX, History API returns all changes
+
+      response = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/history?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          }
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error?.message || `Gmail API error: ${response.status}`
+        
+        // Reference pattern: Log error and return null (reference line 97-99)
+        console.error(`[getGmailHistory] Failed to retrieve history list: ${errorMessage}`)
+        return {
+          success: false,
+          error: errorMessage
         }
       }
-    )
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+    } catch (err: any) {
+      // Reference pattern: Catch exception, log, and return null (reference line 96-99)
+      console.error(`[getGmailHistory] Exception fetching history:`, err)
       return {
         success: false,
-        error: errorData.error?.message || `Gmail API error: ${response.status}`
+        error: err.message || 'Failed to fetch Gmail history'
       }
     }
 
-    const history = await response.json()
-    return { success: true, history }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to get Gmail history'
+    const historyData = await response.json()
+    
+    // DEBUG: Log the raw response to understand structure
+    console.log(`[getGmailHistory] Raw response: history records: ${(historyData.history || []).length}, historyId: ${historyData.historyId}, nextPageToken: ${historyData.nextPageToken ? 'yes' : 'no'}`)
+    
+    // Process history records - EXACTLY matching Realtime-Gmail-Listener reference
+    // Reference: event-handlers.gs lines 102-116
+    // CRITICAL: Reference uses record.messages (line 104), NOT messagesAdded
+    const history = historyData.history || []
+    for (const record of history) {
+      // DEBUG: Log each record to see what we're getting
+      console.log(`[getGmailHistory] Processing history record: has messages: ${!!record.messages}, messages count: ${(record.messages || []).length}, has messagesAdded: ${!!record.messagesAdded}, messagesAdded count: ${(record.messagesAdded || []).length}`)
+      
+      // Reference pattern: const added = record.messages || [] (line 104)
+      // CRITICAL: Gmail REST API uses 'messages' field, not 'messagesAdded'
+      // The 'messages' field contains an array of {id, threadId} objects
+      const added = record.messages || []
+      for (const msg of added) {
+        try {
+          // Reference pattern: Check msg.id and msg.threadId directly
+          // Reference: line 105 - msg.id and msg.threadId are directly accessible
+          if (msg.id) {
+            messageIds.push({
+              id: msg.id,
+              threadId: msg.threadId || ''
+            })
+            console.log(`[getGmailHistory] Added message from 'messages' field: ${msg.id}`)
+          }
+        } catch (err: any) {
+          // Reference pattern: Log and skip messages that cause errors (reference line 109-114)
+          // Note: Reference fetches message here, we just collect IDs for now
+          console.warn(`[getGmailHistory] Skipping message ${msg.id}:`, err.message)
+        }
+      }
+      
+      // Fallback: Also check messagesAdded format (some API versions might use this)
+      // But prioritize 'messages' field as reference does
+      const messagesAdded = record.messagesAdded || []
+      for (const msgAdded of messagesAdded) {
+        if (msgAdded.message && msgAdded.message.id) {
+          const msgId = msgAdded.message.id
+          // Only add if not already added from 'messages' field
+          if (!messageIds.find(m => m.id === msgId)) {
+            messageIds.push({
+              id: msgId,
+              threadId: msgAdded.message.threadId || ''
+            })
+            console.log(`[getGmailHistory] Added message from 'messagesAdded' field: ${msgId}`)
+          }
+        }
+      }
     }
+
+    // Reference pattern: Update lastHistoryId from response (reference line 118)
+    if (historyData.historyId) {
+      lastHistoryId = historyData.historyId
+    }
+
+    // Reference pattern: Get next page token (reference line 119)
+    pageToken = historyData.nextPageToken
+
+  } while (pageToken)
+
+  // Reference pattern: Log results (reference stores in Script Properties, we return)
+  console.log(`[getGmailHistory] Found ${messageIds.length} new messages since historyId ${historyId}, latest historyId: ${lastHistoryId}`)
+
+  return { 
+    success: true, 
+    messageIds,
+    latestHistoryId: lastHistoryId
   }
 }
 
@@ -246,11 +369,22 @@ export function parseGmailMessage(message: GmailMessage): {
   const sentAt = dateHeader ? new Date(dateHeader).toISOString() : new Date(parseInt(message.internalDate)).toISOString()
   const receivedAt = sentAt
 
-  // Parse message IDs
-  const inReplyTo = getHeader('In-Reply-To') || null
-  const referencesHeader = getHeader('References') || ''
-  const references = referencesHeader.split(/\s+/).filter(Boolean)
-  const messageId = getHeader('Message-ID') || null
+  // Parse message IDs using james-project threading utilities
+  const headerMap: Record<string, string | string[]> = {}
+  message.payload.headers?.forEach((h: { name: string; value: string }) => {
+    const key = h.name.toLowerCase()
+    if (headerMap[key]) {
+      const existing = headerMap[key]
+      headerMap[key] = Array.isArray(existing) ? [...existing, h.value] : [existing, h.value]
+    } else {
+      headerMap[key] = h.value
+    }
+  })
+  
+  const threadHeaders = extractThreadHeaders(headerMap)
+  const inReplyTo = threadHeaders.inReplyTo ? parseInReplyTo(threadHeaders.inReplyTo)[0] || null : null
+  const references = threadHeaders.references ? parseReferences(threadHeaders.references) : []
+  const messageId = threadHeaders.messageId || null
 
   return {
     subject: getHeader('Subject') || '(No Subject)',
@@ -289,14 +423,24 @@ export async function syncGmailMessages(
   userId: string,
   accessToken: string,
   options: {
-    since?: string  // ISO date string
+    since?: string  // ISO date string (fallback if historyId not available)
     maxMessages?: number
+    historyId?: string  // Gmail history ID for incremental sync (preferred method)
   } = {}
 ): Promise<GmailSyncResult> {
+  // #region agent log
+  const logEntry2 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:405',message:'syncGmailMessages entry',data:{mailboxId,userId,hasHistoryId:!!options.historyId,historyId:options.historyId,since:options.since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry2}).catch(()=>{});
+  console.log('[DEBUG]', logEntry2);
+  // #endregion
+  
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !supabaseServiceKey) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:418',message:'Missing Supabase config',data:{hasUrl:!!supabaseUrl,hasKey:!!supabaseServiceKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     return {
       success: false,
       messagesProcessed: 0,
@@ -316,30 +460,149 @@ export async function syncGmailMessages(
   let threadsUpdated = 0
 
   try {
-    // Build query for fetching messages
-    let query = options.since 
-      ? `newer_than:${Math.floor(new Date(options.since).getTime() / 1000)}`
-      : 'in:inbox'
+    let messagesToProcess: Array<{ id: string; threadId: string }> = []
+    let latestHistoryId: string | undefined = undefined
+    let historyIdTooOld = false // Track if historyId was too old for fallback
 
-    // List messages
-    const listResult = await listGmailMessages(accessToken, {
-      query,
-      maxResults: options.maxMessages || 100,
-      labelIds: ['INBOX']
-    })
+    // CRITICAL FIX: Use Gmail History API for incremental sync when historyId is available
+    // Following Realtime-Gmail-Listener pattern for efficient, real-time email processing
+    if (options.historyId) {
+      console.log(`[syncGmailMessages] Using History API for incremental sync with historyId: ${options.historyId}`)
+      
+      // CRITICAL: Reference does NOT use labelIds in History API call
+      // The watch subscription already filters for INBOX, History API doesn't need labelIds
+      // Reference: event-handlers.gs line 91-95 - no labelIds parameter
+      const historyResult = await getGmailHistory(accessToken, options.historyId, {
+        maxResults: options.maxMessages || 100
+        // Removed labelIds - reference doesn't use them in History API
+      })
 
-    if (!listResult.success || !listResult.messages) {
-      return {
-        success: false,
-        messagesProcessed: 0,
-        threadsCreated: 0,
-        threadsUpdated: 0,
-        errors: [{ messageId: 'list', error: listResult.error || 'Failed to list messages' }]
+      if (!historyResult.success) {
+        const errorMessage = historyResult.error || 'Failed to get Gmail history'
+        
+        // Check for authentication errors
+        if (errorMessage.includes('invalid authentication') || 
+            errorMessage.includes('Invalid Credentials') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('Unauthorized')) {
+          console.error(`[syncGmailMessages] Authentication error for mailbox ${mailboxId}:`, errorMessage)
+          return {
+            success: false,
+            messagesProcessed: 0,
+            threadsCreated: 0,
+            threadsUpdated: 0,
+            errors: [{ 
+              messageId: 'auth', 
+              error: `Authentication failed: ${errorMessage}. Token may be expired or invalid. Please refresh the access token.` 
+            }]
+          }
+        }
+
+        // If historyId is too old, fallback to date-based query
+        // CRITICAL: Following Realtime-Gmail-Listener pattern - when historyId is too old:
+        // 1. Log warning with details
+        // 2. Fallback to date-based query to catch up
+        // 3. Return special error code so caller can reset baseline historyId
+        if (errorMessage.includes('too old') || 
+            errorMessage.includes('History not found') || 
+            errorMessage.includes('404')) {
+          console.warn(`[syncGmailMessages] History ID ${options.historyId} is too old for mailbox ${mailboxId}, falling back to date-based query since: ${options.since || 'beginning'}`)
+          historyIdTooOld = true // Set flag to trigger fallback
+        } else {
+          console.error(`[syncGmailMessages] Failed to get Gmail history for mailbox ${mailboxId}:`, errorMessage)
+          return {
+            success: false,
+            messagesProcessed: 0,
+            threadsCreated: 0,
+            threadsUpdated: 0,
+            errors: [{ messageId: 'history', error: errorMessage }]
+          }
+        }
+      } else {
+        // Successfully got history - use message IDs from History API
+        messagesToProcess = historyResult.messageIds || []
+        latestHistoryId = historyResult.latestHistoryId
+        console.log(`[syncGmailMessages] History API returned ${messagesToProcess.length} new messages, latest historyId: ${latestHistoryId}`)
+        // #region agent log
+        const logEntry3 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:510',message:'History API success',data:{messageCount:messagesToProcess.length,latestHistoryId,messageIds:messagesToProcess.map(m=>m.id).slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry3}).catch(()=>{});
+        console.log('[DEBUG]', logEntry3);
+        // #endregion
       }
     }
 
+    // CRITICAL FIX: Fallback to date-based query if:
+    // 1. No historyId provided, OR
+    // 2. History API failed because historyId is too old
+    // Previous bug: Only checked !options.historyId, missing the too-old case
+    if (messagesToProcess.length === 0 && (!options.historyId || historyIdTooOld)) {
+      console.log(`[syncGmailMessages] Using date-based query - historyId: ${options.historyId ? 'too old' : 'not provided'}`)
+      
+      // Build query for fetching messages
+      // CRITICAL FIX: Gmail query format for newer_than is Unix timestamp in seconds
+      // Format: newer_than:1234567890 (seconds since epoch)
+      let query = 'in:inbox'
+      if (options.since) {
+        // Convert ISO date to Unix timestamp in seconds
+        const sinceDate = new Date(options.since)
+        const unixSeconds = Math.floor(sinceDate.getTime() / 1000)
+        // Gmail query: newer_than:X where X is seconds since Unix epoch
+        query = `in:inbox newer_than:${unixSeconds}`
+        console.log(`[syncGmailMessages] Date-based query using newer_than: ${unixSeconds} (since: ${options.since})`)
+      }
+
+      // List messages
+      const listResult = await listGmailMessages(accessToken, {
+        query,
+        maxResults: options.maxMessages || 100,
+        labelIds: ['INBOX']
+      })
+      
+      console.log(`[syncGmailMessages] Date-based query returned ${listResult.messages?.length || 0} messages for mailbox ${mailboxId}`)
+
+      if (!listResult.success || !listResult.messages) {
+        const errorMessage = listResult.error || 'Failed to list messages'
+        
+        // Check for authentication errors
+        if (errorMessage.includes('invalid authentication') || 
+            errorMessage.includes('Invalid Credentials') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('Unauthorized')) {
+          console.error(`[syncGmailMessages] Authentication error for mailbox ${mailboxId}:`, errorMessage)
+          return {
+            success: false,
+            messagesProcessed: 0,
+            threadsCreated: 0,
+            threadsUpdated: 0,
+            errors: [{ 
+              messageId: 'auth', 
+              error: `Authentication failed: ${errorMessage}. Token may be expired or invalid. Please refresh the access token.` 
+            }]
+          }
+        }
+        
+        console.error(`[syncGmailMessages] Failed to list messages for mailbox ${mailboxId}:`, errorMessage)
+        return {
+          success: false,
+          messagesProcessed: 0,
+          threadsCreated: 0,
+          threadsUpdated: 0,
+          errors: [{ messageId: 'list', error: errorMessage }]
+        }
+      }
+
+      messagesToProcess = listResult.messages
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:565',message:'Date-based query result',data:{messageCount:messagesToProcess.length,messageIds:messagesToProcess.map(m=>m.id).slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+    }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:568',message:'Starting message processing',data:{totalMessages:messagesToProcess.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+
     // Process each message
-    for (const msg of listResult.messages) {
+    for (const msg of messagesToProcess) {
       try {
         // Fetch full message
         const fetchResult = await fetchGmailMessage(msg.id, accessToken)
@@ -352,12 +615,19 @@ export async function syncGmailMessages(
         const parsed = parseGmailMessage(message)
 
         // Check if message already exists
-        const { data: existing } = await supabase
+        // Use maybeSingle() to avoid PGRST116 error when message doesn't exist
+        const { data: existing, error: existingError } = await supabase
           .from('email_messages')
           .select('id, thread_id')
           .eq('mailbox_id', mailboxId)
           .eq('provider_message_id', msg.id)
-          .single()
+          .maybeSingle()
+
+        if (existingError) {
+          console.error(`[syncGmailMessages] Error checking for existing message ${msg.id}:`, existingError)
+          errors.push({ messageId: msg.id, error: `Failed to check existing message: ${existingError.message}` })
+          continue
+        }
 
         if (existing) {
           // Skip duplicates
@@ -365,14 +635,21 @@ export async function syncGmailMessages(
         }
 
         // Find or create thread
+        // Use maybeSingle() to avoid PGRST116 error when thread doesn't exist
         let threadId: string
-        const { data: existingThread } = await supabase
+        const { data: existingThread, error: threadCheckError } = await supabase
           .from('email_threads')
           .select('id')
           .eq('user_id', userId)
           .eq('mailbox_id', mailboxId)
           .eq('provider_thread_id', message.threadId)
-          .single()
+          .maybeSingle()
+
+        if (threadCheckError) {
+          console.error(`[syncGmailMessages] Error checking for existing thread ${message.threadId}:`, threadCheckError)
+          errors.push({ messageId: msg.id, error: `Failed to check existing thread: ${threadCheckError.message}` })
+          continue
+        }
 
         if (existingThread) {
           threadId = existingThread.id
@@ -391,34 +668,76 @@ export async function syncGmailMessages(
               unread: true
             })
             .select()
-            .single()
+            .maybeSingle()
 
           if (threadError || !newThread) {
-            errors.push({ messageId: msg.id, error: `Failed to create thread: ${threadError?.message}` })
+            // CRITICAL: Log detailed error information for debugging
+            const errorDetails = threadError?.details || threadError?.hint || threadError?.message || 'Unknown error'
+            const errorCode = (threadError as any)?.code || 'UNKNOWN'
+            
+            console.error(`[syncGmailMessages] Failed to create thread for message ${msg.id}:`, {
+              error: threadError,
+              errorCode,
+              errorDetails,
+              messageId: msg.id,
+              providerThreadId: message.threadId,
+              mailboxId,
+              userId,
+              subject: parsed.subject,
+              possibleCauses: [
+                errorCode === '42501' ? 'RLS policy violation - check if service_role is allowed' : null,
+                errorCode === '23505' ? 'Duplicate thread (unique constraint violation)' : null,
+                errorCode === '23503' ? 'Foreign key violation - mailbox_id or user_id invalid' : null,
+                'Check SUPABASE_SERVICE_ROLE_KEY is set correctly',
+                'Verify RLS policies allow service_role access'
+              ].filter(Boolean)
+            })
+            
+            errors.push({ 
+              messageId: msg.id, 
+              error: `Failed to create thread: ${errorDetails} (code: ${errorCode})` 
+            })
             continue
           }
 
           threadId = newThread.id
           threadsCreated++
+          console.log(`[syncGmailMessages] Created thread ${threadId} for message ${msg.id}`)
         }
 
         // Determine direction (inbound if not from this mailbox)
-        const { data: mailbox } = await supabase
+        // Use maybeSingle() to avoid PGRST116 error (though mailbox should exist)
+        const { data: mailbox, error: mailboxError } = await supabase
           .from('mailboxes')
           .select('email')
           .eq('id', mailboxId)
-          .single()
+          .maybeSingle()
 
-        const isInbound = parsed.from.email.toLowerCase() !== mailbox?.email?.toLowerCase()
+        if (mailboxError || !mailbox) {
+          console.error(`[syncGmailMessages] Error fetching mailbox ${mailboxId}:`, mailboxError)
+          errors.push({ messageId: msg.id, error: `Failed to fetch mailbox: ${mailboxError?.message || 'Mailbox not found'}` })
+          continue
+        }
+
+        const isInbound = parsed.from.email.toLowerCase() !== mailbox.email.toLowerCase()
+        const direction = isInbound ? 'inbound' : 'outbound'
+        
+        // #region agent log
+        const logEntry6 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:705',message:'Before insert',data:{messageId:msg.id,direction,threadId,userId,mailboxId,fromEmail:parsed.from.email,mailboxEmail:mailbox.email,isInbound},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry6}).catch(()=>{});
+        console.log('[DEBUG]', logEntry6);
+        // #endregion
 
         // Insert message
+        // CRITICAL: Use maybeSingle() instead of single() to avoid PGRST116 error
+        // If RLS blocks the insert, we'll get an error instead of a silent failure
         const { data: insertedMessage, error: messageError } = await supabase
           .from('email_messages')
           .insert({
             thread_id: threadId,
             user_id: userId,
             mailbox_id: mailboxId,
-            direction: isInbound ? 'inbound' : 'outbound',
+            direction,
             provider_message_id: msg.id,
             subject: parsed.subject,
             snippet: message.snippet,
@@ -432,11 +751,102 @@ export async function syncGmailMessages(
             read: false
           })
           .select()
-          .single()
+          .maybeSingle()
+
+        // #region agent log
+        const logEntry7 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:734',message:'After insert',data:{messageId:msg.id,hasInsertedMessage:!!insertedMessage,hasError:!!messageError,errorCode:(messageError as any)?.code,errorMessage:messageError?.message,direction},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry7}).catch(()=>{});
+        console.log('[DEBUG]', logEntry7);
+        // #endregion
 
         if (messageError || !insertedMessage) {
-          errors.push({ messageId: msg.id, error: `Failed to insert message: ${messageError?.message}` })
+          // CRITICAL: Log detailed error information for debugging
+          // This includes RLS policy violations, constraint errors, etc.
+          const errorDetails = messageError?.details || messageError?.hint || messageError?.message || 'Unknown error'
+          const errorCode = (messageError as any)?.code || 'UNKNOWN'
+          
+          console.error(`[syncGmailMessages] Failed to insert message ${msg.id}:`, {
+            error: messageError,
+            errorCode,
+            errorDetails,
+            messageId: msg.id,
+            threadId,
+            direction,
+            mailboxId,
+            userId,
+            subject: parsed.subject,
+            possibleCauses: [
+              errorCode === '42501' ? 'RLS policy violation - check if service_role is allowed' : null,
+              errorCode === '23505' ? 'Duplicate message (unique constraint violation)' : null,
+              errorCode === '23503' ? 'Foreign key violation - thread_id or mailbox_id invalid' : null,
+              'Check SUPABASE_SERVICE_ROLE_KEY is set correctly',
+              'Verify RLS policies allow service_role access'
+            ].filter(Boolean)
+          })
+          
+          errors.push({ 
+            messageId: msg.id, 
+            error: `Failed to insert message: ${errorDetails} (code: ${errorCode})` 
+          })
           continue
+        }
+        
+        // Successfully inserted message
+        messagesProcessed++
+        console.log(`[syncGmailMessages] Successfully inserted message ${msg.id} for mailbox ${mailboxId}`)
+        // #region agent log
+        const logEntry8 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:748',message:'Message inserted successfully',data:{messageId:msg.id,insertedMessageId:insertedMessage.id,direction,messagesProcessed},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry8}).catch(()=>{});
+        console.log('[DEBUG]', logEntry8);
+        // #endregion
+
+        // CRITICAL FIX: Also insert into emails table for received emails (legacy log)
+        // This ensures received emails are logged to both email_messages (Unibox) and emails (legacy log)
+        if (direction === 'inbound') {
+          // #region agent log
+          const logEntry8b = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:755',message:'Inserting into emails table',data:{messageId:msg.id,direction,fromEmail:parsed.from.email,toEmail:mailbox.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+          fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry8b}).catch(()=>{});
+          console.log('[DEBUG]', logEntry8b);
+          // #endregion
+
+          const { data: emailRecord, error: emailInsertError } = await supabase
+            .from('emails')
+            .insert({
+              user_id: userId,
+              mailbox_id: mailboxId,
+              from_email: parsed.from.email,
+              from_name: parsed.from.name || null,
+              to_email: mailbox.email,
+              subject: parsed.subject,
+              html: parsed.bodyHtml || '',
+              direction: 'received',
+              status: 'sent', // Received emails are considered 'sent' by the sender
+              received_at: parsed.receivedAt || new Date().toISOString(),
+              raw_message_id: msg.id,
+              thread_id: threadId,
+              in_reply_to: parsed.inReplyTo || null,
+              is_read: false,
+              is_starred: false,
+            })
+            .select()
+            .maybeSingle()
+
+          // #region agent log
+          const logEntry8c = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:780',message:'emails table insert result',data:{messageId:msg.id,hasEmailRecord:!!emailRecord,hasError:!!emailInsertError,errorCode:(emailInsertError as any)?.code,errorMessage:emailInsertError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+          fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry8c}).catch(()=>{});
+          console.log('[DEBUG]', logEntry8c);
+          // #endregion
+
+          if (emailInsertError) {
+            // Log error but don't fail the whole sync - email_messages insert succeeded
+            console.error(`[syncGmailMessages] Failed to insert into emails table for message ${msg.id}:`, {
+              error: emailInsertError,
+              errorCode: (emailInsertError as any)?.code,
+              errorMessage: emailInsertError?.message
+            })
+          } else if (emailRecord) {
+            console.log(`[syncGmailMessages] Successfully inserted into emails table for message ${msg.id}`)
+          }
         }
 
         // Insert participants
@@ -450,7 +860,7 @@ export async function syncGmailMessages(
         for (const participant of participants) {
           if (!participant.email) continue
 
-          await supabase
+          const { error: participantError } = await supabase
             .from('email_participants')
             .insert({
               message_id: insertedMessage.id,
@@ -458,6 +868,16 @@ export async function syncGmailMessages(
               email: participant.email,
               name: participant.name || null
             })
+          
+          if (participantError) {
+            console.error(`[syncGmailMessages] Failed to insert participant ${participant.email} for message ${msg.id}:`, {
+              error: participantError,
+              errorCode: (participantError as any)?.code,
+              messageId: msg.id,
+              participantEmail: participant.email
+            })
+            // Continue - don't fail the whole message if participant insert fails
+          }
         }
 
         messagesProcessed++
@@ -471,12 +891,26 @@ export async function syncGmailMessages(
     }
 
     // Update mailbox sync state
+    // If we have a latestHistoryId from History API, update it
+    const updateData: any = {
+      last_synced_at: new Date().toISOString(),
+      sync_state: 'running'
+    }
+    
+    if (latestHistoryId) {
+      updateData.watch_history_id = latestHistoryId
+      console.log(`[syncGmailMessages] Updating mailbox ${mailboxId} with latest historyId: ${latestHistoryId}`)
+    }
+    
+    // #region agent log
+    const logEntry9 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:830',message:'syncGmailMessages exit success',data:{messagesProcessed,threadsCreated,threadsUpdated,errorCount:errors.length,latestHistoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry9}).catch(()=>{});
+    console.log('[DEBUG]', logEntry9);
+    // #endregion
+
     await supabase
       .from('mailboxes')
-      .update({
-        last_synced_at: new Date().toISOString(),
-        sync_state: 'running'
-      })
+      .update(updateData)
       .eq('id', mailboxId)
 
     return {
@@ -484,16 +918,25 @@ export async function syncGmailMessages(
       messagesProcessed,
       threadsCreated,
       threadsUpdated,
-      errors
+      errors,
+      latestHistoryId  // Return latest historyId for webhook to use
     }
 
   } catch (error: any) {
+    // #region agent log
+    const logEntry10 = JSON.stringify({location:'lib/email/unibox/gmail-connector.ts:848',message:'syncGmailMessages exception',data:{error:error.message,errorStack:error.stack?.substring(0,500),mailboxId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry10}).catch(()=>{});
+    console.log('[DEBUG]', logEntry10);
+    // #endregion
+    
+    console.error(`[syncGmailMessages] Fatal error for mailbox ${mailboxId}:`, error)
     return {
       success: false,
       messagesProcessed,
       threadsCreated,
       threadsUpdated,
-      errors: [...errors, { messageId: 'system', error: error.message || 'Unknown error' }]
+      errors: [...errors, { messageId: 'system', error: error.message || 'Unknown error' }],
+      latestHistoryId: undefined
     }
   }
 }

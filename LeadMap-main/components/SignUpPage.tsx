@@ -4,6 +4,8 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { MapPin } from 'lucide-react'
+import { handleOAuthSignIn as handleOAuthSignInUtil } from '@/lib/auth/oauth'
+import { sendVerificationEmail } from '@/lib/auth/verification'
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
@@ -115,13 +117,30 @@ export default function SignUpPage() {
       }
 
       if (data.user) {
-        // Steps 5-7: Generate email verification token → Store token → Send verification email
-        // (Supabase handles token generation, storage, and email sending automatically)
-        
+        // Validate email exists before sending verification
+        if (!data.user.email) {
+          throw new Error('User account created but email address is missing. Please contact support.')
+        }
+
+        // Send verification email via SendGrid (not Supabase)
+        // This ensures we use SendGrid for all email communications
+        const emailResult = await sendVerificationEmail({
+          userId: data.user.id,
+          email: data.user.email,
+          name,
+        })
+
+        if (!emailResult.success) {
+          console.error('Failed to send verification email:', emailResult.error)
+          // Show warning to user but don't block signup flow
+          setError(`Account created, but we couldn't send the verification email. ${emailResult.error || 'Please try again later or contact support.'}`)
+          // Still set emailSent to true to show the verification message
+          // User can try resending if needed
+        }
+
         // Check if email confirmation is required
         if (data.user && !data.session) {
           // Email confirmation required - show success message
-          // Supabase automatically sends verification email
           setEmailSent(true)
         } else if (data.session) {
           // Email confirmation not required - create profile and redirect
@@ -168,28 +187,24 @@ export default function SignUpPage() {
   const handleOAuthSignIn = async (provider: 'google' | 'azure') => {
     if (typeof window === 'undefined') return
 
+    setLoading(true)
+    setError('')
+
     try {
-      setLoading(true)
-      setError('')
       const redirectUrl = `${window.location.origin}/api/auth/callback`
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      })
-      if (error) throw error
-    } catch (err: any) {
-      // Handle rate limit errors specifically
-      if (err.message?.includes('rate limit') || err.message?.includes('Request rate limit')) {
-        setError('Too many requests. Please wait a moment and try again.')
-      } else {
-        setError(err.message || 'An error occurred. Please try again.')
+      const result = await handleOAuthSignInUtil(supabase, provider, redirectUrl)
+
+      if (!result.success) {
+        setError(result.error || 'OAuth sign-in failed')
+        setLoading(false)
+        return
       }
+
+      // OAuth redirect happens automatically via Supabase
+      // No need to manually redirect
+    } catch (err: any) {
+      console.error(`[OAuth] ${provider} sign-in failed:`, err)
+      setError(`Unable to sign in with ${provider === 'google' ? 'Google' : 'Microsoft'}. Please try again.`)
       setLoading(false)
     }
   }
@@ -214,7 +229,7 @@ export default function SignUpPage() {
           }
         }
       `}</style>
-      <div className="min-h-screen" style={{ backgroundColor: '#E8E3D6' }}>
+      <div className="min-h-screen" style={{ backgroundColor: '#f7faff' }}>
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
@@ -222,14 +237,14 @@ export default function SignUpPage() {
       </div>
 
       {/* Navigation - Fixed/Sticky */}
-      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#E8E3D6' }}>
+      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#f7faff' }}>
         <div className="mx-4 sm:mx-6 lg:mx-8">
           <div className="flex justify-between items-center h-16 max-w-[1872px] mx-auto">
             <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => router.push('/')}>
               <img 
                 src="/nextdeal-logo.png" 
                 alt="NextDeal" 
-                className="h-12 w-auto"
+                className="h-8 w-auto"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';

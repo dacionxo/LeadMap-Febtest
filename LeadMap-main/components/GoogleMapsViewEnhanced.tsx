@@ -68,6 +68,74 @@ const MapComponent: React.FC<{
     onErrorRef.current = onError;
   }, [onMapReady, onError]);
 
+  // Function to immediately open Street View on the map
+  const openStreetViewImmediately = useCallback((lat: number, lng: number, mapInstance: google.maps.Map, lead?: Lead) => {
+    try {
+      if (!mapInstance || typeof window === 'undefined' || !window.google?.maps) {
+        console.error('Map instance or Google Maps API not available');
+        // Fallback to modal if available
+        if (lead) {
+          onStreetViewClick(lead);
+        }
+        return;
+      }
+
+      // Get the Street View service
+      const streetViewService = new window.google.maps.StreetViewService();
+      const panorama = mapInstance.getStreetView();
+
+      // Check if Street View is available at this location
+      streetViewService.getPanorama(
+        { location: { lat, lng }, radius: 50 },
+        (data, status) => {
+          if (status === 'OK' && data) {
+            // Street View is available - activate it immediately
+            panorama.setPosition({ lat, lng });
+            panorama.setPov({
+              heading: 270, // Default heading (west)
+              pitch: 0
+            });
+            panorama.setVisible(true);
+            mapInstance.setStreetView(panorama);
+            
+            // Center the map on the location and zoom in
+            mapInstance.setCenter({ lat, lng });
+            mapInstance.setZoom(18);
+            
+            console.log('Street View opened successfully at', lat, lng);
+          } else {
+            // Street View not available - open modal as fallback
+            console.warn('Street View not available at this location, opening modal instead');
+            if (lead) {
+              onStreetViewClick(lead);
+            } else {
+              // Try to find lead by coordinates
+              const foundLead = leads.find(l => 
+                l.latitude === lat && l.longitude === lng
+              );
+              if (foundLead) {
+                onStreetViewClick(foundLead);
+              }
+            }
+          }
+        }
+      );
+    } catch (err) {
+      console.error('Error opening Street View:', err);
+      // Fallback: try to open modal
+      if (lead) {
+        onStreetViewClick(lead);
+      } else {
+        const foundLead = leads.find(l => 
+          l.latitude === lat && l.longitude === lng
+        );
+        if (foundLead) {
+          onStreetViewClick(foundLead);
+        }
+      }
+    }
+  }, [leads, onStreetViewClick]);
+
   // Function to get marker color based on lead type
   const getMarkerColor = (lead: Lead) => {
     if (lead.expired) return '#ef4444';
@@ -303,8 +371,22 @@ const MapComponent: React.FC<{
             window.google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
               const btn = document.getElementById(`street-view-btn-${lead.id}`);
               if (btn) {
-                btn.addEventListener('click', () => {
-                  onStreetViewClick(lead); // CHANGED: Pass full Lead object
+                btn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Close info window first
+                  if (infoWindow) {
+                    infoWindow.close();
+                  }
+                  
+                  // Immediately open Street View on the map if coordinates are available
+                  if (lead.latitude && lead.longitude && map) {
+                    openStreetViewImmediately(lead.latitude, lead.longitude, map, lead);
+                  } else {
+                    // Fallback: open modal if no coordinates
+                    onStreetViewClick(lead);
+                  }
                 });
               }
             });
@@ -406,8 +488,23 @@ const MapComponent: React.FC<{
                   window.google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
                     const btn = document.getElementById(`street-view-btn-geocode-${lead.id}`);
                     if (btn) {
-                      btn.addEventListener('click', () => {
-                        onStreetViewClick(lead);
+                      btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Close info window first
+                        if (infoWindow) {
+                          infoWindow.close();
+                        }
+                        
+                        // Get coordinates from geocoded location
+                        const position = marker.getPosition();
+                        if (position && map) {
+                          openStreetViewImmediately(position.lat(), position.lng(), map, lead);
+                        } else {
+                          // Fallback: open modal
+                          onStreetViewClick(lead);
+                        }
                       });
                     }
                   });
@@ -444,7 +541,7 @@ const MapComponent: React.FC<{
       });
       map.fitBounds(bounds);
     }
-  }, [map, leads, infoWindow, onStreetViewClick]);
+  }, [map, leads, infoWindow, onStreetViewClick, openStreetViewImmediately]);
 
   return <div ref={mapRef} style={{ width: '100%', height: '600px' }} />;
 };
@@ -510,16 +607,47 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
   }, []);
 
   // NEW: Central handler for Street View clicks from MapComponent
+  // Note: This is now primarily used as a fallback when Street View is not available on the map
   const handleStreetViewClickFromMap = useCallback(
     (lead: Lead) => {
-      // 1) Let parent open the modal if provided
-      if (onStreetViewListingClick) {
-        onStreetViewListingClick(lead.id);
+      // If coordinates are available, try to open Street View on map first
+      if (lead.latitude && lead.longitude && mapInstanceRef.current) {
+        try {
+          const streetViewService = new google.maps.StreetViewService();
+          const panorama = mapInstanceRef.current.getStreetView();
+          
+          streetViewService.getPanorama(
+            { location: { lat: lead.latitude, lng: lead.longitude }, radius: 50 },
+            (data, status) => {
+              if (status === 'OK' && data) {
+                // Street View available - open it on map
+                panorama.setPosition({ lat: lead.latitude!, lng: lead.longitude! });
+                panorama.setPov({ heading: 270, pitch: 0 });
+                panorama.setVisible(true);
+                mapInstanceRef.current?.setStreetView(panorama);
+                mapInstanceRef.current?.setCenter({ lat: lead.latitude!, lng: lead.longitude! });
+                mapInstanceRef.current?.setZoom(18);
+              } else {
+                // Street View not available - open modal as fallback
+                if (onStreetViewListingClick) {
+                  onStreetViewListingClick(lead.id);
+                }
+              }
+            }
+          );
+        } catch (err) {
+          console.error('Error opening Street View:', err);
+          // Fallback to modal
+          if (onStreetViewListingClick) {
+            onStreetViewListingClick(lead.id);
+          }
+        }
+      } else {
+        // No coordinates - open modal
+        if (onStreetViewListingClick) {
+          onStreetViewListingClick(lead.id);
+        }
       }
-      // 2) Optionally also open inline Street View (commented out to prefer modal only)
-      // if (lead.latitude && lead.longitude) {
-      //   openInlineStreetView(lead.latitude, lead.longitude);
-      // }
     },
     [onStreetViewListingClick]
   );

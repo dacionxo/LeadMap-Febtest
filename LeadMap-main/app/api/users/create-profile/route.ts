@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // Create user profile with trial
     const trialEnd = new Date()
-    trialEnd.setDate(trialEnd.getDate() + 7)
+    trialEnd.setDate(trialEnd.getDate() + 14) // 14 day trial (change to 7 if preferred)
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('users')
@@ -127,8 +127,9 @@ export async function POST(request: NextRequest) {
         role: 'user',
         trial_end: trialEnd.toISOString(),
         is_subscribed: false,
-        plan_tier: 'free'
-      })
+        plan_tier: 'free',
+        subscription_status: 'none'
+      } as any)
       .select()
       .single()
 

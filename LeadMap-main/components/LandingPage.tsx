@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { handleOAuthSignIn as handleOAuthSignInUtil } from '@/lib/auth/oauth'
+import { sendVerificationEmail } from '@/lib/auth/verification'
 import { 
   MapPin,
   Search,
@@ -304,13 +306,30 @@ export default function LandingPage() {
         }
 
         if (data.user) {
-          // Steps 5-7: Generate email verification token → Store token → Send verification email
-          // (Supabase handles token generation, storage, and email sending automatically)
-          
+          // Validate email exists before sending verification
+          if (!data.user.email) {
+            throw new Error('User account created but email address is missing. Please contact support.')
+          }
+
+          // Send verification email via SendGrid (not Supabase)
+          // This ensures we use SendGrid for all email communications
+          const emailResult = await sendVerificationEmail({
+            userId: data.user.id,
+            email: data.user.email,
+            name,
+          })
+
+          if (!emailResult.success) {
+            console.error('Failed to send verification email:', emailResult.error)
+            // Show warning to user but don't block signup flow
+            setError(`Account created, but we couldn't send the verification email. ${emailResult.error || 'Please try again later or contact support.'}`)
+            // Still set emailSent to true to show the verification message
+            // User can try resending if needed
+          }
+
           // Check if email confirmation is required
           if (data.user && !data.session) {
             // Email confirmation required - show success message
-            // Supabase automatically sends verification email
             setEmailSent(true)
           } else if (data.session) {
             // Email confirmation not required - create profile and redirect
@@ -367,34 +386,30 @@ export default function LandingPage() {
   const handleOAuthSignIn = async (provider: 'google' | 'azure') => {
     if (typeof window === 'undefined') return
 
+    setLoading(true)
+    setError('')
+
     try {
-      setLoading(true)
-      setError('')
       const redirectUrl = `${window.location.origin}/api/auth/callback`
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      })
-      if (error) throw error
-    } catch (err: any) {
-      // Handle rate limit errors specifically
-      if (err.message?.includes('rate limit') || err.message?.includes('Request rate limit')) {
-        setError('Too many requests. Please wait a moment and try again.')
-      } else {
-        setError(err.message || 'An error occurred. Please try again.')
+      const result = await handleOAuthSignInUtil(supabase, provider, redirectUrl)
+
+      if (!result.success) {
+        setError(result.error || 'OAuth sign-in failed')
+        setLoading(false)
+        return
       }
+
+      // OAuth redirect happens automatically via Supabase
+      // No need to manually redirect
+    } catch (err: any) {
+      console.error(`[OAuth] ${provider} sign-in failed:`, err)
+      setError(`Unable to sign in with ${provider === 'google' ? 'Google' : 'Microsoft'}. Please try again.`)
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#E8E3D6' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#cde3fe' }}>
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
@@ -402,7 +417,7 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation - Fixed/Sticky */}
-      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#E8E3D6' }}>
+      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#cde3fe' }}>
         <div className="mx-4 sm:mx-6 lg:mx-8">
           <div className="flex justify-between items-center h-16 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-6">
@@ -410,7 +425,7 @@ export default function LandingPage() {
                 <img 
                   src="/nextdeal-logo.png" 
                   alt="NextDeal" 
-                  className="h-12 w-auto"
+                  className="h-8 w-auto"
                   onError={(e) => {
                     // Fallback if image doesn't exist yet - show text logo
                     const target = e.target as HTMLImageElement;
@@ -1288,7 +1303,7 @@ export default function LandingPage() {
           </div>
 
           {/* Wave Divider */}
-          <div className="relative w-full overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15),0_5px_20px_rgba(0,0,0,0.2)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.5)]" style={{ backgroundColor: '#E8E3D6' }}>
+          <div className="relative w-full overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15),0_5px_20px_rgba(0,0,0,0.2)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.5)]" style={{ backgroundColor: '#f7faff' }}>
             <style dangerouslySetInnerHTML={{
               __html: `
                 @keyframes waveFlow {
@@ -1318,7 +1333,7 @@ export default function LandingPage() {
             >
               <defs>
                 <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#E8E3D6" />
+                  <stop offset="0%" stopColor="#f7faff" />
                   <stop offset="100%" stopColor="#F5F5F0" />
                 </linearGradient>
                 <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1540,7 +1555,7 @@ export default function LandingPage() {
           <div className="h-24 bg-gradient-to-b from-white to-neutral-light dark:from-neutral-dark dark:to-neutral-dark" />
 
           {/* Cloud Divider - After Stats Section */}
-          <div className="relative w-full overflow-hidden" style={{ backgroundColor: '#E8E3D6', height: '120px' }}>
+          <div className="relative w-full overflow-hidden" style={{ backgroundColor: '#f7faff', height: '120px' }}>
             <style dangerouslySetInnerHTML={{
               __html: `
                 @keyframes cloudFloat {
@@ -1570,7 +1585,7 @@ export default function LandingPage() {
             >
               <defs>
                 <linearGradient id="cloudWaveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#E8E3D6" />
+                  <stop offset="0%" stopColor="#f7faff" />
                   <stop offset="100%" stopColor="#F5F5F0" />
                 </linearGradient>
                 <linearGradient id="cloudWaveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1707,7 +1722,7 @@ export default function LandingPage() {
                 <img 
                   src="/nextdeal-logo.png" 
                   alt="NextDeal" 
-                  className="h-12 w-48 object-contain mb-2"
+                  className="h-8 w-32 object-contain mb-2"
                   onError={(e) => {
                     // Fallback if image doesn't exist yet - show text logo
                     const target = e.target as HTMLImageElement;

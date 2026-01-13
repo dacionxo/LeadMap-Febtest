@@ -12,6 +12,16 @@ import PipelineDropdown from './PipelineDropdown'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding'
 
+// Helper function to format bathroom count with proper decimal display
+function formatBaths(baths: number | null | undefined): string {
+  if (baths === null || baths === undefined) return '--'
+  // Convert to number if it's a string
+  const numBaths = typeof baths === 'string' ? parseFloat(baths) : baths
+  if (isNaN(numBaths)) return '--'
+  // Remove trailing zeros for whole numbers, keep decimals for fractional values
+  return numBaths % 1 === 0 ? numBaths.toString() : numBaths.toFixed(1)
+}
+
 type TabType = 'info' | 'comps' | 'mail' | 'activity'
 
 interface Listing {
@@ -63,6 +73,9 @@ interface Listing {
   pipeline_status?: string | null
   lat?: number | null
   lng?: number | null
+  // Compatibility fields for probate_leads (which uses latitude/longitude)
+  latitude?: number | null
+  longitude?: number | null
 }
 
 interface LeadDetailModalProps {
@@ -769,7 +782,7 @@ export default function LeadDetailModal({
               }}>
                 {listing?.beds && <span>{listing.beds} bd</span>}
                 {listing?.beds && listing?.full_baths && <span style={{ color: '#d1d5db' }}>·</span>}
-                {listing?.full_baths && <span>{listing.full_baths} ba</span>}
+                {listing?.full_baths && <span>{formatBaths(listing.full_baths)} ba</span>}
                 {listing?.full_baths && listing?.sqft && <span style={{ color: '#d1d5db' }}>·</span>}
                 {listing?.sqft && <span>{listing.sqft.toLocaleString()} sqft</span>}
               </div>
@@ -1647,9 +1660,9 @@ function InfoTab({ listing }: { listing: Listing | null }) {
     }
   }, [showMoreDetails, showMoreLandInfo, showMoreTaxInfo])
 
-  // Calculate bathrooms display
-  const bathroomsDisplay = listing?.full_baths 
-    ? `${listing.full_baths}${listing.half_baths ? `.${listing.half_baths}` : ''}`
+  // Calculate bathrooms display - format with proper decimals
+  const bathroomsDisplay = listing?.full_baths !== null && listing?.full_baths !== undefined
+    ? formatBaths(listing.full_baths)
     : '--'
 
   // Property details data structure - using actual listing data where available

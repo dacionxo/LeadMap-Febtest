@@ -29,7 +29,13 @@ NEXT_PUBLIC_APP_URL=https://your-domain.com  # or http://localhost:3000 for loca
 2. Search for **"Google Calendar API"**
 3. Click on **"Google Calendar API"**
 4. Click **"Enable"**
-5. Wait for the API to be enabled
+5. Wait for the API to be enabled (may take a few minutes to propagate)
+
+**⚠️ Important:** 
+- The API must be enabled in your Google Cloud project (project ID: 291184328896)
+- If you see errors like "Google Calendar API has not been used in project", this API is not enabled
+- After enabling, wait 2-5 minutes for changes to propagate before testing
+- You can verify it's enabled by checking the API Library - it should show "Enabled" next to "Google Calendar API"
 
 ### 3. Configure OAuth Consent Screen
 

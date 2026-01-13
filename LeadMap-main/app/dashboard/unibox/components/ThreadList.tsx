@@ -11,9 +11,11 @@ interface Thread {
     display_name: string | null
     provider: string
   }
-  status: string
+  status: string // 'open' | 'needs_reply' | 'waiting' | 'closed' | 'ignored'
   unread: boolean
   unreadCount: number
+  starred: boolean
+  archived: boolean
   lastMessage: {
     direction: 'inbound' | 'outbound'
     snippet: string

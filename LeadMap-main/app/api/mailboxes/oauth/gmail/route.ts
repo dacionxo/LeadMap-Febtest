@@ -32,9 +32,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Gmail OAuth scopes for sending emails
+    // Gmail OAuth scopes for sending and receiving emails
     const scopes = [
       'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/gmail.readonly', // Required for receiving emails
       'https://www.googleapis.com/auth/userinfo.email',
     ].join(' ')
 

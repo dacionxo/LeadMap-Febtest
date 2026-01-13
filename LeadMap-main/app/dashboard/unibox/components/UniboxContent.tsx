@@ -34,9 +34,11 @@ interface Thread {
     display_name: string | null
     provider: string
   }
-  status: string
+  status: string // 'open' | 'needs_reply' | 'waiting' | 'closed' | 'ignored'
   unread: boolean
   unreadCount: number
+  starred: boolean
+  archived: boolean
   lastMessage: {
     direction: 'inbound' | 'outbound'
     snippet: string
@@ -87,7 +89,7 @@ export default function UniboxContent() {
   // Fetch threads
   useEffect(() => {
     fetchThreads()
-  }, [selectedMailboxId, statusFilter, searchQuery, page])
+  }, [selectedMailboxId, statusFilter, folderFilter, searchQuery, page])
 
   const fetchMailboxes = async () => {
     try {
@@ -108,15 +110,28 @@ export default function UniboxContent() {
       if (selectedMailboxId) params.append('mailboxId', selectedMailboxId)
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (searchQuery) params.append('search', searchQuery)
+      
+      // Add folder filter support
       if (folderFilter === 'archived') {
-        // Note: archived filter would need backend support
+        params.append('folder', 'archived')
+      } else if (folderFilter === 'starred') {
+        params.append('folder', 'starred')
+      } else if (folderFilter === 'inbox') {
+        params.append('folder', 'inbox')
       }
+      
       params.append('page', page.toString())
       params.append('pageSize', '50')
 
       const response = await fetch(`/api/unibox/threads?${params.toString()}`)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/dashboard/unibox/components/UniboxContent.tsx:117',message:'Unibox threads API call',data:{url:`/api/unibox/threads?${params.toString()}`,status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       if (response.ok) {
         const data = await response.json()
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/dashboard/unibox/components/UniboxContent.tsx:120',message:'Unibox threads received',data:{threadCount:data.threads?.length||0,totalPages:data.pagination?.totalPages||0,threadIds:data.threads?.map((t:any)=>t.id)||[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         setThreads(data.threads || [])
         setHasMore(data.pagination.page < data.pagination.totalPages)
         
@@ -139,9 +154,21 @@ export default function UniboxContent() {
       if (response.ok) {
         const data = await response.json()
         setThreadDetails(data.thread)
+      } else {
+        // Log error details for debugging
+        const errorData = await response.json().catch(() => ({}))
+        console.error(`[UniboxContent] Failed to fetch thread details:`, {
+          threadId,
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData.error || 'Unknown error'
+        })
+        // Set thread details to null to show error state
+        setThreadDetails(null)
       }
     } catch (error) {
-      console.error('Error fetching thread details:', error)
+      console.error('[UniboxContent] Error fetching thread details:', error)
+      setThreadDetails(null)
     } finally {
       setLoadingThread(false)
     }

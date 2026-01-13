@@ -50,6 +50,7 @@ export async function refreshGoogleAccessToken(
 
 /**
  * Get valid access token (refresh if needed)
+ * Returns the access token string for backward compatibility
  */
 export async function getValidAccessToken(
   accessToken: string,
@@ -77,6 +78,38 @@ export async function getValidAccessToken(
 }
 
 /**
+ * Get valid access token with expiration info (refresh if needed)
+ * Returns both the access token and expiration info when token is refreshed
+ */
+export async function getValidAccessTokenWithExpiration(
+  accessToken: string,
+  refreshToken: string | null,
+  tokenExpiresAt: string | null
+): Promise<{ accessToken: string; expiresIn?: number } | null> {
+  // Check if token is expired or expires in less than 5 minutes
+  if (tokenExpiresAt) {
+    const expiresAt = new Date(tokenExpiresAt)
+    const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000)
+    
+    if (expiresAt < fiveMinutesFromNow) {
+      // Token is expired or about to expire, refresh it
+      if (refreshToken) {
+        const refreshed = await refreshGoogleAccessToken(refreshToken)
+        if (refreshed) {
+          return {
+            accessToken: refreshed.accessToken,
+            expiresIn: refreshed.expiresIn,
+          }
+        }
+      }
+      return null
+    }
+  }
+
+  return { accessToken }
+}
+
+/**
  * Push event to Google Calendar
  */
 export async function pushEventToGoogleCalendar(
@@ -93,25 +126,26 @@ export async function pushEventToGoogleCalendar(
     }
 
     // Handle start and end times
+    const eventTimezone = event.timezone || event.event_timezone || 'UTC'
     if (event.all_day && event.start_date) {
       // All-day event
       googleEvent.start = {
         date: event.start_date, // YYYY-MM-DD format
-        timeZone: event.event_timezone || 'UTC',
+        timeZone: eventTimezone,
       }
       googleEvent.end = {
         date: event.end_date || event.start_date,
-        timeZone: event.event_timezone || 'UTC',
+        timeZone: eventTimezone,
       }
     } else if (event.start_time) {
       // Timed event
       googleEvent.start = {
         dateTime: event.start_time, // ISO 8601 string
-        timeZone: event.event_timezone || 'UTC',
+        timeZone: eventTimezone,
       }
       googleEvent.end = {
         dateTime: event.end_time || event.start_time,
-        timeZone: event.event_timezone || 'UTC',
+        timeZone: eventTimezone,
       }
     } else {
       return { success: false, error: 'Event missing start time or date' }
@@ -195,9 +229,13 @@ export async function pushEventToGoogleCalendar(
 
     const googleEventData = await response.json()
 
+    // Google Calendar API should always return an id, but handle edge cases
+    // For updates (PUT), the id might be in the response or we use the existing external_event_id
+    const eventId = googleEventData.id || (isUpdate ? event.external_event_id : null)
+
     return {
       success: true,
-      externalEventId: googleEventData.id,
+      externalEventId: eventId || undefined, // Return undefined instead of null for consistency
     }
   } catch (error: any) {
     console.error('Error pushing event to Google Calendar:', error)

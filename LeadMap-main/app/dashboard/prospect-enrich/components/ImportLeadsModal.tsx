@@ -18,7 +18,17 @@ export default function ImportLeadsModal({
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [importCount, setImportCount] = useState(0)
+  const [importDetails, setImportDetails] = useState<{
+    imported: number
+    total: number
+    skipped: number
+    duplicates: number
+    errors: number
+    batchId?: string
+    warnings?: any
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!isOpen) return null
@@ -47,29 +57,82 @@ export default function ImportLeadsModal({
     setUploading(true)
     setUploadStatus('idle')
     setMessage('')
+    setUploadProgress(0)
 
     try {
       const formData = new FormData()
       formData.append('file', file)
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) return prev
+          return prev + 10
+        })
+      }, 200)
 
       const response = await fetch('/api/import-leads', {
         method: 'POST',
         body: formData
       })
 
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to import leads')
+        // Enhanced error handling with details
+        const errorMessage = result.error || 'Failed to import leads'
+        const errorDetails = result.details || ''
+        const foundColumns = result.foundColumns || []
+        
+        let fullErrorMessage = errorMessage
+        if (errorDetails) {
+          fullErrorMessage += `\n\n${errorDetails}`
+        }
+        if (foundColumns.length > 0) {
+          fullErrorMessage += `\n\nFound columns: ${foundColumns.join(', ')}`
+        }
+        
+        throw new Error(fullErrorMessage)
       }
 
-      setImportCount(result.count || 0)
+      // Handle successful import with detailed results
+      const imported = result.imported || result.count || 0
+      const total = result.total || imported
+      const skipped = result.skipped || 0
+      const duplicates = result.duplicates || 0
+      const errors = result.errors || 0
+
+      setImportCount(imported)
+      setImportDetails({
+        imported,
+        total,
+        skipped,
+        duplicates,
+        errors,
+        batchId: result.batchId,
+        warnings: result.warnings
+      })
+      
       setUploadStatus('success')
-      setMessage(`Successfully imported ${result.count || 0} leads! They will appear in the "Imports" category.`)
+      
+      // Build comprehensive success message
+      let successMessage = `Successfully imported ${imported} lead${imported !== 1 ? 's' : ''}!`
+      if (skipped > 0) {
+        successMessage += ` ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped.`
+      }
+      if (errors > 0) {
+        successMessage += ` ${errors} row${errors !== 1 ? 's' : ''} had validation errors.`
+      }
+      successMessage += ` They will appear in the "Imports" category.`
+      
+      setMessage(successMessage)
       
       // Call the completion callback
       if (onImportComplete) {
-        onImportComplete(result.count || 0)
+        onImportComplete(imported)
       }
 
       // Reset file after successful upload
@@ -82,7 +145,14 @@ export default function ImportLeadsModal({
     } catch (error: any) {
       console.error('Import error:', error)
       setUploadStatus('error')
-      setMessage(error.message || 'Failed to import leads. Please try again.')
+      setUploadProgress(0)
+      
+      // Enhanced error message parsing
+      const errorMessage = error.message || 'Failed to import leads. Please try again.'
+      setMessage(errorMessage)
+      
+      // Reset import details on error
+      setImportDetails(null)
     } finally {
       setUploading(false)
     }
@@ -93,7 +163,9 @@ export default function ImportLeadsModal({
       setFile(null)
       setUploadStatus('idle')
       setMessage('')
+      setUploadProgress(0)
       setImportCount(0)
+      setImportDetails(null)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -285,10 +357,42 @@ export default function ImportLeadsModal({
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     fontSize: '14px',
                     color: '#6b7280',
-                    margin: 0
+                    margin: '0 0 12px 0'
                   }}
                 >
                   Uploading and processing leads...
+                </p>
+                {/* Progress Bar */}
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: '300px',
+                    margin: '0 auto',
+                    height: '8px',
+                    background: '#e5e7eb',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${uploadProgress}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)',
+                      transition: 'width 0.3s ease',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+                <p
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    fontSize: '12px',
+                    color: '#9ca3af',
+                    margin: '8px 0 0 0'
+                  }}
+                >
+                  {uploadProgress}% complete
                 </p>
               </>
             ) : file ? (
@@ -364,27 +468,57 @@ export default function ImportLeadsModal({
                 borderRadius: '6px',
                 marginBottom: '20px',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
+                flexDirection: 'column',
+                gap: '8px',
                 background: uploadStatus === 'success' ? '#f0fdf4' : '#fef2f2',
                 border: `1px solid ${uploadStatus === 'success' ? '#86efac' : '#fecaca'}`,
                 color: uploadStatus === 'success' ? '#059669' : '#dc2626'
               }}
             >
-              {uploadStatus === 'success' ? (
-                <CheckCircle size={20} />
-              ) : (
-                <AlertCircle size={20} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {uploadStatus === 'success' ? (
+                  <CheckCircle size={20} />
+                ) : (
+                  <AlertCircle size={20} />
+                )}
+                <span
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    fontSize: '14px',
+                    flex: 1,
+                    whiteSpace: 'pre-line'
+                  }}
+                >
+                  {message}
+                </span>
+              </div>
+              
+              {/* Import Details */}
+              {importDetails && uploadStatus === 'success' && (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.5)',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                    <span>✅ Imported: <strong>{importDetails.imported}</strong></span>
+                    {importDetails.skipped > 0 && (
+                      <span>⚠️ Skipped: <strong>{importDetails.skipped}</strong></span>
+                    )}
+                    {importDetails.duplicates > 0 && (
+                      <span>🔄 Duplicates: <strong>{importDetails.duplicates}</strong></span>
+                    )}
+                    {importDetails.errors > 0 && (
+                      <span>❌ Errors: <strong>{importDetails.errors}</strong></span>
+                    )}
+                  </div>
+                </div>
               )}
-              <span
-                style={{
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  fontSize: '14px',
-                  flex: 1
-                }}
-              >
-                {message}
-              </span>
             </div>
           )}
 

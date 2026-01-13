@@ -32,9 +32,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Microsoft Graph OAuth scopes for sending emails
+    // Microsoft Graph OAuth scopes for sending and receiving emails
     const scopes = [
       'https://graph.microsoft.com/Mail.Send',
+      'https://graph.microsoft.com/Mail.Read', // Required for receiving emails
+      'https://graph.microsoft.com/Mail.ReadWrite', // Required for full mailbox access
       'https://graph.microsoft.com/User.Read',
       'offline_access',
     ].join(' ')

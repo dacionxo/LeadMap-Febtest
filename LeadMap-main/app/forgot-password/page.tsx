@@ -1,8 +1,15 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, Suspense, useId } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { MapPin, Mail, ArrowLeft } from 'lucide-react'
+import { z } from 'zod'
+
+// Email validation schema using Zod (per .cursorrules)
+const emailSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+})
 
 function ForgotPasswordContent() {
   const [email, setEmail] = useState('')
@@ -10,13 +17,30 @@ function ForgotPasswordContent() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isHoveringSubmit, setIsHoveringSubmit] = useState(false)
+  const [emailValidationError, setEmailValidationError] = useState('')
   const router = useRouter()
+  const emailErrorId = useId()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setEmailValidationError('')
     setSuccess(false)
+
+    // Client-side validation using Zod
+    try {
+      emailSchema.parse({ email })
+    } catch (validationError: unknown) {
+      if (validationError instanceof z.ZodError) {
+        const emailError = validationError.issues.find((err: z.ZodIssue) => err.path[0] === 'email')
+        if (emailError) {
+          setEmailValidationError(emailError.message)
+          setLoading(false)
+          return
+        }
+      }
+    }
 
     try {
       const response = await fetch('/api/auth/forgot-password', {
@@ -32,13 +56,49 @@ function ForgotPasswordContent() {
       if (response.ok) {
         setSuccess(true)
         setError('')
+        setEmailValidationError('')
       } else {
         setError(data.error || 'An error occurred. Please try again.')
       }
-    } catch (error: any) {
+    } catch (error) {
+      // Proper TypeScript error handling (per .cursorrules)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Password reset error:', errorMessage)
+      
+      // TODO: Implement proper error logging using Sentry or similar service for production
+      // Example: Sentry.captureException(error)
+      
       setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value
+    setEmail(newEmail)
+    setError('')
+    setEmailValidationError('')
+    
+    // Real-time validation feedback
+    if (newEmail && !emailSchema.safeParse({ email: newEmail }).success) {
+      try {
+        emailSchema.parse({ email: newEmail })
+      } catch (validationError: unknown) {
+        if (validationError instanceof z.ZodError) {
+          const emailError = validationError.issues.find((err: z.ZodIssue) => err.path[0] === 'email')
+          if (emailError) {
+            setEmailValidationError(emailError.message)
+          }
+        }
+      }
+    }
+  }
+
+  const handleLogoKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      router.push('/')
     }
   }
 
@@ -54,39 +114,48 @@ function ForgotPasswordContent() {
           }
         }
       `}</style>
-      <div className="h-screen overflow-hidden bg-white dark:bg-gray-900">
+      <div className="h-screen overflow-hidden bg-white">
         {/* Animated Background Elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/5 dark:bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
 
         {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white">
           <div className="mx-4 sm:mx-6 lg:mx-8">
             <div className="flex justify-between items-center h-16 max-w-[1872px] mx-auto">
-              <div className="flex items-center space-x-3 group cursor-pointer mt-6 -ml-[10px]" onClick={() => router.push('/')}>
-                <img 
-                  src="/nextdeal-logo.png" 
-                  alt="NextDeal" 
-                  className="h-12 w-auto"
+              <button
+                type="button"
+                className="flex items-center space-x-3 group cursor-pointer mt-6 -ml-[10px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg transition-all bg-transparent border-none p-0"
+                onClick={() => router.push('/')}
+                onKeyDown={handleLogoKeyDown}
+                aria-label="Navigate to home page"
+              >
+                <Image
+                  src="/nextdeal-logo.png"
+                  alt="NextDeal"
+                  width={32}
+                  height={32}
+                  className="h-8 w-auto"
+                  priority
                   onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const fallback = target.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    const fallback = target.nextElementSibling as HTMLElement
+                    if (fallback) fallback.style.display = 'flex'
                   }}
                 />
                 <div className="flex items-center space-x-2" style={{ display: 'none' }} id="logo-fallback">
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 blur-xl group-hover:bg-primary/30 transition-all"></div>
-                    <MapPin className="h-7 w-7 text-primary dark:text-primary-400 relative z-10" />
+                    <MapPin className="h-7 w-7 text-primary relative z-10" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  <span className="text-xl font-bold text-gray-900">
                     NextDeal
                   </span>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </nav>
@@ -103,7 +172,7 @@ function ForgotPasswordContent() {
                       {/* Back to Login Link */}
                       <button
                         onClick={() => router.push('/login')}
-                        className="flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-primary mb-6 transition-colors"
+                        className="flex items-center text-sm text-gray-600 hover:text-primary mb-6 transition-colors"
                       >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back to Log In
@@ -111,10 +180,10 @@ function ForgotPasswordContent() {
 
                       {/* Header */}
                       <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
                           Reset Your Password
                         </h1>
-                        <p className="text-gray-600 dark:text-gray-400">
+                        <p className="text-gray-600">
                           Please enter your email address below to which we can send you instructions.
                         </p>
                       </div>
@@ -122,28 +191,32 @@ function ForgotPasswordContent() {
                       {/* Success Message */}
                       {success ? (
                         <div className="space-y-6">
-                          <div className="p-6 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg">
+                          <div 
+                            className="p-6 bg-green-50 border-2 border-green-300 rounded-lg"
+                            role="alert"
+                            aria-live="polite"
+                          >
                             <div className="flex items-start space-x-3">
-                              <Mail className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                              <Mail className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
                               <div className="flex-1">
-                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
                                   Check Your Email
                                 </h2>
-                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                                  If an account exists with <strong className="text-gray-900 dark:text-white">{email}</strong>, you will receive a password reset link shortly.
+                                <p className="text-sm text-gray-700 mb-3">
+                                  If an account exists with <strong className="text-gray-900">{email}</strong>, you will receive a password reset link shortly.
                                 </p>
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded border border-green-200 dark:border-green-800 mb-4">
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                    <strong className="text-gray-900 dark:text-white">Next steps:</strong>
+                                <div className="bg-white p-4 rounded border border-green-200 mb-4">
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    <strong className="text-gray-900">Next steps:</strong>
                                   </p>
-                                  <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                  <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
                                     <li>Check your inbox (and spam folder) for an email from us</li>
                                     <li>Click the reset link in the email</li>
                                     <li>Create a new password</li>
                                     <li>Log in with your new password</li>
                                   </ol>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-500">
                                   <strong>Note:</strong> The reset link expires in 15 minutes. If you don't see the email, check your spam folder.
                                 </p>
                               </div>
@@ -168,28 +241,41 @@ function ForgotPasswordContent() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                           {/* Email Field */}
                           <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                               Email
                             </label>
                             <input
                               id="email"
                               name="email"
                               type="email"
+                              pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
                               placeholder="Type your email"
                               value={email}
-                              onChange={(e) => {
-                                setEmail(e.target.value)
-                                setError('')
-                              }}
+                              onChange={handleEmailChange}
                               autoComplete="email"
-                              className="w-full px-4 py-3 text-sm bg-white border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                              aria-invalid={emailValidationError ? 'true' : 'false'}
+                              aria-describedby={emailValidationError ? emailErrorId : undefined}
+                              className={`w-full px-4 py-3 text-sm bg-white border rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
+                                emailValidationError 
+                                  ? 'border-error focus:ring-error' 
+                                  : 'border-gray-300'
+                              }`}
                               required
                             />
+                            {emailValidationError && (
+                              <p id={emailErrorId} className="mt-1 text-xs text-error">
+                                {emailValidationError}
+                              </p>
+                            )}
                           </div>
 
                           {error && (
-                            <div className="p-3 bg-error/10 dark:bg-error/20 border border-error/30 dark:border-error/40 rounded-lg">
-                              <p className="text-error dark:text-error-400 text-xs">{error}</p>
+                            <div 
+                              className="p-3 bg-error/10 border border-error/30 rounded-lg"
+                              role="alert"
+                              aria-live="assertive"
+                            >
+                              <p className="text-error text-xs">{error}</p>
                             </div>
                           )}
 
@@ -199,16 +285,11 @@ function ForgotPasswordContent() {
                             disabled={loading}
                             onMouseEnter={() => setIsHoveringSubmit(true)}
                             onMouseLeave={() => setIsHoveringSubmit(false)}
-                            className="w-full py-3 text-sm bg-primary text-white font-semibold rounded-lg relative overflow-hidden group transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{
-                              transform: isHoveringSubmit && !loading ? 'scale(1.02)' : 'scale(1)',
-                              paddingLeft: isHoveringSubmit && !loading ? '32px' : '24px',
-                              paddingRight: isHoveringSubmit && !loading ? '40px' : '24px',
-                              boxShadow: isHoveringSubmit && !loading 
-                                ? '0 10px 25px -5px rgba(59, 130, 246, 0.4), 0 0 20px rgba(147, 51, 234, 0.3)' 
-                                : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                              transition: 'transform 0.3s ease, box-shadow 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease'
-                            }}
+                            className={`w-full text-sm bg-primary text-white font-semibold rounded-lg relative overflow-hidden group transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                              isHoveringSubmit && !loading
+                                ? 'scale-[1.02] pl-8 pr-10 shadow-[0_10px_25px_-5px_rgba(59,130,246,0.4),0_0_20px_rgba(147,51,234,0.3)]'
+                                : 'py-3 px-6 shadow-md'
+                            }`}
                           >
                             <span className="relative z-10 flex items-center justify-center">
                               {loading ? (
@@ -223,14 +304,11 @@ function ForgotPasswordContent() {
                                 <>
                                   Send Instructions
                                   <svg 
-                                    className="transition-all duration-300 overflow-hidden" 
-                                    style={{
-                                      width: isHoveringSubmit ? '16px' : '0px',
-                                      marginLeft: isHoveringSubmit ? '8px' : '0px',
-                                      opacity: isHoveringSubmit ? 1 : 0,
-                                      transform: isHoveringSubmit ? 'translateX(0)' : 'translateX(-4px)',
-                                      transition: 'width 0.3s ease, margin-left 0.3s ease, opacity 0.3s ease, transform 0.3s ease'
-                                    }}
+                                    className={`transition-all duration-300 overflow-hidden ${
+                                      isHoveringSubmit
+                                        ? 'w-4 ml-2 opacity-100 translate-x-0'
+                                        : 'w-0 ml-0 opacity-0 -translate-x-1'
+                                    }`}
                                     fill="none" 
                                     stroke="currentColor" 
                                     viewBox="0 0 24 24"
@@ -243,10 +321,7 @@ function ForgotPasswordContent() {
                             {/* Animated gradient background */}
                             {isHoveringSubmit && !loading && (
                               <span 
-                                className="absolute inset-0 bg-gradient-to-r from-primary via-purple-500 to-pink-500 opacity-90"
-                                style={{
-                                  animation: 'shimmer 2s infinite',
-                                }}
+                                className="absolute inset-0 bg-gradient-to-r from-primary via-purple-500 to-pink-500 opacity-90 animate-[shimmer_2s_infinite]"
                               ></span>
                             )}
                           </button>
@@ -254,12 +329,12 @@ function ForgotPasswordContent() {
                       )}
 
                       {/* Footer */}
-                      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                      <div className="mt-8 pt-6 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 text-center">
                           Have an account?{' '}
                           <a
                             href="/login"
-                            className="text-primary hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+                            className="text-primary hover:text-primary-600 font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
                           >
                             Log in here
                           </a>
@@ -267,7 +342,7 @@ function ForgotPasswordContent() {
                       </div>
 
                       {/* Copyright */}
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6">
+                      <p className="text-xs text-gray-600 text-center mt-6">
                         2025 All Rights Reserved. Privacy and Terms.
                       </p>
                     </div>
@@ -275,18 +350,21 @@ function ForgotPasswordContent() {
                 </div>
 
                 {/* Right Column - Image/Illustration */}
-                <div className="relative w-full md:w-[35%] rounded-xl overflow-hidden flex items-center justify-center bg-white dark:bg-gray-900 h-auto">
+                <div className="relative w-full md:w-[35%] rounded-xl overflow-hidden flex items-center justify-center bg-white h-auto">
                   <div className="p-8 w-full h-full flex items-center justify-center">
-                    <img
+                    <Image
                       src="/nextdeal-logo.png"
                       alt="NextDeal"
+                      width={400}
+                      height={400}
                       className="max-w-full max-h-full w-auto h-auto rounded-xl object-contain"
+                      priority={false}
                       onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                        const parent = target.parentElement
                         if (parent) {
-                          parent.innerHTML = '<div class="absolute inset-0 h-full w-full rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 flex items-center justify-center"><div class="text-white text-4xl font-bold">NextDeal</div></div>';
+                          parent.innerHTML = '<div class="absolute inset-0 h-full w-full rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 flex items-center justify-center"><div class="text-white text-4xl font-bold">NextDeal</div></div>'
                         }
                       }}
                     />

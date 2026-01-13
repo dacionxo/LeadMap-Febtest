@@ -22,6 +22,9 @@ const customJestConfig = {
     'app/api/emails/**/*.{js,ts}',
     'app/api/campaigns/**/*.{js,ts}',
     'app/api/cron/**/*.{js,ts}',
+    'lib/symphony/**/*.{js,ts}',
+    '!lib/symphony/**/*.test.{js,ts}',
+    '!lib/symphony/**/*.spec.{js,ts}',
   ],
   testTimeout: 30000, // 30 seconds for integration tests
 }

@@ -61,7 +61,7 @@ function VerifyEmailContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#E8E3D6' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f7faff' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Verifying your email...</p>
@@ -90,7 +90,7 @@ function VerifyEmailContent() {
           }
         }
       `}</style>
-      <div className="min-h-screen" style={{ backgroundColor: '#E8E3D6' }}>
+      <div className="min-h-screen" style={{ backgroundColor: '#f7faff' }}>
         {/* Animated Background Elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
@@ -98,14 +98,14 @@ function VerifyEmailContent() {
         </div>
 
         {/* Navigation - Fixed/Sticky */}
-        <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#E8E3D6' }}>
+        <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#f7faff' }}>
           <div className="mx-4 sm:mx-6 lg:mx-8">
             <div className="flex justify-between items-center h-16 max-w-[1872px] mx-auto">
               <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => router.push('/')}>
                 <img 
-                  src="/nextdeal-logo.png" 
-                  alt="NextDeal" 
-                  className="h-12 w-auto"
+                  src="/nextdeal-logo.png"
+                  alt="NextDeal"
+                  className="h-8 w-auto"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
@@ -264,7 +264,7 @@ function VerifyEmailContent() {
 export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#E8E3D6' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f7faff' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading...</p>

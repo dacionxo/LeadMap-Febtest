@@ -789,10 +789,12 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
             onClick={fetchEvents}
             disabled={loading}
             className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50"
-            title="Refresh"
+            title="Refresh events"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
+
+          <SyncCalendarButton />
         </div>
       </div>
 
@@ -1001,26 +1003,105 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
             opacity: 0.6;
           }
 
+          /* Compact View - More condensed, less spacing */
           .fc-view-harness-compact .fc-daygrid-day {
-            min-height: 60px;
+            min-height: 50px;
+            padding: 2px;
           }
 
           .fc-view-harness-compact .fc-daygrid-day-number {
-            padding: 4px;
-            font-size: 12px;
+            padding: 2px 4px;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.2;
           }
 
           .fc-view-harness-compact .fc-event {
-            font-size: 11px;
-            padding: 1px 4px;
+            font-size: 10px;
+            padding: 1px 3px;
+            margin: 1px 0;
+            line-height: 1.3;
+            border-radius: 2px;
+            min-height: 14px;
+          }
+
+          .fc-view-harness-compact .fc-event-title {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
 
           .fc-view-harness-compact .fc-timegrid-slot {
-            height: 36px;
+            height: 30px;
+            font-size: 11px;
           }
 
+          .fc-view-harness-compact .fc-timegrid-col {
+            min-width: 60px;
+          }
+
+          .fc-view-harness-compact .fc-col-header-cell {
+            padding: 4px 2px;
+            font-size: 11px;
+            font-weight: 600;
+          }
+
+          .fc-view-harness-compact .fc-daygrid-event {
+            margin: 1px 0;
+          }
+
+          /* Comfortable View - More spacious, better readability */
           .fc-view-harness-comfortable .fc-daygrid-day {
-            min-height: 100px;
+            min-height: 120px;
+            padding: 6px;
+          }
+
+          .fc-view-harness-comfortable .fc-daygrid-day-number {
+            padding: 6px 8px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+          }
+
+          .fc-view-harness-comfortable .fc-event {
+            font-size: 13px;
+            padding: 4px 8px;
+            margin: 3px 0;
+            line-height: 1.5;
+            border-radius: 4px;
+            min-height: 24px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          }
+
+          .fc-view-harness-comfortable .fc-event-title {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .fc-view-harness-comfortable .fc-timegrid-slot {
+            height: 50px;
+            font-size: 13px;
+          }
+
+          .fc-view-harness-comfortable .fc-timegrid-col {
+            min-width: 100px;
+          }
+
+          .fc-view-harness-comfortable .fc-col-header-cell {
+            padding: 10px 6px;
+            font-size: 13px;
+            font-weight: 600;
+          }
+
+          .fc-view-harness-comfortable .fc-daygrid-event {
+            margin: 4px 0;
+          }
+
+          .fc-view-harness-comfortable .fc-daygrid-day-frame {
+            padding: 4px;
           }
 
           [data-color-code="false"] .fc-event {
@@ -1117,5 +1198,71 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
 
       <CalendarHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
+  )
+}
+
+// Sync Calendar Button Component
+function SyncCalendarButton() {
+  const [syncing, setSyncing] = useState(false)
+  const [lastSync, setLastSync] = useState<Date | null>(null)
+
+  const handleSync = async () => {
+    setSyncing(true)
+    try {
+      const response = await fetch('/api/calendar/sync/manual', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sync calendars')
+      }
+
+      setLastSync(new Date())
+      
+      // Show success notification
+      const message = data.message || 'Calendar sync completed successfully'
+      const details = data.synced || data.updated 
+        ? ` (${data.synced || 0} synced, ${data.updated || 0} updated)`
+        : ''
+      
+      // Trigger calendar refresh
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('calendarSyncComplete', { 
+          detail: { success: true, message: message + details } 
+        }))
+      }
+
+      // Refresh events after a short delay
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } catch (error: any) {
+      console.error('Error syncing calendars:', error)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('calendarSyncComplete', { 
+          detail: { success: false, message: error.message || 'Failed to sync calendars' } 
+        }))
+      }
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleSync}
+      disabled={syncing}
+      className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      title={lastSync ? `Sync calendars (Last synced: ${lastSync.toLocaleTimeString()})` : 'Sync calendars with external providers'}
+    >
+      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+      {syncing && <span className="text-xs">Syncing...</span>}
+    </button>
   )
 }

@@ -72,55 +72,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // For unverified users, use inviteUserByEmail to resend verification email
-    // This method sends a confirmation email even for existing users
+    // Use SendGrid to send verification email instead of Supabase
     try {
-      const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-        email,
+      // Call our custom send-verification-email endpoint
+      const sendEmailResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/send-verification-email`,
         {
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: existingUser.id,
+            email: existingUser.email,
+            name: existingUser.user_metadata?.name || existingUser.user_metadata?.full_name || null,
+          }),
         }
       )
 
-      if (inviteError) {
-        // If inviteUserByEmail fails (e.g., user already invited), try alternative method
-        // Use updateUserById to reset confirmation status, which might trigger email
-        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-          existingUser.id,
-          {
-            email_confirm: false
-          }
+      const sendEmailData = await sendEmailResponse.json()
+
+      if (!sendEmailResponse.ok) {
+        return NextResponse.json(
+          { error: sendEmailData.error || 'Unable to resend verification email. Please try again later.' },
+          { status: sendEmailResponse.status || 500 }
         )
-
-        if (updateError) {
-          console.error('Error updating user:', updateError)
-        }
-
-        // Generate a magic link as fallback
-        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'magiclink',
-          email: email,
-          options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'}/api/auth/callback`
-          }
-        })
-
-        if (linkError) {
-          console.error('Error generating magic link:', linkError)
-          return NextResponse.json(
-            { error: 'Unable to resend verification email. Please try again later.' },
-            { status: 500 }
-          )
-        }
-
-        // Link generated - Supabase should send email if configured
-        return NextResponse.json({
-          message: 'Verification email has been resent. Please check your inbox.',
-          success: true
-        })
       }
 
-      // inviteUserByEmail succeeded
       return NextResponse.json({
         message: 'Verification email has been resent. Please check your inbox.',
         success: true

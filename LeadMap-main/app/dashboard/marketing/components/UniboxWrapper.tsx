@@ -20,9 +20,11 @@ interface Thread {
     display_name: string | null
     provider: string
   }
-  status: string
+  status: string // 'open' | 'needs_reply' | 'waiting' | 'closed' | 'ignored'
   unread: boolean
   unreadCount: number
+  starred: boolean
+  archived: boolean
   lastMessage: {
     direction: 'inbound' | 'outbound'
     snippet: string
@@ -77,7 +79,7 @@ export default function UniboxWrapper() {
   // Fetch threads
   useEffect(() => {
     fetchThreads()
-  }, [selectedMailboxId, statusFilter, searchQuery, page])
+  }, [selectedMailboxId, statusFilter, folderFilter, searchQuery, page])
 
   const fetchMailboxes = async () => {
     try {
@@ -98,6 +100,16 @@ export default function UniboxWrapper() {
       if (selectedMailboxId) params.append('mailboxId', selectedMailboxId)
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (searchQuery) params.append('search', searchQuery)
+      
+      // Add folder filter support
+      if (folderFilter === 'archived') {
+        params.append('folder', 'archived')
+      } else if (folderFilter === 'starred') {
+        params.append('folder', 'starred')
+      } else if (folderFilter === 'inbox') {
+        params.append('folder', 'inbox')
+      }
+      
       params.append('page', page.toString())
       params.append('pageSize', '50')
 

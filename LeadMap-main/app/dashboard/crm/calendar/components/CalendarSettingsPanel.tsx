@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Settings, Calendar as CalendarIcon, Bell, Eye, Palette, Clock, Globe, Layout } from 'lucide-react'
+import { Settings, Calendar as CalendarIcon, Bell, Eye, Palette, Clock, Globe, Layout, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 
 interface CalendarSettingsPanelProps {
@@ -297,20 +297,184 @@ function GeneralSettings({ settings, onUpdate, saving }: any) {
 
 // Calendar List Settings Component
 function CalendarListSettings({ calendars, onUpdate }: any) {
+  const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<{
+    success: boolean
+    message: string
+    details?: any
+  } | null>(null)
+
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncStatus(null)
+    
+    try {
+      const response = await fetch('/api/calendar/sync/manual', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sync calendars')
+      }
+
+      // Show success with details
+      setSyncStatus({
+        success: true,
+        message: data.message || 'Calendar sync completed successfully',
+        details: {
+          synced: data.synced || 0,
+          updated: data.updated || 0,
+          skipped: data.skipped || 0,
+          total: data.total || 0,
+          results: data.results || [],
+        },
+      })
+
+      // Refresh calendar list to update last_sync_at
+      await onUpdate()
+
+      // Clear status after 5 seconds
+      setTimeout(() => {
+        setSyncStatus(null)
+      }, 5000)
+    } catch (error: any) {
+      console.error('Error syncing calendars:', error)
+      setSyncStatus({
+        success: false,
+        message: error.message || 'Failed to sync calendars. Please try again.',
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleDisconnect = async (connectionId: string, calendarName: string) => {
+    if (!confirm(`Are you sure you want to disconnect "${calendarName}"?\n\nThis will stop syncing events from this calendar.`)) {
+      return
+    }
+
+    setDisconnecting(connectionId)
+    try {
+      const response = await fetch(`/api/calendar/connections/${connectionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to disconnect calendar')
+      }
+
+      // Refresh calendar list
+      await onUpdate()
+      
+      // Show success message
+      alert('Calendar disconnected successfully')
+    } catch (error: any) {
+      console.error('Error disconnecting calendar:', error)
+      alert(error.message || 'Failed to disconnect calendar')
+    } finally {
+      setDisconnecting(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          Settings for my calendars
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Configure individual calendar settings
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Settings for my calendars
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Configure individual calendar settings and manage connections
+            </p>
+          </div>
+          <button
+            onClick={handleSync}
+            disabled={syncing || calendars.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            title="Sync all calendars now"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Now'}
+          </button>
+        </div>
+
+        {/* Sync Status Message */}
+        {syncStatus && (
+          <div
+            className={`mb-4 p-4 rounded-lg border ${
+              syncStatus.success
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {syncStatus.success ? (
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <p
+                  className={`text-sm font-medium ${
+                    syncStatus.success
+                      ? 'text-green-800 dark:text-green-300'
+                      : 'text-red-800 dark:text-red-300'
+                  }`}
+                >
+                  {syncStatus.message}
+                </p>
+                {syncStatus.success && syncStatus.details && (
+                  <div className="mt-2 text-xs text-green-700 dark:text-green-400 space-y-1">
+                    <div className="flex gap-4 flex-wrap">
+                      <span>✅ Synced: <strong>{syncStatus.details.synced}</strong></span>
+                      <span>🔄 Updated: <strong>{syncStatus.details.updated}</strong></span>
+                      <span>⏭️ Skipped: <strong>{syncStatus.details.skipped}</strong></span>
+                      <span>📊 Total: <strong>{syncStatus.details.total}</strong></span>
+                    </div>
+                    {syncStatus.details.results && syncStatus.details.results.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                        <p className="font-medium mb-1">Calendar Results:</p>
+                        {syncStatus.details.results.map((result: any, idx: number) => (
+                          <div key={idx} className="text-xs">
+                            {result.status === 'success' ? (
+                              <span>
+                                ✓ {result.calendarName || result.email}: {result.synced} synced, {result.updated} updated
+                              </span>
+                            ) : (
+                              <span className="text-red-600 dark:text-red-400">
+                                ✗ {result.calendarName || result.email}: {result.error || 'Failed'}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
         {calendars.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No calendars connected yet</p>
+          <div className="p-6 text-center border border-gray-200 dark:border-gray-700 rounded-lg">
+            <p className="text-sm text-gray-500 dark:text-gray-400">No calendars connected yet</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Connect a calendar to start syncing events
+            </p>
+          </div>
         ) : (
           calendars.map((item: any) => (
             <div
@@ -318,23 +482,35 @@ function CalendarListSettings({ calendars, onUpdate }: any) {
               className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div
-                    className="w-4 h-4 rounded-full"
+                    className="w-4 h-4 rounded-full flex-shrink-0"
                     style={{ backgroundColor: item.settings?.color || item.connection.color || '#3b82f6' }}
                   />
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 dark:text-white truncate">
                       {item.settings?.name || item.connection.calendar_name || item.connection.email}
                     </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                       {item.connection.provider} • {item.connection.email}
                     </p>
+                    {item.connection.last_sync_at && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        Last synced: {new Date(item.connection.last_sync_at).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                  Settings
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleDisconnect(item.connection.id, item.settings?.name || item.connection.calendar_name || item.connection.email)}
+                    disabled={disconnecting === item.connection.id}
+                    className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Disconnect calendar"
+                  >
+                    {disconnecting === item.connection.id ? 'Disconnecting...' : 'Disconnect'}
+                  </button>
+                </div>
               </div>
             </div>
           ))

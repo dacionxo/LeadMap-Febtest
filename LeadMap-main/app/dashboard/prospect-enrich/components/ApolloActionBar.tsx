@@ -3,11 +3,11 @@
 import {
   Search,
   Filter,
-  Download,
   Plus,
   Sparkles,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  Download
 } from 'lucide-react'
 
 interface ApolloActionBarProps {
@@ -24,7 +24,7 @@ interface ApolloActionBarProps {
   sortBy: string
   onSortChange: (sort: string) => void
   onImport: () => void
-  onExport: () => void
+  onExport?: () => void
   onSaveSearch: () => void
   onCreateWorkflow: () => void
   onRunAIPrompt: () => void
@@ -328,10 +328,10 @@ export default function ApolloActionBar({
             alignItems: 'center',
             justifyContent: 'center',
             padding: '8px',
-            border: '2px solid rgba(249, 171, 0, 0.3)',
+            border: '2px solid rgba(252, 148, 17, 0.3)',
             borderRadius: '10px',
-            background: 'linear-gradient(135deg, rgba(249, 171, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%)',
-            color: '#F9AB00',
+            background: 'linear-gradient(135deg, rgba(252, 148, 17, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%)',
+            color: '#fc9411',
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             width: '40px',
@@ -340,16 +340,16 @@ export default function ApolloActionBar({
           }}
           title="Run AI Prompt"
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #F9AB00 0%, #FFC107 100%)'
+            e.currentTarget.style.background = 'linear-gradient(135deg, #fc9411 0%, #FFC107 100%)'
             e.currentTarget.style.color = '#ffffff'
-            e.currentTarget.style.borderColor = '#F9AB00'
+            e.currentTarget.style.borderColor = '#fc9411'
             e.currentTarget.style.transform = 'translateY(-2px) scale(1.1) rotate(5deg)'
-            e.currentTarget.style.boxShadow = '0 8px 16px rgba(249, 171, 0, 0.4)'
+            e.currentTarget.style.boxShadow = '0 8px 16px rgba(252, 148, 17, 0.4)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(249, 171, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%)'
-            e.currentTarget.style.color = '#F9AB00'
-            e.currentTarget.style.borderColor = 'rgba(249, 171, 0, 0.3)'
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(252, 148, 17, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%)'
+            e.currentTarget.style.color = '#fc9411'
+            e.currentTarget.style.borderColor = 'rgba(252, 148, 17, 0.3)'
             e.currentTarget.style.transform = 'translateY(0) scale(1) rotate(0deg)'
             e.currentTarget.style.boxShadow = '0 2px 8px rgba(249, 171, 0, 0.2)'
           }}
@@ -393,41 +393,44 @@ export default function ApolloActionBar({
           <Plus style={{ width: '20px', height: '20px' }} />
         </button>
 
-        <button
-          onClick={onExport}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px',
-            border: '2px solid rgba(59, 130, 246, 0.3)',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)',
-            color: '#3b82f6',
-            cursor: 'pointer',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            width: '40px',
-            height: '40px',
-            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.2)'
-          }}
-          title="Export"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-            e.currentTarget.style.color = '#ffffff'
-            e.currentTarget.style.borderColor = '#3b82f6'
-            e.currentTarget.style.transform = 'translateY(-2px) scale(1.1)'
-            e.currentTarget.style.boxShadow = '0 8px 16px rgba(59, 130, 246, 0.4)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)'
-            e.currentTarget.style.color = '#3b82f6'
-            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)'
-            e.currentTarget.style.transform = 'translateY(0) scale(1)'
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.2)'
-          }}
-        >
-          <Download style={{ width: '20px', height: '20px' }} />
-        </button>
+        {onExport && (
+          <button
+            onClick={onExport}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '8px',
+              border: '2px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)',
+              color: '#3b82f6',
+              cursor: 'pointer',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              width: '40px',
+              height: '40px',
+              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.2)'
+            }}
+            title="Export"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+              e.currentTarget.style.color = '#ffffff'
+              e.currentTarget.style.borderColor = '#3b82f6'
+              e.currentTarget.style.transform = 'translateY(-2px) scale(1.1)'
+              e.currentTarget.style.boxShadow = '0 8px 16px rgba(59, 130, 246, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)'
+              e.currentTarget.style.color = '#3b82f6'
+              e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)'
+              e.currentTarget.style.transform = 'translateY(0) scale(1)'
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.2)'
+            }}
+          >
+            <Download style={{ width: '20px', height: '20px' }} />
+          </button>
+        )}
+
       </div>
     </div>
   )

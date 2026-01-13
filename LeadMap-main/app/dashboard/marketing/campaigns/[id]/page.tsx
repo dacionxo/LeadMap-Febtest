@@ -394,6 +394,13 @@ function CampaignBuilderContent() {
                 Save
               </button>
               <button
+                onClick={() => router.push(`/dashboard/marketing/analytics?view=campaign-performance&campaignId=${campaignId}`)}
+                className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                View Performance
+              </button>
+              <button
                 onClick={handleReviewAndSend}
                 className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
               >

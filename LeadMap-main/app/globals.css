@@ -2,70 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Apollo.io Design System Variables */
+/* LeadMap Design System Variables - Trust & Clarity Theme */
 @layer base {
   :root {
-    /* Apollo.io Color System - Base Colors */
-    --color-base-sand-0: #fff;
-    --color-base-sand-10: #f8f7f7;
-    --color-base-sand-20: #ebebea;
-    --color-base-sand-30: #d8d6d4;
-    --color-base-sand-40: #b0adab;
-    --color-base-sand-50: #77736e;
-    --color-base-sand-60: #585450;
-    --color-base-sand-70: #3f3c39;
-    --color-base-sand-80: #2b2926;
-    --color-base-sand-90: #000;
+    /* Primary Colors */
+    --color-primary: #1179fc;
+    --color-primary-hover: #0366e3;
+    --color-primary-soft: #cde3fe;
     
-    --color-base-ocean-10: #ecf3fe;
-    --color-base-ocean-20: #dae5fc;
-    --color-base-ocean-30: #a8c3eb;
-    --color-base-ocean-40: #6697c9;
-    --color-base-ocean-50: #447aaf;
-    --color-base-ocean-60: #2b5782;
-    --color-base-ocean-70: #1d3d58;
-    --color-base-ocean-80: #122536;
+    /* Background & Surface */
+    --color-background: #f7faff;
+    --color-surface: #ffffff;
     
-    --color-base-pebble-10: #f6f2ef;
-    --color-base-pebble-20: #e8e2d8;
-    --color-base-pebble-30: #cdbea8;
-    --color-base-pebble-40: #a7906c;
-    --color-base-pebble-50: #867250;
-    --color-base-pebble-60: #66583d;
-    --color-base-pebble-70: #493b2c;
-    --color-base-pebble-80: #2f271c;
+    /* Text Colors */
+    --color-text-primary: #0b1220;
+    --color-text-muted: #516075;
     
-    --color-base-iris-10: #f5f1fd;
-    --color-base-iris-20: #e4dcf9;
-    --color-base-iris-30: #c3b8f4;
-    --color-base-iris-40: #9d84dc;
-    --color-base-iris-50: #7f63c5;
-    --color-base-iris-60: #603fab;
-    --color-base-iris-70: #3f2b73;
-    --color-base-iris-80: #291c4a;
+    /* Border & Divider */
+    --color-border: #d6e3ff;
+    --color-divider: #d6e3ff;
     
-    --color-base-alpha-border: rgba(46, 43, 41, 0.10196);
-    --color-base-alpha-overlay: rgba(46, 43, 41, 0.2);
-    --color-base-alpha-shadow-2: rgba(46, 43, 41, 0.05098);
-    --color-base-alpha-shadow-5: rgba(46, 43, 41, 0.0902);
+    /* Accent */
+    --color-accent: #fc9411;
     
-    /* Apollo.io UI Colors */
-    --color-ui-background-primary: var(--color-base-sand-0);
-    --color-ui-background-secondary: var(--color-base-sand-10);
-    --color-ui-background-tertiary: var(--color-base-sand-20);
-    --color-ui-text-base-primary: var(--color-base-sand-80);
-    --color-ui-text-base-secondary: var(--color-base-sand-70);
-    --color-ui-text-base-tertiary: var(--color-base-sand-60);
-    --color-ui-text-base-quaternary: var(--color-base-sand-50);
-    --color-ui-text-base-disabled: var(--color-base-sand-40);
-    --color-ui-text-base-links: var(--color-base-ocean-60);
+    /* Status Colors */
+    --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
     
-    --color-ui-border-default: var(--color-base-sand-20);
-    --color-ui-border-light: var(--color-base-sand-10);
-    --color-ui-border-dark: var(--color-base-sand-30);
+    /* Legacy UI Color Mappings for Compatibility */
+    --color-ui-background-primary: var(--color-surface);
+    --color-ui-background-secondary: var(--color-background);
+    --color-ui-background-tertiary: #eef4ff;
+    --color-ui-text-base-primary: var(--color-text-primary);
+    --color-ui-text-base-secondary: var(--color-text-muted);
+    --color-ui-text-base-tertiary: #7a8fa3;
+    --color-ui-text-base-quaternary: #9ca8b5;
+    --color-ui-text-base-disabled: #cbd5e1;
+    --color-ui-text-base-links: var(--color-primary);
     
-    --color-ui-brand-apollo: var(--color-base-pebble-50);
-    --color-ui-brand-action: var(--color-base-ocean-50);
+    --color-ui-border-default: var(--color-border);
+    --color-ui-border-light: #eef4ff;
+    --color-ui-border-dark: #b8d0ff;
+    
+    --color-ui-brand-apollo: var(--color-accent);
+    --color-ui-brand-action: var(--color-primary);
+    
+    /* Alpha Colors */
+    --color-base-alpha-border: rgba(214, 227, 255, 0.5);
+    --color-base-alpha-overlay: rgba(11, 18, 32, 0.1);
+    --color-base-alpha-shadow-2: rgba(11, 18, 32, 0.05);
+    --color-base-alpha-shadow-5: rgba(11, 18, 32, 0.09);
     
     /* Apollo.io Interactive Colors */
     --color-interactives-chip-background-default: var(--color-base-sand-0);
@@ -192,11 +179,9 @@
   }
   
   body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    background: var(--color-background);
     font-family: var(--font-inter), sans-serif;
-    @apply text-gray-900 dark:text-gray-100;
+    @apply text-text-primary;
     min-height: 100vh;
   }
   
@@ -223,9 +208,7 @@
   
   @media (prefers-color-scheme: dark) {
     body {
-      background: linear-gradient(135deg, #0f0c29 0%, #302b63 25%, #24243e 50%, #1a1a2e 75%, #16213e 100%);
-      background-size: 400% 400%;
-      animation: gradientShift 15s ease infinite;
+      background: var(--color-background);
     }
   }
 }
@@ -234,13 +217,13 @@
   .btn-primary {
     font-family: var(--font-lato), sans-serif;
     font-weight: 400;
-    @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+    @apply bg-primary hover:bg-primary-hover text-white py-2.5 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
   
   .btn-secondary {
     font-family: var(--font-lato), sans-serif;
     font-weight: 400;
-    @apply bg-white/10 dark:bg-gray-800/50 backdrop-blur-md hover:bg-white/20 dark:hover:bg-gray-700/50 text-gray-900 dark:text-gray-100 py-2.5 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 dark:border-gray-700/50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+    @apply bg-background-surface hover:bg-primary-soft text-text-primary py-2.5 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-border shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
   
   .input-field {
@@ -273,7 +256,7 @@
   }
   
   .loading-spinner {
-    @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary;
+    @apply animate-spin rounded-full border-2 border-border border-t-primary;
   }
 
   /* Fade-in animation for scroll-triggered elements */
@@ -290,16 +273,16 @@
 
   /* Glow effect */
   .glow {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 20px rgba(17, 121, 252, 0.3), 0 0 40px rgba(17, 121, 252, 0.2);
   }
 
-  .glow-purple {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.3);
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(252, 148, 17, 0.3), 0 0 40px rgba(252, 148, 17, 0.2);
   }
 
   /* Animated gradient text */
   .gradient-text {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background: linear-gradient(135deg, #1179fc 0%, #0366e3 50%, #fc9411 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -335,12 +318,12 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(168, 85, 247, 0.5));
+    background: linear-gradient(135deg, rgba(17, 121, 252, 0.5), rgba(3, 102, 227, 0.5));
     border-radius: 10px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.7), rgba(168, 85, 247, 0.7));
+    background: linear-gradient(135deg, rgba(17, 121, 252, 0.7), rgba(3, 102, 227, 0.7));
   }
 
   /* Pulse glow */
@@ -440,10 +423,10 @@
 
   @keyframes pulseGlow {
     0%, 100% {
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+      box-shadow: 0 0 20px rgba(17, 121, 252, 0.5);
     }
     50% {
-      box-shadow: 0 0 40px rgba(99, 102, 241, 0.8), 0 0 60px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 40px rgba(17, 121, 252, 0.8), 0 0 60px rgba(17, 121, 252, 0.4);
     }
   }
 

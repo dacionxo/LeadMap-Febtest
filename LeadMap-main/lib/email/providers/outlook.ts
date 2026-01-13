@@ -4,49 +4,64 @@
  */
 
 import { Mailbox, EmailPayload, SendResult } from '../types'
-import { decryptMailboxTokens } from '../encryption'
-
-/**
- * Decrypt mailbox tokens for use
- */
-function getDecryptedMailbox(mailbox: Mailbox): Mailbox {
-  const decrypted = decryptMailboxTokens({
-    access_token: mailbox.access_token,
-    refresh_token: mailbox.refresh_token,
-    smtp_password: mailbox.smtp_password
-  })
-
-  return {
-    ...mailbox,
-    access_token: decrypted.access_token || mailbox.access_token,
-    refresh_token: decrypted.refresh_token || mailbox.refresh_token,
-    smtp_password: decrypted.smtp_password || mailbox.smtp_password
-  }
-}
+import { createTokenPersistence } from '../token-persistence'
+import { refreshToken as refreshOAuthToken } from '../token-refresh'
+import { 
+  TokenRefreshError, 
+  AuthenticationError,
+  getUserFriendlyErrorMessage,
+  classifyError
+} from '../errors'
 
 export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promise<SendResult> {
   try {
-    // Decrypt tokens if encrypted
-    const decryptedMailbox = getDecryptedMailbox(mailbox)
+    // Create token persistence instance
+    const tokenPersistence = createTokenPersistence(mailbox)
     
-    // Check if token needs refresh
-    let accessToken = decryptedMailbox.access_token
-    if (decryptedMailbox.token_expires_at && decryptedMailbox.refresh_token) {
-      const expiresAt = new Date(decryptedMailbox.token_expires_at)
-      const now = new Date()
-      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
-
-      if (expiresAt < fiveMinutesFromNow) {
-        // Token is expired or about to expire, refresh it
-        const refreshed = await refreshOutlookToken(decryptedMailbox)
-        if (!refreshed.success || !refreshed.accessToken) {
-          return {
-            success: false,
-            error: refreshed.error || 'Failed to refresh Outlook token'
-          }
-        }
-        accessToken = refreshed.accessToken
+    // Check if authenticated
+    if (!tokenPersistence.isAuthenticated()) {
+      return {
+        success: false,
+        error: 'Outlook mailbox is not authenticated. Please reconnect your Outlook account.'
       }
+    }
+    
+    // Get access token
+    let accessToken = tokenPersistence.getAccessToken()
+    
+    // Check if token is expired and refresh if needed
+    if (tokenPersistence.isTokenExpired(5)) {
+      const refreshToken = tokenPersistence.getRefreshToken()
+      if (!refreshToken) {
+        return {
+          success: false,
+          error: 'Outlook refresh token is missing. Please reconnect your Outlook account.'
+        }
+      }
+
+      // Token is expired or about to expire, refresh it using unified refresh function
+      const refreshed = await refreshOAuthToken(mailbox, {
+        persistToDatabase: false // Outlook provider doesn't have supabase in signature
+      })
+      if (!refreshed.success || !refreshed.accessToken) {
+        const refreshError = new TokenRefreshError(
+          refreshed.error || 'Failed to refresh Outlook token',
+          'outlook',
+          { error_code: refreshed.errorCode }
+        )
+
+        console.error('Outlook token refresh failed', {
+          mailbox_id: mailbox.id,
+          errorType: classifyError(refreshError),
+          error: refreshed.error
+        })
+
+        return {
+          success: false,
+          error: getUserFriendlyErrorMessage(refreshError)
+        }
+      }
+      accessToken = refreshed.accessToken
     }
 
     if (!accessToken) {
@@ -107,15 +122,41 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
       const errorCode = errorData.error?.code || ''
       const errorMessage = errorData.error?.message || `Microsoft Graph API error: ${response.status} ${response.statusText}`
       
-      // Check for specific error codes and provide detailed messages
+      // Enhanced error handling with error classification
       if (response.status === 401) {
+        const authError = new AuthenticationError(
+          `Outlook authentication failed: ${errorMessage}`,
+          'outlook',
+          {
+            status: response.status,
+            error_code: errorCode,
+            error_data: errorData
+          }
+        )
+
+        console.error('Outlook authentication failed', {
+          mailbox_id: mailbox.id,
+          errorType: classifyError(authError),
+          error_code: errorCode
+        })
+
         return {
           success: false,
-          error: 'Outlook authentication expired. Please reconnect your mailbox.'
+          error: getUserFriendlyErrorMessage(authError)
         }
       }
       
       if (response.status === 403) {
+        // Permission error - permanent
+        const errorObj = new Error(errorMessage) as Error & { statusCode?: number }
+        errorObj.statusCode = 403
+        const errorType = classifyError(errorObj)
+        console.error('Outlook permission denied', {
+          mailbox_id: mailbox.id,
+          errorType,
+          error_code: errorCode
+        })
+
         return {
           success: false,
           error: `Outlook API permission denied (${errorCode}): ${errorMessage}. Please check your mailbox permissions.`
@@ -123,6 +164,15 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
       }
       
       if (response.status === 429) {
+        // Rate limit - transient
+        const errorObj = new Error(errorMessage) as Error & { statusCode?: number }
+        errorObj.statusCode = 429
+        const errorType = classifyError(errorObj)
+        console.warn('Outlook rate limit exceeded', {
+          mailbox_id: mailbox.id,
+          errorType
+        })
+
         return {
           success: false,
           error: `Outlook API rate limit exceeded. Please try again later.`
@@ -130,11 +180,32 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
       }
       
       if (response.status >= 500) {
+        // Server error - transient
+        const errorObj = new Error(errorMessage) as Error & { statusCode?: number }
+        errorObj.statusCode = response.status
+        const errorType = classifyError(errorObj)
+        console.error('Outlook server error', {
+          mailbox_id: mailbox.id,
+          errorType,
+          error_code: errorCode
+        })
+
         return {
           success: false,
           error: `Outlook API server error (${errorCode}): ${errorMessage}. This is a temporary issue, please retry.`
         }
       }
+
+      // Other errors
+      const errorObj = new Error(errorMessage) as Error & { statusCode?: number }
+      errorObj.statusCode = response.status
+      const errorType = classifyError(errorObj)
+      console.error('Outlook API error', {
+        mailbox_id: mailbox.id,
+        status: response.status,
+        errorType,
+        error_code: errorCode
+      })
 
       return {
         success: false,
@@ -180,63 +251,11 @@ export async function outlookSend(mailbox: Mailbox, email: EmailPayload): Promis
   }
 }
 
-export async function refreshOutlookToken(mailbox: Mailbox): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  // Decrypt refresh token if encrypted
-  const decryptedMailbox = getDecryptedMailbox(mailbox)
-  
-  if (!decryptedMailbox.refresh_token) {
-    return {
-      success: false,
-      error: 'Refresh token is missing'
-    }
-  }
-
-  try {
-    // Use client_id and client_secret from environment
-    const clientId = process.env.MICROSOFT_CLIENT_ID
-    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET
-    const tenantId = process.env.MICROSOFT_TENANT_ID || 'common'
-
-    if (!clientId || !clientSecret) {
-      return {
-        success: false,
-        error: 'Microsoft OAuth credentials not configured'
-      }
-    }
-
-    const response = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: decryptedMailbox.refresh_token!, // Already validated above
-        grant_type: 'refresh_token',
-        scope: 'https://graph.microsoft.com/Mail.Send offline_access'
-      })
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        success: false,
-        error: errorData.error_description || 'Failed to refresh Outlook token'
-      }
-    }
-
-    const data = await response.json()
-    
-    return {
-      success: true,
-      accessToken: data.access_token
-    }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to refresh Outlook token'
-    }
-  }
-}
+/**
+ * Refresh Outlook token
+ * 
+ * @deprecated Use refreshToken() from '../token-refresh' instead
+ * This function is kept for backward compatibility and re-exports the unified refresh function
+ */
+export { refreshOutlookToken } from '../token-refresh'
 

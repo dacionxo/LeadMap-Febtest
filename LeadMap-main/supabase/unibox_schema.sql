@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS email_participants (
   email TEXT NOT NULL,
   name TEXT,
   
-  contact_id UUID,  -- Link to contacts table if matched
+  contact_id UUID REFERENCES contacts(id) ON DELETE SET NULL,  -- Link to contacts table if matched
   
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -213,47 +213,51 @@ ALTER TABLE email_labels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_thread_labels ENABLE ROW LEVEL SECURITY;
 
 -- Email Threads policies
+-- CRITICAL: Allow service_role to bypass RLS for cron jobs and webhooks
 DROP POLICY IF EXISTS "Users can view their own email threads" ON email_threads;
 CREATE POLICY "Users can view their own email threads"
   ON email_threads FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = user_id OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Users can insert their own email threads" ON email_threads;
 CREATE POLICY "Users can insert their own email threads"
   ON email_threads FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid() = user_id OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Users can update their own email threads" ON email_threads;
 CREATE POLICY "Users can update their own email threads"
   ON email_threads FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = user_id OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Users can delete their own email threads" ON email_threads;
 CREATE POLICY "Users can delete their own email threads"
   ON email_threads FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = user_id OR auth.role() = 'service_role');
 
 -- Email Messages policies
+-- CRITICAL: Allow service_role to bypass RLS for cron jobs and webhooks
 DROP POLICY IF EXISTS "Users can view their own email messages" ON email_messages;
 CREATE POLICY "Users can view their own email messages"
   ON email_messages FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = user_id OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Users can insert their own email messages" ON email_messages;
 CREATE POLICY "Users can insert their own email messages"
   ON email_messages FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid() = user_id OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Users can update their own email messages" ON email_messages;
 CREATE POLICY "Users can update their own email messages"
   ON email_messages FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = user_id OR auth.role() = 'service_role');
 
 -- Email Participants policies
+-- CRITICAL: Allow service_role to bypass RLS for cron jobs and webhooks
 DROP POLICY IF EXISTS "Users can view email participants for their messages" ON email_participants;
 CREATE POLICY "Users can view email participants for their messages"
   ON email_participants FOR SELECT
   USING (
+    auth.role() = 'service_role' OR
     EXISTS (
       SELECT 1 FROM email_messages
       WHERE email_messages.id = email_participants.message_id
@@ -265,6 +269,7 @@ DROP POLICY IF EXISTS "Users can insert email participants for their messages" O
 CREATE POLICY "Users can insert email participants for their messages"
   ON email_participants FOR INSERT
   WITH CHECK (
+    auth.role() = 'service_role' OR
     EXISTS (
       SELECT 1 FROM email_messages
       WHERE email_messages.id = email_participants.message_id
@@ -273,10 +278,12 @@ CREATE POLICY "Users can insert email participants for their messages"
   );
 
 -- Email Attachments policies
+-- CRITICAL: Allow service_role to bypass RLS for cron jobs and webhooks
 DROP POLICY IF EXISTS "Users can view attachments for their messages" ON email_attachments;
 CREATE POLICY "Users can view attachments for their messages"
   ON email_attachments FOR SELECT
   USING (
+    auth.role() = 'service_role' OR
     EXISTS (
       SELECT 1 FROM email_messages
       WHERE email_messages.id = email_attachments.message_id
@@ -288,6 +295,7 @@ DROP POLICY IF EXISTS "Users can insert attachments for their messages" ON email
 CREATE POLICY "Users can insert attachments for their messages"
   ON email_attachments FOR INSERT
   WITH CHECK (
+    auth.role() = 'service_role' OR
     EXISTS (
       SELECT 1 FROM email_messages
       WHERE email_messages.id = email_attachments.message_id
@@ -357,6 +365,18 @@ CREATE POLICY "Users can manage thread labels for their threads"
       AND email_threads.user_id = auth.uid()
     )
   );
+
+-- Function to update updated_at timestamp (if not already exists)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Triggers for updated_at
 DROP TRIGGER IF EXISTS update_email_threads_updated_at ON email_threads;

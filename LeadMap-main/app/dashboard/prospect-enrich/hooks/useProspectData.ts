@@ -33,6 +33,7 @@ export interface Listing {
   agent_phone_2?: string | null
   listing_agent_phone_2?: string | null
   listing_agent_phone_5?: string | null
+  /** Property description text from Supabase 'text' field */
   text?: string | null
   last_sale_price?: number | null
   last_sale_date?: string | null
@@ -54,6 +55,9 @@ export interface Listing {
   pipeline_status?: string | null
   lat?: number | null
   lng?: number | null
+  // Compatibility fields for probate_leads (which uses latitude/longitude)
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export type FilterType = 'all' | 'expired' | 'probate' | 'fsbo' | 'frbo' | 'imports' | 'trash' | 'foreclosure' | 'high_value' | 'price_drop' | 'new_listings'

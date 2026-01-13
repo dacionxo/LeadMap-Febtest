@@ -21,7 +21,8 @@ import {
   BarChart3,
   CheckCircle2,
   Megaphone,
-  MessageCircle
+  MessageCircle,
+  Share2
 } from 'lucide-react'
 import { useApp } from '@/app/providers'
 import { useSidebar } from './SidebarContext'
@@ -49,11 +50,11 @@ const navSections: NavSection[] = [
     title: 'PROSPECT & ENRICH',
     items: [
       { label: 'All Prospects', icon: Users, href: '/dashboard/prospect-enrich' },
-      { label: 'Expired Listings', icon: Clock, href: '/dashboard/prospect-enrich?filter=expired' },
-      { label: 'Probate', icon: FileText, href: '/dashboard/prospect-enrich?filter=probate' },
       { label: 'For Sale', icon: Building2, href: '/dashboard/prospect-enrich?filter=fsbo' },
       { label: 'For Rent', icon: Building2, href: '/dashboard/prospect-enrich?filter=frbo' },
       { label: 'Foreclosures', icon: Building2, href: '/dashboard/prospect-enrich?filter=foreclosure' },
+      { label: 'Probate', icon: FileText, href: '/dashboard/prospect-enrich?filter=probate' },
+      { label: 'Expired Listings', icon: Clock, href: '/dashboard/prospect-enrich?filter=expired' },
       { label: 'Imports', icon: FileText, href: '/dashboard/prospect-enrich?filter=imports' },
       { label: 'Trash', icon: FileText, href: '/dashboard/prospect-enrich?filter=trash' }
     ]
@@ -69,7 +70,8 @@ const navSections: NavSection[] = [
   {
     title: 'MARKETING',
     items: [
-      { label: 'Social Planner', icon: Megaphone, href: '/dashboard/marketing' },
+      { label: 'Social Planner', icon: Megaphone, href: '/dashboard/social-planner' },
+      { label: 'Postiz', icon: Share2, href: '/dashboard/postiz' },
       { label: 'Email Campaigns', icon: Mail, href: '/dashboard/email/campaigns' },
       { label: 'Email Analytics', icon: BarChart3, href: '/dashboard/marketing/analytics' },
       { label: 'Conversations', icon: MessageCircle, href: '/dashboard/conversations' }
@@ -80,7 +82,8 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Workflows', icon: Zap, href: '/dashboard/tools' },
       { label: 'Tasks', icon: CheckCircle2, href: '/dashboard/tasks' },
-      { label: 'Analytics', icon: BarChart3, href: '/dashboard/crm/analytics' }
+      { label: 'Analytics', icon: BarChart3, href: '/dashboard/crm/analytics' },
+      { label: 'Symphony', icon: BarChart3, href: '/dashboard/symphony' }
     ]
   }
 ]
@@ -140,7 +143,7 @@ export default function Sidebar() {
               <img 
                 src="/nextdeal-logo.png" 
                 alt="NextDeal" 
-                className="h-8 w-auto"
+                className="h-6 w-auto"
                 onError={(e) => {
                   // Fallback if image doesn't exist - show icon and text
                   const target = e.target as HTMLImageElement;
@@ -150,10 +153,10 @@ export default function Sidebar() {
                 }}
               />
               <div className="flex items-center space-x-2" style={{ display: 'none' }}>
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
-                  <MapPin className="w-4 h-4 text-white" />
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
+                  <MapPin className="w-3 h-3 text-white" />
                 </div>
-                <span className="text-lg font-bold text-black dark:text-white">NextDeal</span>
+                <span className="text-base font-bold text-black dark:text-white">NextDeal</span>
               </div>
             </div>
             <button
@@ -169,7 +172,7 @@ export default function Sidebar() {
             <img 
               src="/nextdeal-logo.png" 
               alt="NextDeal" 
-              className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform duration-200"
+              className="h-6 w-auto cursor-pointer hover:scale-105 transition-transform duration-200"
               onClick={() => router.push('/dashboard')}
               onError={(e) => {
                 // Fallback if image doesn't exist - show icon

@@ -48,25 +48,33 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   // Option 2: Using SendGrid
   if (process.env.SENDGRID_API_KEY) {
     try {
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: to }] }],
-          from: { email: from || process.env.SENDGRID_FROM_EMAIL || 'noreply@nextdeal.com' },
-          subject,
-          content: [{ type: 'text/html', value: html }],
-        }),
-      })
+      // Dynamic import - @sendgrid/mail is optional
+      let sgMail: any = null
+      try {
+        sgMail = await import('@sendgrid/mail').catch(() => null)
+      } catch (e) {
+        console.log('SendGrid module not available')
+        sgMail = null
+      }
 
-      if (response.ok) {
+      if (sgMail && sgMail.default) {
+        sgMail.default.setApiKey(process.env.SENDGRID_API_KEY)
+
+        const msg = {
+          to,
+          from: from || process.env.SENDGRID_FROM_EMAIL || 'noreply@nextdeal.com',
+          subject,
+          html,
+        }
+
+        await sgMail.default.send(msg)
         return true
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('SendGrid error:', error)
+      if (error.response) {
+        console.error('SendGrid response error:', error.response.body)
+      }
       // Fall through to alternative email service
     }
   }

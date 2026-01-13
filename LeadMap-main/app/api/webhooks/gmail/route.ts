@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGmailMessage, parseGmailMessage, refreshGmailToken } from '@/lib/email/providers/gmail-watch'
+import { syncGmailMessages } from '@/lib/email/unibox/gmail-connector'
+import { decryptMailboxTokens } from '@/lib/email/encryption'
+import { refreshToken } from '@/lib/email/token-refresh'
+import type { Mailbox as ProviderMailbox } from '@/lib/email/types'
 
 /**
  * Gmail Webhook Handler
@@ -82,6 +85,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // #region agent log
+  const logEntry1 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:87',message:'Webhook POST entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
+  fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry1}).catch(()=>{});
+  console.log('[DEBUG]', logEntry1);
+  // #endregion
+  
   // Declare Supabase variables at the top to avoid duplicate declarations
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -89,6 +98,10 @@ export async function POST(request: NextRequest) {
   try {
     // Parse body first
     const body = await request.json().catch(() => ({}))
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/gmail/route.ts:95',message:'Webhook body parsed',data:{hasMessage:!!body.message,hasData:!!body.message?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     
     // Verify Pub/Sub message (if verification token is configured)
     const isValid = await verifyPubSubMessage(body, request.headers)
@@ -110,16 +123,28 @@ export async function POST(request: NextRequest) {
     // Gmail sends emailAddress and historyId in the notification
     const { emailAddress, historyId } = messageData
 
+    console.log(`[Gmail Webhook] Received notification for email: ${emailAddress}, historyId: ${historyId}`)
+
     if (!emailAddress) {
-      return NextResponse.json({ error: 'Missing emailAddress in notification' }, { status: 400 })
+      console.error('[Gmail Webhook] Missing emailAddress in notification:', messageData)
+      // Return 200 OK to acknowledge (prevent Pub/Sub retries)
+      return NextResponse.json({ 
+        error: 'Missing emailAddress in notification',
+        acknowledged: true 
+      }, { status: 200 })
     }
 
     // Validate Supabase configuration
-
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[Gmail Webhook] Missing Supabase configuration')
+      // Return 200 OK to acknowledge (prevent Pub/Sub retries)
+      // This is a configuration issue, not a transient error
       return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
+        { 
+          error: 'Missing Supabase configuration',
+          acknowledged: true 
+        },
+        { status: 200 } // Always 200 OK to acknowledge
       )
     }
 
@@ -131,177 +156,305 @@ export async function POST(request: NextRequest) {
     })
 
     // Find mailbox by email address
+    // Use maybeSingle() instead of single() to avoid PGRST116 error when mailbox doesn't exist
     const { data: mailbox, error: mailboxError } = await supabase
       .from('mailboxes')
       .select('*')
       .eq('email', emailAddress)
       .eq('provider', 'gmail')
-      .single()
+      .maybeSingle()
 
-    if (mailboxError || !mailbox) {
-      console.error('Mailbox not found for email:', emailAddress, mailboxError)
-      return NextResponse.json({ error: 'Mailbox not found' }, { status: 404 })
+    // Handle mailbox not found gracefully
+    // Return 200 OK to prevent webhook retries (mailbox may have been disconnected)
+    if (mailboxError) {
+      console.error('[Gmail Webhook] Database error while looking up mailbox:', emailAddress, mailboxError)
+      // Return 200 OK to acknowledge receipt and prevent retries
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Mailbox lookup failed',
+        acknowledged: true 
+      }, { status: 200 })
+    }
+
+    if (!mailbox) {
+      // Mailbox not found - likely disconnected or never connected
+      // Log for monitoring but return 200 OK to prevent webhook retries
+      console.warn(`[Gmail Webhook] Mailbox not found for email: ${emailAddress}. This may indicate the mailbox was disconnected or the Gmail Watch subscription needs to be cleaned up.`)
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Mailbox not found',
+        acknowledged: true,
+        message: 'Mailbox may have been disconnected. Consider cleaning up Gmail Watch subscriptions.'
+      }, { status: 200 })
+    }
+
+    // Decrypt tokens FIRST before checking expiration or using them
+    // CRITICAL: Tokens are stored encrypted, must decrypt before use
+    // If decryption fails, it will throw an error (prevents encrypted tokens being used as Bearer tokens)
+    let decrypted: { access_token?: string | null; refresh_token?: string | null; smtp_password?: string | null }
+    try {
+      decrypted = decryptMailboxTokens({
+        access_token: mailbox.access_token || '',
+        refresh_token: mailbox.refresh_token || '',
+        smtp_password: null
+      })
+    } catch (decryptError: any) {
+      console.error('[Gmail Webhook] CRITICAL: Failed to decrypt tokens for mailbox:', {
+        mailboxId: mailbox.id,
+        mailboxEmail: mailbox.email,
+        error: decryptError.message,
+        hasEncryptionKey: !!(process.env.EMAIL_ENCRYPTION_KEY || process.env.ENCRYPTION_KEY),
+        possibleCause: 'EMAIL_ENCRYPTION_KEY environment variable may be missing or incorrect'
+      })
+      
+      // Update mailbox with error for visibility
+      const { error: updateError } = await supabase
+        .from('mailboxes')
+        .update({
+          last_error: `Token decryption failed: ${decryptError.message}. Check EMAIL_ENCRYPTION_KEY environment variable.`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', mailbox.id)
+      
+      if (updateError) {
+        console.error('[Gmail Webhook] Failed to update mailbox error:', updateError)
+      }
+      
+      // Return 200 OK to acknowledge webhook (don't retry - this is a configuration issue)
+      return NextResponse.json({ 
+        error: 'Token decryption failed',
+        acknowledged: true,
+        details: decryptError.message
+      }, { status: 200 })
+    }
+
+    if (!decrypted.access_token && !decrypted.refresh_token) {
+      console.error('[Gmail Webhook] No access token or refresh token available for mailbox:', mailbox.id)
+      return NextResponse.json({ 
+        error: 'Access token and refresh token are missing',
+        acknowledged: true 
+      }, { status: 200 })
     }
 
     // Get valid access token (refresh if needed)
-    let accessToken = mailbox.access_token
-    if (mailbox.token_expires_at && mailbox.refresh_token) {
-      const expiresAt = new Date(mailbox.token_expires_at)
-      const now = new Date()
-      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000)
+    // Use unified refreshToken function which handles decryption automatically
+    let accessToken = decrypted.access_token || null
+    
+    // Check if token needs refresh (expiring within 5 minutes or missing)
+    const needsRefresh = !accessToken || 
+      (mailbox.token_expires_at && 
+       new Date(mailbox.token_expires_at) < new Date(Date.now() + 5 * 60 * 1000))
 
-      if (expiresAt < fiveMinutesFromNow) {
-        // Refresh token
-        const refreshResult = await refreshGmailToken(mailbox.refresh_token)
+    if (needsRefresh && decrypted.refresh_token) {
+      console.log(`[Gmail Webhook] Refreshing access token for mailbox ${mailbox.id} (${mailbox.email})`)
+      
+      // Convert to ProviderMailbox type for unified refresh function
+      const providerMailbox: ProviderMailbox = {
+        id: mailbox.id,
+        user_id: mailbox.user_id,
+        email: mailbox.email,
+        provider: 'gmail',
+        active: mailbox.active || false,
+        access_token: mailbox.access_token || undefined,
+        refresh_token: mailbox.refresh_token || undefined,
+        token_expires_at: mailbox.token_expires_at || undefined,
+        daily_limit: 0,
+        hourly_limit: 0,
+      }
+
+      // Use unified refreshToken function which:
+      // - Automatically decrypts tokens via token persistence
+      // - Handles provider-specific refresh logic
+      // - Persists to database automatically
+      // - Provides retry logic and error handling
+      const refreshResult = await refreshToken(providerMailbox, {
+        supabase,
+        persistToDatabase: true,
+        autoRetry: true,
+      })
+
         if (refreshResult.success && refreshResult.accessToken) {
           accessToken = refreshResult.accessToken
-          
-          // Update mailbox with new token
-          const expiresAt = new Date(Date.now() + (refreshResult.expiresIn || 3600) * 1000)
-          await supabase
-            .from('mailboxes')
-            .update({
-              access_token: accessToken,
-              token_expires_at: expiresAt.toISOString(),
-            })
-            .eq('id', mailbox.id)
-        } else {
-          console.error('Failed to refresh token:', refreshResult.error)
-          return NextResponse.json({ error: 'Failed to refresh access token' }, { status: 401 })
+        console.log(`[Gmail Webhook] Successfully refreshed access token for mailbox ${mailbox.id}`)
+      } else {
+        console.error(`[Gmail Webhook] Failed to refresh access token for mailbox ${mailbox.id}:`, {
+          error: refreshResult.error,
+          errorCode: refreshResult.errorCode,
+          mailboxId: mailbox.id,
+          mailboxEmail: mailbox.email
+        })
+        
+        // If refresh failed but we have an old token, try using it (might still be valid)
+        if (!accessToken) {
+          return NextResponse.json({ 
+            error: 'Failed to refresh access token and no valid token available',
+            acknowledged: true,
+            errorDetails: refreshResult.error
+          }, { status: 200 })
         }
+        // Continue with old token - it might still work
       }
     }
 
     if (!accessToken) {
-      return NextResponse.json({ error: 'Access token is missing' }, { status: 401 })
+      console.error(`[Gmail Webhook] No access token available for mailbox ${mailbox.id}`)
+      return NextResponse.json({ 
+        error: 'Access token is missing and refresh failed',
+        acknowledged: true 
+      }, { status: 200 })
     }
 
-    // Fetch recent messages from Gmail API
-    // Get messages since last sync (or last 10 messages if first sync)
-    const lastHistoryId = mailbox.watch_history_id || '0'
+    // CRITICAL FIX: Use stored watch_history_id as the base for History API query
+    // The notification historyId (e.g., 4825661) represents the state AFTER the change.
+    // startHistoryId is EXCLUSIVE - it returns changes AFTER that historyId.
+    // 
+    // Problem: If we use notification historyId (4825661), we query for changes AFTER 4825661,
+    // but the change already happened at 4825661, so we get 0 messages.
+    //
+    // Solution: Use stored watch_history_id (e.g., 4825644) to query for changes between
+    // 4825644 and 4825661 (or current state).
+    //
+    // Priority order:
+    // 1. Stored watch_history_id (last known good state - query from here)
+    // 2. Fallback to date-based query if no stored historyId
+    // 3. Notification historyId is only used to update the stored value after sync
+    const syncHistoryId = mailbox.watch_history_id || undefined
 
-    // Fetch messages from Gmail
-    const messagesResponse = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&labelIds=INBOX&q=is:unread`,
+    // Calculate since date as fallback (last sync or 24 hours ago for webhook)
+    // Using 24h window provides better catch-up if we missed notifications
+    const since = mailbox.last_synced_at 
+      ? new Date(mailbox.last_synced_at).toISOString()
+      : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
+
+    console.log(`[Gmail Webhook] Processing notification for ${mailbox.email} - notification historyId: ${historyId || 'none'}, stored historyId: ${mailbox.watch_history_id || 'none'}, querying from: ${syncHistoryId || 'none (date-based fallback)'}`)
+
+    // #region agent log
+    const logEntry12 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:315',message:'Calling syncGmailMessages',data:{mailboxId:mailbox.id,userId:mailbox.user_id,historyId:syncHistoryId,since,hasAccessToken:!!accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry12}).catch(()=>{});
+    console.log('[DEBUG]', logEntry12);
+    // #endregion
+
+    // Use the unified sync function (same as cron job)
+    // This ensures webhook and cron use the same logic and save to the same tables
+    // Use the accessToken we just validated/refreshed (not decrypted.access_token which might be stale)
+    const syncResult = await syncGmailMessages(
+      mailbox.id,
+      mailbox.user_id,
+      accessToken, // Use the validated/refreshed token
       {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        }
+        historyId: syncHistoryId,  // CRITICAL: Use History API for incremental sync
+        since,  // Fallback if historyId not available
+        maxMessages: 50 // Process up to 50 messages per webhook call
       }
     )
 
-    if (!messagesResponse.ok) {
-      console.error('Failed to fetch Gmail messages:', await messagesResponse.text())
-      return NextResponse.json({ error: 'Failed to fetch Gmail messages' }, { status: 500 })
-    }
+    // #region agent log
+    const logEntry13 = JSON.stringify({location:'app/api/webhooks/gmail/route.ts:347',message:'syncGmailMessages returned',data:{success:syncResult.success,messagesProcessed:syncResult.messagesProcessed,threadsCreated:syncResult.threadsCreated,threadsUpdated:syncResult.threadsUpdated,errors:syncResult.errors?.length||0,errorDetails:syncResult.errors,latestHistoryId:syncResult.latestHistoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+    fetch('http://127.0.0.1:7243/ingest/d7e73e2c-c25f-423b-9d15-575aae9bf5cc',{method:'POST',headers:{'Content-Type':'application/json'},body:logEntry13}).catch(()=>{});
+    console.log('[DEBUG]', logEntry13);
+    // #endregion
 
-    const messagesData = await messagesResponse.json()
-    const messageIds = (messagesData.messages || []).slice(0, 10).map((m: any) => m.id)
+    const processedEmails = syncResult.messagesProcessed
 
-    // Process each message
-    const processedEmails = []
-    for (const messageId of messageIds) {
-      try {
-        // Fetch full message details
-        const fetchResult = await fetchGmailMessage(messageId, accessToken)
-        
-        if (!fetchResult.success || !fetchResult.message) {
-          console.error(`Failed to fetch message ${messageId}:`, fetchResult.error)
-          continue
-        }
-
-        const message = fetchResult.message
-        
-        // Check if email already exists (avoid duplicates)
-        const { data: existing } = await supabase
-          .from('emails')
-          .select('id')
-          .eq('raw_message_id', message.id)
-          .eq('direction', 'received')
-          .single()
-
-        if (existing) {
-          // Already processed
-          continue
-        }
-
-        // Parse email data
-        const emailData = parseGmailMessage(message)
-
-        // Log received email via API
-        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
-        const logResponse = await fetch(`${baseUrl}/api/emails/received`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cookie': request.headers.get('cookie') || '', // Forward auth cookies
-          },
-          body: JSON.stringify({
-            mailbox_id: mailbox.id,
-            from_email: emailData.fromEmail,
-            from_name: emailData.fromName,
-            to_email: emailData.toEmail,
-            subject: emailData.subject,
-            html: emailData.html,
-            received_at: emailData.receivedAt,
-            raw_message_id: emailData.messageId,
-            thread_id: emailData.threadId,
-            in_reply_to: emailData.inReplyTo,
-            references: emailData.references,
-          })
-        })
-
-        if (logResponse.ok) {
-          processedEmails.push(messageId)
-          
-          // Mark email as read in Gmail (optional)
-          // await fetch(
-          //   `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
-          //   {
-          //     method: 'POST',
-          //     headers: {
-          //       'Authorization': `Bearer ${accessToken}`,
-          //       'Content-Type': 'application/json',
-          //     },
-          //     body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
-          //   }
-          // )
-        } else {
-          const errorData = await logResponse.json().catch(() => ({}))
-          console.error(`Failed to log email ${messageId}:`, errorData)
-        }
-      } catch (error: any) {
-        console.error(`Error processing message ${messageId}:`, error)
+    // Update mailbox with latest historyId and last sync time
+    // CRITICAL: Following Realtime-Gmail-Listener pattern
+    // - If History API succeeded: use latestHistoryId from API response
+    // - If History API failed (historyId too old): use historyId from notification to reset baseline
+    // - This ensures we don't get stuck with a stale historyId
+    let latestHistoryId: string | undefined = undefined
+    
+    if (syncResult.latestHistoryId) {
+      // History API succeeded - use the latest historyId from API response
+      latestHistoryId = syncResult.latestHistoryId
+    } else if (historyId && !syncResult.success) {
+      // History API failed - check if it was a "historyId too old" error
+      const hasStaleHistoryError = syncResult.errors?.some(e => 
+        e.error?.includes('too old') || 
+        e.error?.includes('History not found') ||
+        e.error?.includes('404')
+      )
+      
+      if (hasStaleHistoryError) {
+        // HistoryId from notification is too old - use it to reset baseline
+        // This prevents getting stuck with an old historyId
+        console.warn(`[Gmail Webhook] History ID ${syncHistoryId} is too old. Resetting baseline to notification historyId: ${historyId}`)
+        latestHistoryId = historyId
       }
+    } else if (historyId) {
+      // No historyId from sync but we have one from notification - use it
+      latestHistoryId = historyId
     }
-
-    // Update mailbox with new historyId and last sync time
-    if (historyId) {
-      await supabase
+    
+    // Always update last_synced_at and error status
+    // Update watch_history_id only if we have a valid historyId
+    const updateData: any = {
+      last_synced_at: new Date().toISOString(),
+      last_error: syncResult.success ? null : syncResult.errors?.[0]?.error || null // Clear error on success, set on failure
+    }
+    
+    if (latestHistoryId) {
+      updateData.watch_history_id = latestHistoryId
+      console.log(`[Gmail Webhook] Updating mailbox ${mailbox.id} with historyId: ${latestHistoryId}`)
+    }
+    
+    // Update mailbox - use direct Supabase update (faster than executeUpdateOperation for webhooks)
+    const { error: updateError } = await supabase
         .from('mailboxes')
-        .update({ 
-          watch_history_id: historyId,
-          last_synced_at: new Date().toISOString(),
-          last_error: null // Clear any previous errors on successful sync
-        })
+      .update(updateData)
         .eq('id', mailbox.id)
+    
+    if (updateError) {
+      console.error(`[Gmail Webhook] Failed to update mailbox ${mailbox.id}:`, updateError)
+      // Don't return error - webhook was processed, just DB update failed
     }
 
     // Log webhook processing for monitoring
-    // You could create a webhook_logs table to track webhook health
-    // For now, we'll just log to console
-    console.log(`Gmail webhook processed: ${processedEmails.length} emails for mailbox ${mailbox.id}`)
+    if (syncResult.success) {
+      console.log(`[Gmail Webhook] Successfully processed ${processedEmails} emails for mailbox ${mailbox.id} (${mailbox.email}), threads: ${syncResult.threadsCreated} created, ${syncResult.threadsUpdated} updated`)
+    } else {
+      console.error(`[Gmail Webhook] Failed to process emails for mailbox ${mailbox.id} (${mailbox.email}):`, {
+        errors: syncResult.errors,
+        messagesProcessed: processedEmails
+      })
+      
+      // Check for authentication errors specifically
+      const authError = syncResult.errors?.find(e => 
+        e.error?.includes('Authentication failed') || 
+        e.error?.includes('invalid authentication') ||
+        e.error?.includes('Invalid Credentials')
+      )
+      
+      if (authError) {
+        console.error(`[Gmail Webhook] Authentication error detected for mailbox ${mailbox.id}. Token may need refresh or re-authentication.`)
+      }
+    }
 
     return NextResponse.json({
-      success: true,
-      processed: processedEmails.length,
-      messageIds: processedEmails
+      success: syncResult.success,
+      processed: processedEmails,
+      threadsCreated: syncResult.threadsCreated,
+      threadsUpdated: syncResult.threadsUpdated,
+      errors: syncResult.errors?.length || 0,
+      errorDetails: syncResult.errors
     })
   } catch (error: any) {
-    console.error('Gmail webhook error:', error)
+    console.error('[Gmail Webhook] CRITICAL: Unhandled exception:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+    
+    // CRITICAL: Always return 200 OK to acknowledge Pub/Sub message
+    // Even on errors, we acknowledge to prevent retries and message backlog
+    // The error is logged for debugging, but we don't want Pub/Sub to retry
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
+      { 
+        error: 'Internal server error', 
+        details: error.message,
+        acknowledged: true,
+        timestamp: new Date().toISOString()
+      },
+      { status: 200 } // Always 200 OK to acknowledge message
     )
   }
 }

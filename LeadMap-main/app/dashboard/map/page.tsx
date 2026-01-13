@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useState, useEffect, useMemo } from 'react'
 import DashboardLayout from '../components/DashboardLayout'
 import MapView from '@/components/MapView'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
@@ -16,6 +16,8 @@ import {
   HelpCircle
 } from 'lucide-react'
 import MapsOnboardingModal from './components/MapsOnboardingModal'
+
+const LeadDetailModal = lazy(() => import('../prospect-enrich/components/LeadDetailModal'))
 
 interface Listing {
   listing_id: string
@@ -63,6 +65,7 @@ export default function MapPage() {
   const [location, setLocation] = useState('Pasadena')
   const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>(['Good For Wholesaling'])
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (profile?.id) {
@@ -249,6 +252,16 @@ export default function MapPage() {
     )
   }
 
+  // Handle Street View click from map
+  const handleStreetViewClick = (leadId: string) => {
+    setSelectedListingId(leadId)
+  }
+
+  // Close property detail modal
+  const handleCloseModal = () => {
+    setSelectedListingId(null)
+  }
+
   return (
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-2rem)] bg-white dark:bg-gray-900">
@@ -342,6 +355,7 @@ export default function MapPage() {
                 isActive={true}
                 listings={leads}
                 loading={loading}
+                onStreetViewListingClick={handleStreetViewClick}
               />
             </div>
 
@@ -460,6 +474,21 @@ export default function MapPage() {
             onBeginSetup={handleBeginSetup}
             onMaybeLater={handleMaybeLater}
           />
+        )}
+
+        {/* Property Detail Modal with Street View */}
+        {selectedListingId && (
+          <Suspense fallback={
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="text-white">Loading...</div>
+            </div>
+          }>
+            <LeadDetailModal
+              listingId={selectedListingId}
+              listingList={listings}
+              onClose={handleCloseModal}
+            />
+          </Suspense>
         )}
       </div>
     </DashboardLayout>

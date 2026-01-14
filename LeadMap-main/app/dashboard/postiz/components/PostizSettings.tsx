@@ -146,7 +146,7 @@ export default function PostizSettings() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         {activeTab === 'workspace' && (
           <WorkspaceSettingsTab
-            workspace={workspaceDetails}
+            workspace={workspaceDetails || undefined}
             workspaceId={workspaceId}
             features={features}
             onRefresh={refreshWorkspaceDetails}

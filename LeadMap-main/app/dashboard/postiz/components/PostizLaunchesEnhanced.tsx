@@ -75,7 +75,12 @@ export default function PostizLaunchesEnhanced() {
 
   // Fetch posts for the workspace
   const fetcher = useCallback(async (url: string) => {
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      credentials: 'include', // CRITICAL: Send cookies to maintain session
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
     if (!response.ok) {
       throw new Error('Failed to fetch posts')
     }

@@ -62,7 +62,12 @@ export default function PostizAnalyticsAdapter() {
 
   // Fetch integrations list
   const fetchIntegrations = useCallback(async () => {
-    const response = await fetch('/api/postiz/integrations/list')
+    const response = await fetch('/api/postiz/integrations/list', {
+      credentials: 'include', // CRITICAL: Send cookies to maintain session
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
     const data = await response.json()
     return (data.integrations || []).filter((f: Integration) =>
       allowedIntegrations.includes(f.identifier)
@@ -105,7 +110,12 @@ export default function PostizAnalyticsAdapter() {
   // Fetch analytics data for current integration
   const fetchAnalytics = useCallback(async () => {
     if (!currentIntegration) return null
-    const response = await fetch(`/api/postiz/analytics/${currentIntegration.id}?date=${dateRange}`)
+    const response = await fetch(`/api/postiz/analytics/${currentIntegration.id}?date=${dateRange}`, {
+      credentials: 'include', // CRITICAL: Send cookies to maintain session
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
     if (!response.ok) return []
     return await response.json()
   }, [currentIntegration, dateRange])

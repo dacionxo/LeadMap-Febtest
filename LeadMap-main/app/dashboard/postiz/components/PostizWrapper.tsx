@@ -11,6 +11,7 @@
 
 import { ReactNode, useEffect, useState } from 'react'
 import { useWorkspace } from '@/app/hooks/useWorkspace'
+import { useApp } from '@/app/providers'
 
 interface PostizWrapperProps {
   children: ReactNode
@@ -18,25 +19,62 @@ interface PostizWrapperProps {
 }
 
 export function PostizWrapper({ children, workspaceId }: PostizWrapperProps) {
-  const { currentWorkspace, loading: workspaceLoading } = useWorkspace()
+  const { currentWorkspace, loading: workspaceLoading, refreshWorkspaces } = useWorkspace()
+  const { user } = useApp()
   const [mounted, setMounted] = useState(false)
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false)
+  const [creationError, setCreationError] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted || workspaceLoading) {
+  // Auto-create workspace if user exists but no workspace found
+  useEffect(() => {
+    const attemptWorkspaceCreation = async () => {
+      // Only attempt if: user exists, not loading, no workspace, not already creating
+      if (!mounted || workspaceLoading || currentWorkspace || creatingWorkspace || !user) {
+        return
+      }
+
+      // The API endpoint /api/postiz/workspaces should auto-create, but let's trigger it explicitly
+      setCreatingWorkspace(true)
+      setCreationError(null)
+
+      try {
+        // Trigger workspace fetch which should auto-create if none exists
+        await refreshWorkspaces()
+        
+        // Wait a bit and check again
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        await refreshWorkspaces()
+      } catch (error: any) {
+        console.error('[PostizWrapper] Error during workspace creation attempt:', error)
+        setCreationError(error.message || 'Failed to create workspace')
+      } finally {
+        setCreatingWorkspace(false)
+      }
+    }
+
+    attemptWorkspaceCreation()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, workspaceLoading, currentWorkspace, user?.id])
+
+  if (!mounted || workspaceLoading || creatingWorkspace) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-2">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Loading Postiz...</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {creatingWorkspace ? 'Setting up your workspace...' : 'Loading Postiz...'}
+          </p>
         </div>
       </div>
     )
   }
 
   if (!currentWorkspace) {
+    // Show a more helpful message with retry option
     return (
       <div className="rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-6">
         <div className="flex items-start space-x-3">
@@ -55,11 +93,28 @@ export function PostizWrapper({ children, workspaceId }: PostizWrapperProps) {
           </svg>
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-              Workspace Required
+              Workspace Setup Required
             </h3>
             <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-              You need to be a member of a workspace to use Postiz. Please create or join a workspace first.
+              {creationError 
+                ? `Unable to create workspace: ${creationError}. Please refresh the page or contact support.`
+                : 'Setting up your workspace. Please refresh the page if this message persists.'}
             </p>
+            {creationError && (
+              <button
+                onClick={async () => {
+                  setCreatingWorkspace(true)
+                  setCreationError(null)
+                  await refreshWorkspaces()
+                  await new Promise(resolve => setTimeout(resolve, 1000))
+                  await refreshWorkspaces()
+                  setCreatingWorkspace(false)
+                }}
+                className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+              >
+                Retry Workspace Setup
+              </button>
+            )}
           </div>
         </div>
       </div>

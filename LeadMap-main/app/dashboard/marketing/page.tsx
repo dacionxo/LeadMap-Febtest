@@ -60,11 +60,10 @@ export default function MarketingPage() {
 }
 
 function MarketingPageContent() {
-  const [activeTab, setActiveTab] = useState<MarketingTab>('social-planner')
+  const [activeTab, setActiveTab] = useState<MarketingTab>('emails')
   const searchParams = useSearchParams()
 
   const tabs = useMemo(() => [
-    { id: 'social-planner' as MarketingTab, label: 'Social Planner' },
     { id: 'emails' as MarketingTab, label: 'Emails' },
     { id: 'snippets' as MarketingTab, label: 'Snippets' },
     { id: 'countdown-timers' as MarketingTab, label: 'Countdown Timers' },

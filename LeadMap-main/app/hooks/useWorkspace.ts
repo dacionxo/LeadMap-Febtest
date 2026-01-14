@@ -29,7 +29,13 @@ export interface WorkspaceContext {
 export function useWorkspace(): WorkspaceContext {
   const { supabase, user } = useApp()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null)
+  // Initialize from localStorage if available to avoid race conditions
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('postiz_current_workspace_id')
+    }
+    return null
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -93,7 +99,10 @@ export function useWorkspace(): WorkspaceContext {
         const savedWorkspace = workspacesList.find((w: Workspace) => w.workspace_id === savedWorkspaceId)
         
         if (savedWorkspace) {
+          // Use saved workspace if it still exists
           setCurrentWorkspaceId(savedWorkspace.workspace_id)
+          // Ensure localStorage is set (in case it was cleared)
+          localStorage.setItem('postiz_current_workspace_id', savedWorkspace.workspace_id)
         } else {
           // Use primary workspace (owner workspace or first)
           const ownerWorkspace = workspacesList.find((w: Workspace) => w.role === 'owner')

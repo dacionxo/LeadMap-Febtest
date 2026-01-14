@@ -10,7 +10,7 @@
 'use client'
 
 import { ReactNode, useEffect, useState } from 'react'
-import { useWorkspace } from '@/app/hooks/useWorkspace'
+import { usePostiz } from '../providers/PostizProvider'
 import { useApp } from '@/app/providers'
 
 interface PostizWrapperProps {
@@ -19,44 +19,58 @@ interface PostizWrapperProps {
 }
 
 export function PostizWrapper({ children, workspaceId }: PostizWrapperProps) {
-  const { currentWorkspace, loading: workspaceLoading, refreshWorkspaces } = useWorkspace()
+  // Use PostizProvider context instead of useWorkspace directly
+  // This ensures consistent workspace state across all Postiz components
+  const { workspace, loading: workspaceLoading, refreshWorkspace } = usePostiz()
   const { user } = useApp()
   const [mounted, setMounted] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
+  const [isRetrying, setIsRetrying] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   // Auto-refresh workspace if user exists but no workspace found
+  // Only retry if we're not already retrying and haven't exceeded retry limit
   useEffect(() => {
-    if (!mounted || workspaceLoading || currentWorkspace || !user) {
+    if (!mounted || workspaceLoading || workspace || !user || isRetrying) {
       return
     }
 
     // If no workspace and user exists, try refreshing (API auto-creates)
-    if (retryCount < 2) {
+    if (retryCount < 3) {
+      setIsRetrying(true)
       const timer = setTimeout(async () => {
-        await refreshWorkspaces()
-        setRetryCount(prev => prev + 1)
-      }, 1000)
+        try {
+          await refreshWorkspace()
+        } catch (error) {
+          console.error('[PostizWrapper] Error refreshing workspace:', error)
+        } finally {
+          setIsRetrying(false)
+          setRetryCount(prev => prev + 1)
+        }
+      }, retryCount === 0 ? 500 : 1000 * retryCount) // Progressive delay
       return () => clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, workspaceLoading, currentWorkspace, user?.id, retryCount])
+  }, [mounted, workspaceLoading, workspace, user?.id, retryCount, isRetrying])
 
-  if (!mounted || workspaceLoading) {
+  // Show loading state while mounting, loading workspace, or retrying
+  if (!mounted || workspaceLoading || isRetrying) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-2">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Loading Postiz...</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {isRetrying ? 'Setting up workspace...' : 'Loading Postiz...'}
+          </p>
         </div>
       </div>
     )
   }
 
-  if (!currentWorkspace) {
+  if (!workspace) {
     return (
       <div className="rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-6">
         <div className="flex items-start space-x-3">
@@ -83,11 +97,19 @@ export function PostizWrapper({ children, workspaceId }: PostizWrapperProps) {
             <button
               onClick={async () => {
                 setRetryCount(0)
-                await refreshWorkspaces()
+                setIsRetrying(true)
+                try {
+                  await refreshWorkspace()
+                } catch (error) {
+                  console.error('[PostizWrapper] Error retrying workspace setup:', error)
+                } finally {
+                  setIsRetrying(false)
+                }
               }}
-              className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+              disabled={isRetrying}
+              className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
             >
-              Retry Workspace Setup
+              {isRetrying ? 'Setting up...' : 'Retry Workspace Setup'}
             </button>
           </div>
         </div>

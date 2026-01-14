@@ -11,6 +11,7 @@
 
 import { ReactNode, useEffect, useState } from 'react'
 import { useWorkspace } from '@/app/hooks/useWorkspace'
+import { useApp } from '@/app/providers'
 
 interface PostizWrapperProps {
   children: ReactNode
@@ -18,12 +19,31 @@ interface PostizWrapperProps {
 }
 
 export function PostizWrapper({ children, workspaceId }: PostizWrapperProps) {
-  const { currentWorkspace, loading: workspaceLoading } = useWorkspace()
+  const { currentWorkspace, loading: workspaceLoading, refreshWorkspaces } = useWorkspace()
+  const { user } = useApp()
   const [mounted, setMounted] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Auto-refresh workspace if user exists but no workspace found
+  useEffect(() => {
+    if (!mounted || workspaceLoading || currentWorkspace || !user) {
+      return
+    }
+
+    // If no workspace and user exists, try refreshing (API auto-creates)
+    if (retryCount < 2) {
+      const timer = setTimeout(async () => {
+        await refreshWorkspaces()
+        setRetryCount(prev => prev + 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, workspaceLoading, currentWorkspace, user?.id, retryCount])
 
   if (!mounted || workspaceLoading) {
     return (
@@ -60,6 +80,15 @@ export function PostizWrapper({ children, workspaceId }: PostizWrapperProps) {
             <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
               You need to be a member of a workspace to use Postiz. Please refresh the page if a workspace should have been created automatically.
             </p>
+            <button
+              onClick={async () => {
+                setRetryCount(0)
+                await refreshWorkspaces()
+              }}
+              className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+            >
+              Retry Workspace Setup
+            </button>
           </div>
         </div>
       </div>

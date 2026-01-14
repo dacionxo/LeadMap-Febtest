@@ -409,7 +409,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7F4EF' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#B6B2A5' }}>
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
@@ -417,7 +417,7 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation - Fixed/Sticky */}
-      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#F7F4EF' }}>
+      <nav className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: '#B6B2A5' }}>
         <div className="mx-4 sm:mx-6 lg:mx-8">
           <div className="flex justify-between items-center h-16 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-6">

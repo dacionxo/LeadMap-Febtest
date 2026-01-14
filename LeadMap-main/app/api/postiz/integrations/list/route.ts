@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     let workspaceIds: string[]
     if (requestedWorkspaceId) {
       // Verify user has access to requested workspace
-      const hasAccess = workspaceMembers.some((wm) => wm.workspace_id === requestedWorkspaceId)
+      const hasAccess = workspaceMembers.some((wm: { workspace_id: string }) => wm.workspace_id === requestedWorkspaceId)
       if (!hasAccess) {
         return NextResponse.json({ 
           error: 'Access denied to workspace',

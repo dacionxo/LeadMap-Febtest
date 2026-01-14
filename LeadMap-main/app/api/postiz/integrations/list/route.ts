@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       }
       workspaceIds = [requestedWorkspaceId]
     } else {
-      workspaceIds = workspaceMembers.map((wm) => wm.workspace_id)
+      workspaceIds = workspaceMembers.map((wm: { workspace_id: string }) => wm.workspace_id)
     }
 
     // Get social accounts for specified workspace(s)

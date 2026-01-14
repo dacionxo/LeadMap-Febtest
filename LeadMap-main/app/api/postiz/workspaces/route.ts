@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { getRouteHandlerClient } from '@/lib/supabase-singleton'
 import {
   getUserWorkspaces,
   createWorkspace,
@@ -16,33 +15,12 @@ export const runtime = 'nodejs'
  * Get all workspaces for the current user
  */
 export async function GET(request: NextRequest) {
-  let response = NextResponse.next({ request })
-  
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-              // Also set on response to ensure cookies are sent back
-              response.cookies.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
-
-    // Try to get session first to refresh if needed
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Use the same client pattern as other working API routes (sync-leads, etc.)
+    // This uses createRouteHandlerClient from @supabase/auth-helpers-nextjs
+    // which correctly reads the sb-*-auth-token cookie format
+    const supabase = await getRouteHandlerClient()
     
-    // Then get user (getUser() will use the refreshed session)
     const {
       data: { user },
       error: authError,
@@ -52,15 +30,11 @@ export async function GET(request: NextRequest) {
       console.error('[GET /api/postiz/workspaces] Authentication failed:', {
         authError: authError?.message,
         authErrorCode: authError?.status,
-        sessionError: sessionError?.message,
-        hasSession: !!session,
         hasUser: !!user,
-        cookieCount: cookieStore.getAll().length,
-        cookieNames: cookieStore.getAll().map(c => c.name),
       })
       return NextResponse.json({ 
         error: 'Unauthorized',
-        details: authError?.message || sessionError?.message || 'No authenticated user found'
+        details: authError?.message || 'No authenticated user found'
       }, { status: 401 })
     }
 
@@ -125,13 +99,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Return response with updated cookies
-    const jsonResponse = NextResponse.json({ workspaces: workspaces || [] })
-    // Copy cookies from response to jsonResponse to ensure session cookies are sent back
-    response.cookies.getAll().forEach(cookie => {
-      jsonResponse.cookies.set(cookie.name, cookie.value)
-    })
-    return jsonResponse
+    return NextResponse.json({ workspaces: workspaces || [] })
   } catch (error: any) {
     console.error('Error fetching workspaces:', error)
     return NextResponse.json(
@@ -147,23 +115,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
+    // Use the same client pattern as other working API routes
+    const supabase = await getRouteHandlerClient()
 
     const {
       data: { user },

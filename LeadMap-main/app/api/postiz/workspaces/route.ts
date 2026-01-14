@@ -16,6 +16,8 @@ export const runtime = 'nodejs'
  * Get all workspaces for the current user
  */
 export async function GET(request: NextRequest) {
+  let response = NextResponse.next({ request })
+  
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -29,12 +31,18 @@ export async function GET(request: NextRequest) {
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options)
+              // Also set on response to ensure cookies are sent back
+              response.cookies.set(name, value, options)
             })
           },
         },
       }
     )
 
+    // Try to get session first to refresh if needed
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    // Then get user (getUser() will use the refreshed session)
     const {
       data: { user },
       error: authError,
@@ -44,13 +52,15 @@ export async function GET(request: NextRequest) {
       console.error('[GET /api/postiz/workspaces] Authentication failed:', {
         authError: authError?.message,
         authErrorCode: authError?.status,
+        sessionError: sessionError?.message,
+        hasSession: !!session,
         hasUser: !!user,
         cookieCount: cookieStore.getAll().length,
         cookieNames: cookieStore.getAll().map(c => c.name),
       })
       return NextResponse.json({ 
         error: 'Unauthorized',
-        details: authError?.message || 'No authenticated user found'
+        details: authError?.message || sessionError?.message || 'No authenticated user found'
       }, { status: 401 })
     }
 
@@ -115,7 +125,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ workspaces: workspaces || [] })
+    // Return response with updated cookies
+    const jsonResponse = NextResponse.json({ workspaces: workspaces || [] })
+    // Copy cookies from response to jsonResponse
+    response.cookies.getAll().forEach(cookie => {
+      jsonResponse.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    return jsonResponse
   } catch (error: any) {
     console.error('Error fetching workspaces:', error)
     return NextResponse.json(

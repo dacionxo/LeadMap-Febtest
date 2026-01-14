@@ -41,10 +41,17 @@ export function useWorkspace(): WorkspaceContext {
 
   const fetchWorkspaces = async (retryCount = 0): Promise<void> => {
     // Use the user from useApp context (same user ID as LeadMap)
+    // Don't reset state if user is null during auth initialization - wait for user to be available
     if (!user) {
-      setWorkspaces([])
-      setCurrentWorkspaceId(null)
-      setLoading(false)
+      // Only reset if we've already tried and user is still null (not during initial load)
+      if (retryCount > 0) {
+        setWorkspaces([])
+        setCurrentWorkspaceId(null)
+        setLoading(false)
+      } else {
+        // During initial load, keep loading state and wait for user
+        setLoading(true)
+      }
       return
     }
 
@@ -83,11 +90,24 @@ export function useWorkspace(): WorkspaceContext {
       }
 
       const data = await response.json()
-      const { workspaces: fetchedWorkspaces, error: apiError } = data
+      const { workspaces: fetchedWorkspaces, error: apiError, warning, authStatus } = data
+      
+      // Log auth status for debugging
+      if (authStatus) {
+        console.log('[useWorkspace] Auth status:', {
+          hasUser: authStatus.hasUser,
+          hasEmail: !!authStatus.userEmail,
+          workspaceCount: authStatus.workspaceCount,
+        })
+      }
       
       if (apiError) {
         console.error('[useWorkspace] API returned error:', apiError)
         setError(apiError)
+      }
+      
+      if (warning) {
+        console.warn('[useWorkspace] API warning:', warning)
       }
       
       const workspacesList = fetchedWorkspaces || []

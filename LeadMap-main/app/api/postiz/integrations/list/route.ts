@@ -8,13 +8,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { getRouteHandlerClient } from '@/lib/supabase-singleton'
 
 /**
  * GET /api/postiz/integrations/list
  * 
  * Returns list of social account integrations for the authenticated user's workspace.
+ * Filters by workspace_id query parameter if provided, otherwise returns all user workspaces.
  * Format matches Postiz's expected structure:
  * {
  *   integrations: [
@@ -36,23 +36,8 @@ import { cookies } from 'next/headers'
  */
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
+    // Use consistent auth client pattern
+    const supabase = await getRouteHandlerClient()
 
     // Authenticate user
     const {
@@ -63,6 +48,10 @@ export async function GET(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Get workspace_id from query params (if provided)
+    const { searchParams } = new URL(request.url)
+    const requestedWorkspaceId = searchParams.get('workspace_id')
 
     // Get user's workspaces
     const { data: workspaceMembers, error: membersError } = await supabase
@@ -76,9 +65,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ integrations: [] })
     }
 
-    const workspaceIds = workspaceMembers.map((wm) => wm.workspace_id)
+    // Filter by requested workspace if provided, otherwise use all user workspaces
+    let workspaceIds: string[]
+    if (requestedWorkspaceId) {
+      // Verify user has access to requested workspace
+      const hasAccess = workspaceMembers.some((wm) => wm.workspace_id === requestedWorkspaceId)
+      if (!hasAccess) {
+        return NextResponse.json({ 
+          error: 'Access denied to workspace',
+          integrations: [] 
+        }, { status: 403 })
+      }
+      workspaceIds = [requestedWorkspaceId]
+    } else {
+      workspaceIds = workspaceMembers.map((wm) => wm.workspace_id)
+    }
 
-    // Get social accounts for user's workspaces
+    // Get social accounts for specified workspace(s)
     const { data: socialAccounts, error: accountsError } = await supabase
       .from('social_accounts')
       .select(

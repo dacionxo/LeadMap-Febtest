@@ -5,9 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { getServiceRoleClient } from '@/lib/supabase-singleton'
+import { getRouteHandlerClient, getServiceRoleClient } from '@/lib/supabase-singleton'
 import { scheduler } from '@/lib/postiz/publishing/scheduler'
 import { publisher } from '@/lib/postiz/publishing/publisher'
 
@@ -37,23 +35,8 @@ export async function GET(request: NextRequest) {
   let user: any = null
 
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
+    // Use consistent auth client pattern
+    const supabase = await getRouteHandlerClient()
 
     // Authenticate user
     const {
@@ -176,23 +159,8 @@ export async function POST(request: NextRequest) {
   let user: any = null
 
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
+    // Use consistent auth client pattern
+    const supabase = await getRouteHandlerClient()
 
     // Authenticate user
     const {

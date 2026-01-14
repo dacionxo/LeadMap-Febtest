@@ -5,9 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { getServiceRoleClient } from '@/lib/supabase-singleton'
+import { getRouteHandlerClient, getServiceRoleClient } from '@/lib/supabase-singleton'
 import type { MediaType, ProcessingStatus } from '@/lib/postiz/data-model'
 
 export const runtime = 'nodejs'
@@ -20,23 +18,8 @@ export async function POST(request: NextRequest) {
   let user: any = null
 
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
+    // Use consistent auth client pattern
+    const supabase = await getRouteHandlerClient()
 
     // Authenticate user
     const {
@@ -89,17 +72,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload to Supabase Storage
+    // Use 'postiz-media' bucket to match schema default and metadata
     const serviceSupabase = getServiceRoleClient()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${validation.extension}`
     const filePath = `postiz/${workspaceId}/${fileName}`
+    const bucketName = 'postiz-media' // Match schema default
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Upload to storage
+    // Upload to storage - use postiz-media bucket
     const { data: uploadData, error: uploadError } = await serviceSupabase.storage
-      .from('media')
+      .from(bucketName)
       .upload(filePath, buffer, {
         contentType: file.type,
         upsert: false,
@@ -113,9 +98,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get public URL
+    // Get public URL - use same bucket
     const { data: { publicUrl } } = serviceSupabase.storage
-      .from('media')
+      .from(bucketName)
       .getPublicUrl(filePath)
 
     // Store metadata in database (matching actual schema from migration)
@@ -173,9 +158,9 @@ export async function POST(request: NextRequest) {
 
     if (dbError || !mediaAsset) {
       console.error('[POST /api/postiz/media/upload] Database error:', dbError)
-      // Clean up uploaded file
+      // Clean up uploaded file - use same bucket name
       await serviceSupabase.storage
-        .from('media')
+        .from(bucketName)
         .remove([filePath])
       return NextResponse.json(
         { error: 'Failed to save media metadata' },

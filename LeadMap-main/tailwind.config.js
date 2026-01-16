@@ -159,6 +159,11 @@ module.exports = {
         bgmuted: '#eff4fa',
         lightemphasis: '#dfe5ef',
         bordergray: '#e5e5e5',
+      },
+      boxShadow: {
+        'dark-md': 'rgba(145, 158, 171, 0.3) 0px 0px 2px 0px, rgba(145, 158, 171, 0.02) 0px 12px 24px -4px',
+        'md': 'rgb(145 158 171 / 30%) 0px 0px 2px 0px, rgb(145 158 171 / 12%) 0px 12px 24px -4px',
+        'btn-shadow': 'rgba(0, 0, 0, 0.05) 0 9px 17.5px',
       }
     },
   },

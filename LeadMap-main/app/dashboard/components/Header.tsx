@@ -11,6 +11,7 @@ import Search from './header/Search'
 import AppLinks from './header/AppLinks'
 import Messages from './header/Messages'
 import Profile from './header/Profile'
+import { Language } from './header/Language'
 import MobileHeaderItems from './header/MobileHeaderItems'
 
 export default function Header() {
@@ -114,10 +115,10 @@ export default function Header() {
         className={`sticky top-0 z-[2] ${
           isSticky
             ? 'bg-white dark:bg-dark shadow-md fixed w-full'
-            : 'bg-transparent'
+            : 'bg-white dark:bg-dark'
         }`}
       >
-        <nav className="px-2 dark:border-gray-700 rounded-none bg-transparent dark:bg-transparent py-4 sm:px-6">
+        <nav className="px-2 dark:border-gray-700 rounded-none bg-white dark:bg-dark py-4 sm:px-6">
           <div className="mx-auto flex flex-wrap items-center justify-between">
             {/* Mobile Menu Toggle */}
             <span
@@ -183,13 +184,6 @@ export default function Header() {
             {/* Right Side Actions */}
             <div className="xl:!block !hidden md:!hidden">
               <div className="flex gap-0 items-center">
-                {/* Trial Status */}
-                {getTrialStatus() && (
-                  <div className="px-4">
-                    {getTrialStatus()}
-                  </div>
-                )}
-
                 {/* Theme Toggle */}
                 {theme === 'light' ? (
                   <div

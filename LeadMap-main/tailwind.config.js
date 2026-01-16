@@ -15,12 +15,13 @@ module.exports = {
         'desktop-xl': '1536px',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'sans-serif'],
+        sans: ['var(--font-dm-sans)', 'var(--font-inter)', 'sans-serif'],
         heading: ['var(--font-montserrat)', 'sans-serif'],
         ui: ['var(--font-lato)', 'sans-serif'],
         montserrat: ['var(--font-montserrat)', 'sans-serif'],
         inter: ['var(--font-inter)', 'sans-serif'],
         lato: ['var(--font-lato)', 'sans-serif'],
+        'dm-sans': ['var(--font-dm-sans)', 'sans-serif'],
       },
       colors: {
         primary: {
@@ -131,7 +132,16 @@ module.exports = {
         neutral: {
           light: '#F5F5F7',
           dark: '#1C1C1E',
-        }
+        },
+        // Tailwindadmin colors
+        link: {
+          DEFAULT: '#2a3547',
+          dark: '#7c8fac',
+        },
+        darklink: '#7c8fac',
+        lightprimary: 'rgba(17, 121, 252, 0.12)', // 12% opacity of primary color
+        ld: '#e5e5e5', // border color used in Tailwindadmin
+        dark: '#1c2536', // dark background color
       }
     },
   },

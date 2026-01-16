@@ -130,16 +130,16 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-gray-200/80 bg-white/90 dark:bg-gray-950/95 shadow-sm backdrop-blur-xl transition-[width] duration-300 ${
+      className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-[#e5e5e5] bg-white dark:bg-dark shadow-sm transition-[width] duration-300 ${
         isOpen ? 'w-[270px]' : 'w-[75px]'
       }`}
     >
       {/* Brand / collapse */}
-      <div className="flex h-14 items-center border-b border-gray-200/80 px-3 dark:border-gray-800/80">
+      <div className="flex min-h-[70px] items-center border-b border-[#e5e5e5] px-6 dark:border-[#333f55]">
         {isOpen ? (
-          <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex w-full items-center justify-between gap-2 brand-logo overflow-hidden">
             <button
-              className="group flex flex-1 items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer"
+              className="group flex flex-1 items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 hover:bg-lightprimary-fallback hover:text-primary cursor-pointer transition-colors"
               onClick={() => router.push('/dashboard')}
             >
               <img
@@ -151,13 +151,13 @@ export default function Sidebar() {
                   target.style.display = 'none'
                 }}
               />
-              <span className="truncate text-sm font-semibold text-gray-900 dark:text-gray-50">
+              <span className="truncate text-sm font-semibold text-link dark:text-darklink">
                 NextDeal
               </span>
             </button>
             <button
               onClick={toggle}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e5e5e5] bg-white text-link hover:bg-lightprimary hover:text-primary dark:border-[#333f55] dark:bg-dark dark:text-darklink dark:hover:bg-lightprimary"
               aria-label="Collapse sidebar"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -166,14 +166,14 @@ export default function Sidebar() {
         ) : (
           <div className="flex w-full flex-col items-center gap-2">
             <button
-              className="group flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-md hover:shadow-lg hover:scale-105 transition"
+              className="group flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-white shadow-md hover:shadow-lg hover:scale-105 transition"
               onClick={() => router.push('/dashboard')}
             >
               <MapPin className="h-4 w-4" />
             </button>
             <button
               onClick={toggle}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e5e5e5] bg-white text-link hover:bg-lightprimary hover:text-primary dark:border-[#333f55] dark:bg-dark dark:text-darklink dark:hover:bg-lightprimary"
               aria-label="Expand sidebar"
             >
               <ChevronRight className="h-4 w-4" />
@@ -183,18 +183,17 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="custom-scrollbar flex-1 overflow-y-auto px-2 py-4">
+      <nav className="sidebar-nav flex-1 overflow-y-auto px-4 py-4">
         {navSections.map((section, sectionIdx) => (
           <div key={sectionIdx} className="mb-3">
             {section.title && isOpen && (
-              <div className="flex items-center gap-2 px-2 pb-1">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+              <div className="caption px-0 mb-0" style={{ marginTop: '24px', padding: '3px 0px', lineHeight: '26px' }}>
+                <h5 className="text-link dark:text-darklink font-bold text-xs uppercase leading-[26px]">
                   {section.title}
-                </span>
-                <div className="h-px flex-1 bg-gradient-to-r from-gray-200/80 to-transparent dark:from-gray-700/70" />
+                </h5>
               </div>
             )}
-            <div className={isOpen ? 'space-y-1' : 'flex flex-col items-center gap-2'}>
+            <div className={isOpen ? 'space-y-0.5' : 'flex flex-col items-center gap-2'}>
               {section.items.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.href)
@@ -212,26 +211,16 @@ export default function Sidebar() {
                     <button
                       key={item.href}
                       onClick={handleClick}
-                      className={`group flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-150 ${
+                      className={`group flex w-full items-center gap-3 rounded-md p-3 text-start truncate cursor-pointer leading-normal transition-all duration-200 ease-in-out hover:translate-x-1 ${
                         active
-                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-900/70'
+                          ? 'text-white bg-primary hover:bg-primary hover:text-white font-medium'
+                          : 'text-link dark:text-darklink hover:text-primary dark:hover:text-primary bg-transparent hover:bg-lightprimary-fallback dark:hover:bg-lightprimary-fallback font-normal'
                       }`}
                     >
-                      <span className="flex items-center gap-2 truncate">
-                        <span
-                          className={`flex h-6 w-6 items-center justify-center rounded-md text-[13px] ${
-                            active
-                              ? 'bg-white/15'
-                              : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300'
-                          }`}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="truncate">{item.label}</span>
-                      </span>
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      <span className="truncate text-sm hide-menu flex-1">{item.label}</span>
                       {item.badge && (
-                        <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+                        <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary hide-menu">
                           {item.badge}
                         </span>
                       )}
@@ -243,16 +232,16 @@ export default function Sidebar() {
                   <div key={item.href} className="group relative">
                     <button
                       onClick={handleClick}
-                      className={`flex h-9 w-9 items-center justify-center rounded-xl border text-gray-600 transition-all duration-150 ${
+                      className={`flex h-9 w-9 items-center justify-center rounded-md border transition-all duration-200 ${
                         active
-                          ? 'border-blue-500 bg-blue-600 text-white shadow-sm shadow-blue-600/40'
-                          : 'border-transparent bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'
+                          ? 'border-primary bg-primary text-white'
+                            : 'border-transparent text-link hover:bg-lightprimary hover:text-primary dark:text-darklink dark:hover:bg-lightprimary'
                       }`}
                       aria-label={item.label}
                     >
                       <Icon className="h-4 w-4" />
                     </button>
-                    <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-800">
+                    <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 rounded-md bg-dark px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-800">
                       {item.label}
                     </div>
                   </div>
@@ -265,12 +254,12 @@ export default function Sidebar() {
 
       {/* Upgrade CTA */}
       {profile && !profile.is_subscribed && isOpen && (
-        <div className="border-t border-gray-200/80 px-3 pb-3 pt-2 dark:border-gray-800/80">
-          <div className="rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 p-3 text-xs text-white shadow-md shadow-blue-600/30">
-            <p className="mb-2 font-semibold">Upgrade to unlock full NextDeal</p>
+        <div className="border-t border-[#e5e5e5] px-4 pb-3 pt-2 dark:border-[#333f55]">
+          <div className="rounded-md bg-lightsecondary p-4 text-xs text-white overflow-hidden">
+            <p className="mb-2 text-base font-semibold text-link dark:text-darklink">Upgrade to unlock full NextDeal</p>
             <button
               onClick={() => router.push('/pricing')}
-              className="inline-flex w-full items-center justify-center rounded-md bg-white/10 px-3 py-1.5 text-[11px] font-semibold hover:bg-white/20"
+              className="inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-primary/90"
             >
               Upgrade plan
             </button>
@@ -279,26 +268,26 @@ export default function Sidebar() {
       )}
 
       {/* User Section */}
-      <div className="border-t border-gray-200/80 px-3 py-3 dark:border-gray-800/80">
+      <div className="border-t border-[#e5e5e5] px-4 py-4 dark:border-[#333f55]">
         {isOpen ? (
-          <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-2.5 py-2 dark:bg-gray-900">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-sky-500 text-xs font-bold text-white shadow-sm">
+          <div className="flex items-center gap-4 rounded-md bg-lightsecondary px-4 py-4 overflow-hidden">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
               {profile?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-gray-900 dark:text-gray-50">
+              <h3 className="truncate text-base font-semibold text-link dark:text-darklink">
                 {profile?.name || 'User'}
-              </p>
-              <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
+              </h3>
+              <p className="truncate text-xs font-normal text-[#737373] dark:text-darklink">
                 {profile?.email || 'user@example.com'}
               </p>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-center">
-            <div className="group relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-sky-500 text-xs font-bold text-white shadow-sm">
+            <div className="group relative flex h-10 w-10 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
               {profile?.name?.charAt(0).toUpperCase() || 'U'}
-              <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-800">
+              <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 rounded-md bg-dark px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-800">
                 {profile?.name || 'User'}
               </div>
             </div>

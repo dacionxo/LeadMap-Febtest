@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Montserrat, Lato } from 'next/font/google'
+import { Inter, Montserrat, Lato, DM_Sans } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import AdvancedChatButton from '@/components/AdvancedChatButton'
@@ -27,6 +27,12 @@ const lato = Lato({
   weight: ['400', '700'], // Note: Lato doesn't have weight 500, using 400 with font-weight: 500 will use browser fallback
 })
 
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-dm-sans',
+})
+
 export const metadata: Metadata = {
   title: 'NextDeal - Real Estate Lead Generation',
   description: 'Find undervalued property leads with our subscription-based platform for real estate agents and brokers.',
@@ -44,7 +50,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${montserrat.variable} ${lato.variable} ${inter.className}`}>
+      <body className={`${inter.variable} ${montserrat.variable} ${lato.variable} ${dmSans.variable} ${dmSans.className}`}>
         <GoogleMapsScript />
         <ThemeProvider>
           <Providers>

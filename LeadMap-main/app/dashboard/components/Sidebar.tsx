@@ -4,6 +4,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Icon } from '@iconify/react'
 import { useApp } from '@/app/providers'
 import { useSidebar } from './SidebarContext'
+import SimpleBar from 'simplebar-react'
+import 'simplebar-react/dist/simplebar.min.css'
 
 interface NavItem {
   label: string
@@ -31,10 +33,10 @@ const navSections: NavSection[] = [
       { label: 'For Sale', icon: 'solar:home-2-linear', href: '/dashboard/prospect-enrich?filter=fsbo' },
       { label: 'For Rent', icon: 'solar:home-2-linear', href: '/dashboard/prospect-enrich?filter=frbo' },
       { label: 'Foreclosures', icon: 'solar:home-2-linear', href: '/dashboard/prospect-enrich?filter=foreclosure' },
-      { label: 'Probate', icon: 'solar:document-linear', href: '/dashboard/prospect-enrich?filter=probate' },
+      { label: 'Probate', icon: 'solar:bill-list-linear', href: '/dashboard/prospect-enrich?filter=probate' },
       { label: 'Expired Listings', icon: 'solar:clock-circle-linear', href: '/dashboard/prospect-enrich?filter=expired' },
-      { label: 'Imports', icon: 'solar:document-linear', href: '/dashboard/prospect-enrich?filter=imports' },
-      { label: 'Trash', icon: 'solar:document-linear', href: '/dashboard/prospect-enrich?filter=trash' }
+      { label: 'Imports', icon: 'solar:server-minimalistic-linear', href: '/dashboard/prospect-enrich?filter=imports' },
+      { label: 'Trash', icon: 'solar:trash-bin-minimalistic-linear', href: '/dashboard/prospect-enrich?filter=trash' }
     ]
   },
   {
@@ -116,9 +118,9 @@ export default function Sidebar() {
       }`}
     >
       {/* Brand / collapse */}
-      <div className="flex min-h-[70px] items-center border-b border-[#e5e5e5] px-6 dark:border-[#333f55]">
+      <div className="flex min-h-[70px] items-center border-b border-[#e5e5e5] px-6 dark:border-[#333f55] brand-logo overflow-hidden">
         {isOpen ? (
-          <div className="flex w-full items-center justify-between gap-2 brand-logo overflow-hidden">
+          <div className="flex w-full items-center justify-between gap-2">
             <button
               className="group flex flex-1 items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 hover:bg-lightprimary hover:text-primary cursor-pointer transition-colors"
               onClick={() => router.push('/dashboard')}
@@ -145,35 +147,47 @@ export default function Sidebar() {
             </button>
           </div>
         ) : (
-          <div className="flex w-full flex-col items-center gap-2">
+          <div className="flex w-full items-center justify-center">
             <button
-              className="group flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-white shadow-md hover:shadow-lg hover:scale-105 transition"
+              className="group flex items-center justify-center rounded-md px-2 py-1.5 hover:bg-lightprimary hover:text-primary cursor-pointer transition-colors"
               onClick={() => router.push('/dashboard')}
             >
-              <Icon icon="solar:map-point-linear" className="h-4 w-4" />
-            </button>
-            <button
-              onClick={toggle}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e5e5e5] bg-white text-link hover:bg-lightprimary hover:text-primary dark:border-[#333f55] dark:bg-dark dark:text-darklink dark:hover:bg-lightprimary"
-              aria-label="Expand sidebar"
-            >
-              <Icon icon="tabler:chevron-right" className="h-4 w-4" />
+              <img
+                src="/nextdeal-logo.png"
+                alt="NextDeal"
+                className="h-8 w-auto max-w-[40px] object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
+              />
             </button>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="sidebar-nav flex-1 overflow-y-auto px-4 py-4">
-        {navSections.map((section, sectionIdx) => (
-          <div key={sectionIdx} className="mb-3">
-            {section.title && isOpen && (
-              <div className="caption px-0 mb-0" style={{ marginTop: '24px', padding: '3px 0px', lineHeight: '26px' }}>
-                <h5 className="text-link dark:text-darklink font-bold text-xs uppercase leading-[26px]">
-                  {section.title}
-                </h5>
-              </div>
-            )}
+      <SimpleBar className="h-[calc(100vh_-_180px)]">
+        <nav className="sidebar-nav flex-1 px-4 py-4">
+          {navSections.map((section, sectionIdx) => (
+            <div key={sectionIdx} className="mb-3">
+              {section.title && (
+                <div className="caption px-0 mb-0" style={{ marginTop: '24px', padding: '3px 0px', lineHeight: '26px' }}>
+                  <h5 className="text-link dark:text-darklink font-bold text-xs uppercase leading-[26px]">
+                    {isOpen ? (
+                      <span className="hide-menu leading-21">{section.title}</span>
+                    ) : (
+                      <div className="flex justify-center">
+                        <Icon
+                          icon="tabler:dots"
+                          className="text-ld leading-6 dark:text-opacity-60"
+                          height={18}
+                        />
+                      </div>
+                    )}
+                  </h5>
+                </div>
+              )}
             <div className={isOpen ? 'space-y-0.5' : 'flex flex-col items-center gap-2'}>
               {section.items.map((item) => {
                 const active = isActive(item.href)
@@ -230,7 +244,8 @@ export default function Sidebar() {
             </div>
           </div>
         ))}
-      </nav>
+        </nav>
+      </SimpleBar>
 
       {/* Upgrade CTA */}
       {profile && !profile.is_subscribed && isOpen && (

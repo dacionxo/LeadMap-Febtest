@@ -125,16 +125,16 @@ const AppLinks = () => {
                             className="flex gap-3 items-center hover:text-primary group relative"
                           >
                             <span className="bg-lightprimary h-10 w-10 flex justify-center items-center rounded-md">
-                              <Icon 
+                              <Icon
                                 icon={
-                                  links.href.includes('chat') || links.href.includes('conversation') ? 'solar:chat-round-line-duotone' :
-                                  links.href.includes('calendar') ? 'solar:calendar-line-duotone' :
-                                  links.href.includes('email') ? 'solar:letter-line-duotone' :
+                                  links.href.includes('chat') || links.href.includes('conversation') ? 'solar:dialog-linear' :
+                                  links.href.includes('calendar') ? 'solar:calendar-linear' :
+                                  links.href.includes('email') ? 'solar:letter-linear' :
                                   links.href.includes('map') ? 'solar:map-point-linear' :
-                                  links.href.includes('prospect') || links.href.includes('enrich') ? 'solar:user-id-bold-duotone' :
+                                  links.href.includes('prospect') || links.href.includes('enrich') ? 'solar:users-group-rounded-linear' :
                                   'solar:widget-2-linear'
                                 }
-                                className="h-5 w-5 text-primary" 
+                                className="h-5 w-5 text-primary"
                               />
                             </span>
                             <div>

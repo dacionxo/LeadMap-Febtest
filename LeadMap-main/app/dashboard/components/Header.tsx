@@ -9,7 +9,6 @@ import { useTheme } from '@/components/ThemeProvider'
 import { useSidebar } from './SidebarContext'
 import Search from './header/Search'
 import AppLinks from './header/AppLinks'
-import { Language } from './header/Language'
 import MobileHeaderItems from './header/MobileHeaderItems'
 
 interface MessageType {
@@ -187,9 +186,6 @@ export default function Header() {
                     <Icon icon="solar:sun-bold-duotone" width="20" />
                   </div>
                 )}
-
-                {/* Language Dropdown */}
-                <Language />
 
                 {/* Messages Dropdown */}
                 <div className="relative group/menu" ref={notificationsRef}>

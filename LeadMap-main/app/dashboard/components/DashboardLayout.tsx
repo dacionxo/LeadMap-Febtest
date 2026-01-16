@@ -29,7 +29,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
       >
         <Header />
         {/* Main Content */}
-        <div className="relative z-10 p-6 lg:p-8">
+        <div className="container relative z-10 py-[30px]">
           {mounted && children}
         </div>
       </main>

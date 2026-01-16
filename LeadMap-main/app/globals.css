@@ -275,7 +275,11 @@
   }
 
   .dropdown {
-    @apply shadow-md bg-white dark:bg-dark relative rounded-sm dark:shadow-dark-md;
+    @apply shadow-md bg-white dark:bg-dark rounded-sm dark:shadow-dark-md;
+  }
+
+  .dropdown-wrapper {
+    @apply relative;
   }
 
   .card-title {

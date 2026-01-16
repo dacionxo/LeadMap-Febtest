@@ -106,7 +106,7 @@ export default function Header() {
         }`}
       >
         <nav className="px-2 dark:border-gray-700 rounded-none bg-white dark:bg-dark py-4 sm:px-6">
-          <div className="mx-auto flex flex-wrap items-center justify-between">
+          <div className="mx-auto flex flex-nowrap items-center justify-between">
             {/* Mobile Menu Toggle */}
             <span
               onClick={toggleSidebar}

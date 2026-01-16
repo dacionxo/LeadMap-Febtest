@@ -17,10 +17,10 @@ const Language = () => {
   const currentLang = Languages[0]
 
   return (
-    <div className="relative px-4">
+    <div className="relative">
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="relative after:absolute after:w-10 after:-top-1/2 after:h-10 after:rounded-full hover:after:bg-lightprimary rounded-full flex justify-center items-center cursor-pointer"
+        className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer"
       >
         <Image
           src={currentLang.icon}

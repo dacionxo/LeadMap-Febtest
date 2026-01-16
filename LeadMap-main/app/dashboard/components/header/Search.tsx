@@ -39,7 +39,7 @@ const Search = () => {
     <>
       <button
         onClick={() => setOpenModal(true)}
-        className="px-[15px] hover:text-primary text-link dark:text-darklink dark:hover:text-primary relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent rounded-full flex justify-center items-center cursor-pointer"
+        className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer"
       >
         <Icon icon="solar:magnifer-line-duotone" height={20} />
       </button>

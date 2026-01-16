@@ -120,7 +120,7 @@ export default function Header() {
               <div className="flex gap-0 items-center relative">
                 <span
                   onClick={toggleSidebar}
-                  className="px-[15px] relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent text-link hover:text-primary dark:text-darklink dark:hover:text-primary rounded-full justify-center items-center cursor-pointer xl:flex hidden"
+                  className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer xl:flex hidden relative"
                 >
                   <Icon icon="tabler:menu-2" height={20} />
                 </span>
@@ -174,21 +174,17 @@ export default function Header() {
                 {/* Theme Toggle */}
                 {theme === 'light' ? (
                   <div
-                    className="hover:text-primary px-4 dark:hover:text-primary focus:ring-0 rounded-full flex justify-center items-center cursor-pointer text-link dark:text-darklink group relative"
+                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group relative"
                     onClick={toggleMode}
                   >
-                    <span className="flex items-center justify-center relative after:absolute after:w-10 after:h-10 after:rounded-full after:-top-1/2 group-hover:after:bg-lightprimary">
-                      <Icon icon="tabler:moon" width="20" />
-                    </span>
+                    <Icon icon="tabler:moon" width="20" />
                   </div>
                 ) : (
                   <div
-                    className="hover:text-primary px-4 dark:hover:text-primary focus:ring-0 rounded-full flex justify-center items-center cursor-pointer text-link dark:text-darklink group relative"
+                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group relative"
                     onClick={toggleMode}
                   >
-                    <span className="flex items-center justify-center relative after:absolute after:w-10 after:h-10 after:rounded-full after:-top-1/2 group-hover:after:bg-lightprimary">
-                      <Icon icon="solar:sun-bold-duotone" width="20" />
-                    </span>
+                    <Icon icon="solar:sun-bold-duotone" width="20" />
                   </div>
                 )}
 
@@ -196,17 +192,15 @@ export default function Header() {
                 <Language />
 
                 {/* Messages Dropdown */}
-                <div className="relative group/menu px-4" ref={notificationsRef}>
+                <div className="relative group/menu" ref={notificationsRef}>
                   <button
                     onClick={() => {
                       setShowNotifications(!showNotifications)
                       setShowProfileMenu(false)
                     }}
-                    className="relative"
+                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer relative"
                   >
-                    <span className="relative after:absolute after:w-10 after:h-10 after:rounded-full hover:text-primary after:-top-1/2 hover:after:bg-lightprimary text-link dark:text-darklink rounded-full flex justify-center items-center cursor-pointer group-hover/menu:after:bg-lightprimary group-hover/menu:!text-primary">
-                      <Icon icon="tabler:bell-ringing" height={20} />
-                    </span>
+                    <Icon icon="tabler:bell-ringing" height={20} />
                     <span className="rounded-full absolute -end-[6px] -top-[5px] text-[10px] h-2 w-2 bg-primary flex justify-center items-center"></span>
                   </button>
 
@@ -257,13 +251,13 @@ export default function Header() {
                 </div>
 
                 {/* Profile Dropdown */}
-                <div className="relative group/menu ps-4" ref={menuRef}>
+                <div className="relative group/menu" ref={menuRef}>
                   <button
                     onClick={() => {
                       setShowProfileMenu(!showProfileMenu)
                       setShowNotifications(false)
                     }}
-                    className="hover:text-primary hover:bg-lightprimary rounded-full flex justify-center items-center cursor-pointer group-hover/menu:bg-lightprimary group-hover/menu:text-primary"
+                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group-hover/menu:text-primary"
                   >
                     <div className="flex h-[35px] w-[35px] items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
                       {profile?.name?.charAt(0).toUpperCase() || 'U'}

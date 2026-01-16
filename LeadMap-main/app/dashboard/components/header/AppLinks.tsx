@@ -95,7 +95,7 @@ const AppLinks = () => {
       {/* Desktop trigger - matching exact structure of Chat/Calendar/Email */}
       <button
         type="button"
-        className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer xl:flex hidden"
+        className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center xl:flex hidden"
       >
         <span>Apps</span>
         <Icon icon="tabler:chevron-down" height={15} className="shrink-0 ml-1" />

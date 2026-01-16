@@ -69,25 +69,6 @@ const pageLinks: LinkType[] = [
   },
 ]
 
-const Quicklinks = () => {
-  return (
-    <div className="lg:p-5 p-5 xl:border-s border-s-0 border-border dark:border-darkborder">
-      <h5 className="text-xl font-semibold mb-4 text-ld">Quick Links</h5>
-      <ul>
-        {pageLinks.map((links, index) => (
-          <li className="mb-4" key={index}>
-            <Link
-              href={links.href}
-              className="text-sm font-semibold text-link dark:text-darklink hover:text-primary dark:hover:text-primary"
-            >
-              {links.title}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
 
 const AppLinks = () => {
   return (
@@ -110,8 +91,8 @@ const AppLinks = () => {
       <div className="sm:w-[900px] z-[101] w-screen dropdown top-[28px] xl:invisible xl:group-hover:visible visible absolute shadow-md bg-white dark:bg-dark rounded-sm dark:shadow-dark-md">
         <div className="xl:relative xl:translate-none xl:h-auto xl:bg-transparent xl:z-[0] xl:w-[900px] hidden xl:block">
           <div className="md:h-auto h-[calc(100vh_-_50px)] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm overflow-hidden">
-            <div className="grid grid-cols-12 w-full max-h-[600px] overflow-y-auto">
-              <div className="xl:col-span-8 col-span-12 flex items-stretch xl:pr-0 px-5 py-5">
+            <div className="w-full max-h-[600px] overflow-y-auto">
+              <div className="flex items-stretch px-5 py-5">
                 <div className="grid grid-cols-12 gap-3 w-full">
                   {appsLink.map((links, index) => (
                     <div
@@ -165,9 +146,6 @@ const AppLinks = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="xl:col-span-4 col-span-12 flex items-stretch">
-                <Quicklinks />
               </div>
             </div>
           </div>

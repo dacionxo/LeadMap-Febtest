@@ -21,6 +21,7 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
+    title: 'Home',
     items: [
       { label: 'Dashboard', icon: 'solar:widget-2-linear', href: '/dashboard' },
       { label: 'Maps', icon: 'solar:map-point-linear', href: '/dashboard/map' }
@@ -118,11 +119,11 @@ export default function Sidebar() {
       }`}
     >
       {/* Brand / collapse */}
-      <div className="flex min-h-[70px] items-center border-b border-[#e5e5e5] px-6 dark:border-[#333f55] brand-logo overflow-hidden">
+      <div className="flex min-h-[70px] items-center px-6 brand-logo overflow-hidden">
         {isOpen ? (
-          <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex w-full items-center justify-center">
             <button
-              className="group flex flex-1 items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 hover:bg-lightprimary hover:text-primary cursor-pointer transition-colors"
+              className="group flex items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 hover:bg-lightprimary hover:text-primary cursor-pointer transition-colors"
               onClick={() => router.push('/dashboard')}
             >
               <img
@@ -137,13 +138,6 @@ export default function Sidebar() {
               <span className="truncate text-sm font-semibold text-link dark:text-darklink">
                 NextDeal
               </span>
-            </button>
-            <button
-              onClick={toggle}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#e5e5e5] bg-white text-link hover:bg-lightprimary hover:text-primary dark:border-[#333f55] dark:bg-dark dark:text-darklink dark:hover:bg-lightprimary"
-              aria-label="Collapse sidebar"
-            >
-              <Icon icon="tabler:chevron-left" className="h-4 w-4" />
             </button>
           </div>
         ) : (
@@ -263,7 +257,7 @@ export default function Sidebar() {
       )}
 
       {/* User Section */}
-      <div className="border-t border-[#e5e5e5] px-4 py-4 dark:border-[#333f55]">
+      <div className={`border-t border-[#e5e5e5] py-4 dark:border-[#333f55] ${isOpen ? 'px-4' : 'px-0.5'}`}>
         {isOpen ? (
           <div className="flex items-center gap-4 rounded-md bg-lightsecondary px-4 py-4 overflow-hidden">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">

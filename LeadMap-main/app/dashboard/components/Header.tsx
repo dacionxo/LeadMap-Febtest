@@ -101,10 +101,10 @@ export default function Header() {
         className={`sticky top-0 z-[100] ${
           isSticky
             ? 'bg-white dark:bg-dark shadow-md fixed w-full'
-            : 'bg-white dark:bg-dark'
+            : 'bg-transparent'
         }`}
       >
-        <nav className="px-2 dark:border-gray-700 rounded-none bg-white dark:bg-dark py-4 sm:px-6">
+        <nav className="px-2 dark:border-gray-700 rounded-none bg-transparent dark:bg-transparent py-4 sm:px-6">
           <div className="mx-auto flex flex-nowrap items-center justify-between">
             {/* Mobile Menu Toggle */}
             <span

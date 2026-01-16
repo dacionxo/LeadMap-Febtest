@@ -37,7 +37,7 @@ const Language = () => {
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-1 z-50">
+        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-1 z-[101]">
           {Languages.map((item, index) => (
             <button
               key={index}

@@ -99,7 +99,7 @@ export default function Header() {
   return (
     <>
       <header
-        className={`sticky top-0 z-[2] ${
+        className={`sticky top-0 z-[100] ${
           isSticky
             ? 'bg-white dark:bg-dark shadow-md fixed w-full'
             : 'bg-white dark:bg-dark'
@@ -206,7 +206,7 @@ export default function Header() {
 
                   {/* Notifications Dropdown */}
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 z-50">
+                    <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 z-[101]">
                       <div className="flex items-center px-6 justify-between">
                         <h3 className="mb-0 text-lg font-semibold text-ld">Notification</h3>
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-primary text-white">
@@ -266,7 +266,7 @@ export default function Header() {
 
                   {/* Profile Dropdown Menu */}
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 px-0 z-50">
+                    <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 px-0 z-[101]">
                       {/* Header */}
                       <div className="px-6">
                         <h3 className="text-lg font-semibold text-ld">User Profile</h3>

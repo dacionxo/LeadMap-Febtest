@@ -107,7 +107,7 @@ const AppLinks = () => {
       </span>
 
       {/* Desktop Dropdown - matching Tailwindadmin structure */}
-      <div className="sm:w-[900px] z-40 w-screen dropdown top-[28px] xl:invisible xl:group-hover:visible visible absolute shadow-md bg-white dark:bg-dark rounded-sm dark:shadow-dark-md">
+      <div className="sm:w-[900px] z-[101] w-screen dropdown top-[28px] xl:invisible xl:group-hover:visible visible absolute shadow-md bg-white dark:bg-dark rounded-sm dark:shadow-dark-md">
         <div className="xl:relative xl:translate-none xl:h-auto xl:bg-transparent xl:z-[0] xl:w-[900px] hidden xl:block">
           <div className="md:h-auto h-[calc(100vh_-_50px)] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm overflow-hidden">
             <div className="grid grid-cols-12 w-full max-h-[600px] overflow-y-auto">

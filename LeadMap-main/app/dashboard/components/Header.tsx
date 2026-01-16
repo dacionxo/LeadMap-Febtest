@@ -9,10 +9,28 @@ import { useTheme } from '@/components/ThemeProvider'
 import { useSidebar } from './SidebarContext'
 import Search from './header/Search'
 import AppLinks from './header/AppLinks'
-import Messages from './header/Messages'
-import Profile from './header/Profile'
 import { Language } from './header/Language'
 import MobileHeaderItems from './header/MobileHeaderItems'
+
+interface MessageType {
+  title: string
+  subtitle: string
+}
+
+const MessagesLink: MessageType[] = [
+  {
+    title: 'Welcome to LeadMap!',
+    subtitle: 'Get started with your first lead',
+  },
+  {
+    title: 'New feature available',
+    subtitle: 'Check out our latest updates',
+  },
+  {
+    title: 'Payment received',
+    subtitle: 'Your subscription is active',
+  },
+]
 
 export default function Header() {
   const { profile, signOut } = useApp()
@@ -78,37 +96,6 @@ export default function Header() {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
-  const getTrialStatus = () => {
-    if (!profile) return null
-
-    if (profile.is_subscribed) {
-      return (
-        <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
-          <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
-          Active
-        </span>
-      )
-    }
-
-    const trialEnd = new Date(profile.trial_end)
-    const now = new Date()
-    const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-    if (daysLeft > 0) {
-      return (
-        <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg">
-          {daysLeft} days left
-        </span>
-      )
-    }
-
-    return (
-      <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
-        Trial Expired
-      </span>
-    )
-  }
-
   return (
     <>
       <header
@@ -144,26 +131,26 @@ export default function Header() {
                 {/* App Links Component */}
                 <AppLinks />
 
-                {/* Quick Links */}
+                {/* Quick Links - Matching Tailwindadmin */}
                 <Link
-                  href="/dashboard/map"
+                  href="/dashboard/conversations"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >
-                  Maps
+                  Chat
                 </Link>
 
                 <Link
-                  href="/dashboard/prospect-enrich"
+                  href="/dashboard/calendar"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >
-                  Enrich
+                  Calendar
                 </Link>
 
                 <Link
-                  href="/dashboard"
+                  href="/dashboard/email"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >
-                  Dashboard
+                  Email
                 </Link>
               </div>
             </div>
@@ -205,6 +192,9 @@ export default function Header() {
                   </div>
                 )}
 
+                {/* Language Dropdown */}
+                <Language />
+
                 {/* Messages Dropdown */}
                 <div className="relative group/menu px-4" ref={notificationsRef}>
                   <button
@@ -225,13 +215,38 @@ export default function Header() {
                     <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 z-50">
                       <div className="flex items-center px-6 justify-between">
                         <h3 className="mb-0 text-lg font-semibold text-ld">Notification</h3>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-primary text-white">
+                          5 new
+                        </span>
                       </div>
-                      <div className="px-6 py-4 max-h-80 overflow-y-auto">
-                        <p className="text-sm text-link dark:text-darklink">No new notifications</p>
+                      <div className="max-h-80 mt-3 overflow-y-auto">
+                        {MessagesLink.map((link, index) => (
+                          <Link
+                            key={index}
+                            href="#"
+                            className="px-6 py-3 flex justify-between items-center bg-hover group/link w-full hover:bg-lightprimary"
+                          >
+                            <div className="flex items-center">
+                              <span className="flex-shrink-0 relative">
+                                <div className="h-[45px] w-[45px] rounded-full bg-primary flex items-center justify-center text-white font-semibold">
+                                  {link.title.charAt(0)}
+                                </div>
+                              </span>
+                              <div className="ps-4">
+                                <h5 className="mb-1 text-sm group-hover/link:text-primary">
+                                  {link.title}
+                                </h5>
+                                <span className="text-xs block truncate text-darklink">
+                                  {link.subtitle}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
                       </div>
                       <div className="pt-5 px-6">
                         <Link
-                          href="/dashboard"
+                          href="/dashboard/email"
                           className="w-full border border-primary text-primary hover:bg-primary hover:text-white rounded-md py-2 px-4 block text-center"
                         >
                           See All Notifications
@@ -257,7 +272,7 @@ export default function Header() {
 
                   {/* Profile Dropdown Menu */}
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 z-50">
+                    <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 px-0 z-50">
                       {/* Header */}
                       <div className="px-6">
                         <h3 className="text-lg font-semibold text-ld">User Profile</h3>
@@ -269,6 +284,9 @@ export default function Header() {
                             <h5 className="card-title text-sm mb-0.5 font-medium">
                               {profile?.name || 'User'}
                             </h5>
+                            <span className="card-subtitle text-muted font-normal">
+                              LeadMap User
+                            </span>
                             <p className="card-subtitle font-normal text-muted mb-0 mt-1 flex items-center">
                               <Icon icon="tabler:mail" className="text-base me-1 relative top-0.5" />
                               {profile?.email || 'user@example.com'}
@@ -284,18 +302,20 @@ export default function Header() {
                             router.push('/dashboard/settings')
                             setShowProfileMenu(false)
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-link dark:text-darklink hover:text-primary bg-hover rounded-md transition-colors group/link"
+                          className="w-full px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer rounded-md hover:bg-lightprimary"
                         >
-                          <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
-                            <Icon icon="solar:user-circle-linear" className="h-6 w-6 text-primary" />
-                          </div>
-                          <div className="ps-4 flex justify-between w-full">
-                            <div className="w-3/4">
-                              <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                Profile Settings
-                              </h5>
-                              <div className="text-xs text-darklink">
-                                Manage your profile
+                          <div className="flex items-center w-full">
+                            <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
+                              <Icon icon="solar:user-circle-linear" className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="ps-4 flex justify-between w-full">
+                              <div className="w-3/4">
+                                <h5 className="mb-1 text-sm group-hover/link:text-primary">
+                                  My Profile
+                                </h5>
+                                <div className="text-xs text-darklink">
+                                  Account settings
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -303,21 +323,47 @@ export default function Header() {
 
                         <button
                           onClick={() => {
-                            router.push('/pricing')
+                            router.push('/dashboard')
                             setShowProfileMenu(false)
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-link dark:text-darklink hover:text-primary bg-hover rounded-md transition-colors group/link"
+                          className="w-full px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer rounded-md hover:bg-lightprimary"
                         >
-                          <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
-                            <Icon icon="solar:card-linear" className="h-6 w-6 text-primary" />
+                          <div className="flex items-center w-full">
+                            <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
+                              <Icon icon="solar:notes-linear" className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="ps-4 flex justify-between w-full">
+                              <div className="w-3/4">
+                                <h5 className="mb-1 text-sm group-hover/link:text-primary">
+                                  My Notes
+                                </h5>
+                                <div className="text-xs text-darklink">
+                                  My Daily Notes
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="ps-4 flex justify-between w-full">
-                            <div className="w-3/4">
-                              <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                Billing & Plans
-                              </h5>
-                              <div className="text-xs text-darklink">
-                                Manage subscription
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            router.push('/dashboard')
+                            setShowProfileMenu(false)
+                          }}
+                          className="w-full px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer rounded-md hover:bg-lightprimary"
+                        >
+                          <div className="flex items-center w-full">
+                            <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
+                              <Icon icon="solar:checklist-linear" className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="ps-4 flex justify-between w-full">
+                              <div className="w-3/4">
+                                <h5 className="mb-1 text-sm group-hover/link:text-primary">
+                                  My Tasks
+                                </h5>
+                                <div className="text-xs text-darklink">
+                                  To-do and Daily tasks
+                                </div>
                               </div>
                             </div>
                           </div>

@@ -114,16 +114,16 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-[#e5e5e5] bg-white dark:bg-dark shadow-sm transition-[width] duration-300 ${
-        isOpen ? 'w-[270px]' : 'w-[75px]'
+      className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-[#e5e5e5] bg-white dark:bg-dark shadow-sm transition-[width] duration-300 group ${
+        isOpen ? 'w-[270px]' : 'w-[75px] xl:hover:w-[270px] overflow-hidden xl:hover:overflow-visible'
       }`}
     >
       {/* Brand / collapse */}
-      <div className="flex min-h-[70px] items-center px-6 brand-logo overflow-hidden">
+      <div className="flex min-h-[70px] items-center border-b border-[#e5e5e5] px-6 dark:border-[#333f55] brand-logo overflow-hidden">
         {isOpen ? (
-          <div className="flex w-full items-center justify-center">
+          <div className="flex w-full items-center justify-between gap-2">
             <button
-              className="group flex items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 hover:bg-lightprimary hover:text-primary cursor-pointer transition-colors"
+              className="group flex flex-1 items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 hover:bg-lightprimary hover:text-primary cursor-pointer transition-colors"
               onClick={() => router.push('/dashboard')}
             >
               <img
@@ -169,20 +169,23 @@ export default function Sidebar() {
                 <div className="caption px-0 mb-0" style={{ marginTop: '24px', padding: '3px 0px', lineHeight: '26px' }}>
                   <h5 className="text-link dark:text-darklink font-bold text-xs uppercase leading-[26px]">
                     {isOpen ? (
-                      <span className="hide-menu leading-21">{section.title}</span>
+                      <span className="leading-21">{section.title}</span>
                     ) : (
-                      <div className="flex justify-center">
-                        <Icon
-                          icon="tabler:dots"
-                          className="text-ld leading-6 dark:text-opacity-60"
-                          height={18}
-                        />
-                      </div>
+                      <>
+                        <span className="hidden xl:group-hover:inline leading-21">{section.title}</span>
+                        <div className="flex justify-center xl:group-hover:hidden">
+                          <Icon
+                            icon="tabler:dots"
+                            className="text-ld leading-6 dark:text-opacity-60"
+                            height={18}
+                          />
+                        </div>
+                      </>
                     )}
                   </h5>
                 </div>
               )}
-            <div className={isOpen ? 'space-y-0.5' : 'flex flex-col items-center gap-2'}>
+            <div className={isOpen ? 'space-y-0.5' : 'flex flex-col items-center gap-2 xl:group-hover:items-start xl:group-hover:gap-0.5 xl:group-hover:space-y-0.5'}>
               {section.items.map((item) => {
                 const active = isActive(item.href)
 
@@ -199,16 +202,16 @@ export default function Sidebar() {
                     <button
                       key={item.href}
                       onClick={handleClick}
-                      className={`group flex w-full items-center gap-3 rounded-md p-3 text-start truncate cursor-pointer leading-normal transition-all duration-200 ease-in-out hover:translate-x-1 ${
+                      className={`group/item flex w-full items-center gap-3 rounded-md p-3 text-start truncate cursor-pointer leading-normal transition-all duration-200 ease-in-out hover:translate-x-1 ${
                         active
                           ? 'text-white bg-primary hover:bg-primary hover:text-white font-medium'
                           : 'text-link dark:text-darklink hover:text-primary dark:hover:text-primary bg-transparent hover:bg-lightprimary dark:hover:bg-lightprimary font-normal'
                       }`}
                     >
                       <Icon icon={item.icon} className="h-5 w-5 flex-shrink-0" />
-                      <span className="truncate text-sm hide-menu flex-1">{item.label}</span>
+                      <span className="truncate text-sm flex-1">{item.label}</span>
                       {item.badge && (
-                        <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary hide-menu">
+                        <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                           {item.badge}
                         </span>
                       )}
@@ -217,19 +220,20 @@ export default function Sidebar() {
                 }
 
                 return (
-                  <div key={item.href} className="group relative">
+                  <div key={item.href} className="group/item relative">
                     <button
                       onClick={handleClick}
-                      className={`flex h-9 w-9 items-center justify-center rounded-md border transition-all duration-200 ${
+                      className={`flex h-9 w-9 items-center justify-center rounded-md border transition-all duration-200 xl:group-hover:w-full xl:group-hover:justify-start xl:group-hover:gap-3 xl:group-hover:p-3 xl:group-hover:h-auto ${
                         active
                           ? 'border-primary bg-primary text-white'
                             : 'border-transparent text-link hover:bg-lightprimary hover:text-primary dark:text-darklink dark:hover:bg-lightprimary'
                       }`}
                       aria-label={item.label}
                     >
-                      <Icon icon={item.icon} className="h-4 w-4" />
+                      <Icon icon={item.icon} className="h-4 w-4 xl:group-hover:h-5 xl:group-hover:w-5 flex-shrink-0" />
+                      <span className="hidden xl:group-hover:block truncate text-sm ml-3 flex-1">{item.label}</span>
                     </button>
-                    <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 rounded-md bg-dark px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-800">
+                    <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 rounded-md bg-dark px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover/item:opacity-100 dark:bg-gray-800 xl:hidden">
                       {item.label}
                     </div>
                   </div>
@@ -257,31 +261,34 @@ export default function Sidebar() {
       )}
 
       {/* User Section */}
-      <div className={`border-t border-[#e5e5e5] py-4 dark:border-[#333f55] ${isOpen ? 'px-4' : 'px-0.5'}`}>
-        {isOpen ? (
-          <div className="flex items-center gap-4 rounded-md bg-lightsecondary px-4 py-4 overflow-hidden">
+      <div className={`border-t border-[#e5e5e5] py-4 dark:border-[#333f55] ${isOpen ? 'px-4' : 'px-0.5 xl:group-hover:px-4'}`}>
+        <div className={`rounded-md bg-lightsecondary overflow-hidden ${isOpen ? 'px-4 py-4' : 'px-2 py-4 xl:group-hover:px-4'}`}>
+          <div className={`flex items-center ${isOpen ? 'gap-4' : 'justify-center xl:group-hover:justify-start xl:group-hover:gap-4'}`}>
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
               {profile?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base font-semibold text-link dark:text-darklink">
-                {profile?.name || 'User'}
-              </h3>
-              <p className="truncate text-xs font-normal text-[#737373] dark:text-darklink">
-                {profile?.email || 'user@example.com'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center">
-            <div className="group relative flex h-10 w-10 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
-              {profile?.name?.charAt(0).toUpperCase() || 'U'}
-              <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 rounded-md bg-dark px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-800">
-                {profile?.name || 'User'}
+            {isOpen && (
+              <div className="min-w-0 flex-1 xl:hidden group-hover:!block">
+                <h3 className="truncate text-base font-semibold text-link dark:text-darklink">
+                  {profile?.name || 'User'}
+                </h3>
+                <p className="truncate text-xs font-normal text-[#737373] dark:text-darklink">
+                  {profile?.email || 'user@example.com'}
+                </p>
               </div>
-            </div>
+            )}
+            {!isOpen && (
+              <div className="hidden xl:group-hover:block min-w-0 flex-1">
+                <h3 className="truncate text-base font-semibold text-link dark:text-darklink">
+                  {profile?.name || 'User'}
+                </h3>
+                <p className="truncate text-xs font-normal text-[#737373] dark:text-darklink">
+                  {profile?.email || 'user@example.com'}
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </aside>
   )

@@ -100,11 +100,11 @@ export default function Header() {
       <header
         className={`sticky top-0 z-[100] ${
           isSticky
-            ? 'bg-white dark:bg-dark shadow-md fixed w-full'
-            : 'bg-transparent'
+            ? 'bg-white dark:bg-dark shadow-md'
+            : 'bg-white dark:bg-dark'
         }`}
       >
-        <nav className="px-2 dark:border-gray-700 rounded-none bg-transparent dark:bg-transparent py-4 sm:px-6">
+        <nav className="px-2 dark:border-gray-700 rounded-none bg-white dark:bg-dark py-4 sm:px-6">
           <div className="mx-auto flex flex-nowrap items-center justify-between">
             {/* Mobile Menu Toggle */}
             <span
@@ -188,16 +188,20 @@ export default function Header() {
                 )}
 
                 {/* Messages Dropdown */}
-                <div className="relative group/menu" ref={notificationsRef}>
+                <div className="relative group/menu px-4" ref={notificationsRef}>
                   <button
                     onClick={() => {
                       setShowNotifications(!showNotifications)
                       setShowProfileMenu(false)
                     }}
-                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer relative"
+                    className="text-sm text-link dark:text-darklink dark:hover:text-primary h-10 hover:text-primary flex items-center justify-center cursor-pointer"
                   >
-                    <Icon icon="tabler:bell-ringing" height={20} />
-                    <span className="rounded-full absolute -end-[6px] -top-[5px] text-[10px] h-2 w-2 bg-primary flex justify-center items-center"></span>
+                    <div className="relative">
+                      <span className="relative after:absolute after:w-10 after:h-10 after:rounded-full hover:text-primary after:-top-1/2 hover:after:bg-lightprimary text-link dark:text-darklink rounded-full flex justify-center items-center cursor-pointer group-hover/menu:after:bg-lightprimary group-hover/menu:!text-primary">
+                        <Icon icon="tabler:bell-ringing" height={20} />
+                      </span>
+                      <span className="rounded-full absolute -end-[6px] -top-[5px] text-[10px] h-2 w-2 bg-primary flex justify-center items-center"></span>
+                    </div>
                   </button>
 
                   {/* Notifications Dropdown */}

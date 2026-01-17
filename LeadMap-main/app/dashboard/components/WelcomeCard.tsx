@@ -91,9 +91,15 @@ export const WelcomeCard = () => {
             </div>
           </div>
         </div>
-        <div className="md:col-span-5 md:block hidden relative">
-          <div className="absolute right-5 -bottom-10">
-            <Lottie animationData={onlinedoctor} loop={true} />
+        <div className="md:col-span-5 md:block hidden relative overflow-hidden">
+          <div className="absolute right-0 bottom-0 w-full h-full flex items-end justify-end">
+            <div className="w-full h-full max-w-[280px] max-h-[280px]">
+              <Lottie 
+                animationData={onlinedoctor} 
+                loop={true}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
           </div>
         </div>
       </div>

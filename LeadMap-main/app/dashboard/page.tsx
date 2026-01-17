@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import DashboardLayout from './components/DashboardLayout'
 import NextSteps from './components/NextSteps'
 import DashboardClient from './components/DashboardClient'
+import WelcomeCardClient from './components/WelcomeCardClient'
 
 // Force dynamic rendering to prevent static generation issues with cookies
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,7 @@ export default async function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <WelcomeCardClient />
         <NextSteps />
         <DashboardClient />
       </div>

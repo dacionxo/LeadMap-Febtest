@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Calendar, momentLocalizer, View, SlotInfo } from 'react-big-calendar'
-import moment from 'moment'
-import 'react-big-calendar/lib/css/react-big-calendar.css'
-import { Search, HelpCircle, Settings, RefreshCw, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import CalendarHelpModal from './CalendarHelpModal'
 import { Card } from '@/app/components/ui/card'
+import { ChevronLeft, ChevronRight, HelpCircle, RefreshCw, Search, Settings, X } from 'lucide-react'
+import moment from 'moment'
+import { useCallback, useEffect, useState } from 'react'
+import { Calendar, momentLocalizer, SlotInfo, View } from 'react-big-calendar'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
+import CalendarHelpModal from './CalendarHelpModal'
 
 moment.locale('en')
 const localizer = momentLocalizer(moment)
@@ -679,14 +679,14 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
       </div>
 
       {/* Calendar Container */}
-      <div className="flex-1 overflow-auto p-6 bg-white dark:bg-gray-900">
-        <Card className="min-h-[700px]">
+      <div className="flex-1 overflow-auto bg-white dark:bg-gray-900">
+        <Card className="min-h-[900px]">
           <Calendar
             localizer={localizer}
             events={events}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: '100%', minHeight: '700px' }}
+            style={{ height: '100%', minHeight: '900px' }}
             view={view}
             onView={setView}
             date={currentDate}

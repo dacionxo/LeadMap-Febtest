@@ -6,6 +6,18 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import DashboardLayout from '../components/DashboardLayout'
 import { Plus, Search, Users, Building2, Filter, Settings, Download, MoreVertical, Info, Trash2, Edit, X, Upload, ChevronDown } from 'lucide-react'
 import ImportListModal from './components/ImportListModal'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Input } from '@/app/components/ui/input'
+import { Badge } from '@/app/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu'
+import { Checkbox } from '@/app/components/ui/checkbox'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/app/components/ui/dialog'
+import { Label } from '@/app/components/ui/label'
+import SimpleBar from 'simplebar-react'
+import 'simplebar-react/dist/simplebar.min.css'
 
 interface List {
   id: string
@@ -394,63 +406,21 @@ export default function ListsPage() {
               My lists
             </h1>
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button
+            <div className="flex gap-3 items-center">
+              <Button
+                variant="outline"
                 onClick={() => setShowImportModal(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 18px',
-                  backgroundColor: '#ffffff',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f9fafb'
-                  e.currentTarget.style.borderColor = '#6366f1'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff'
-                  e.currentTarget.style.borderColor = '#d1d5db'
-                }}
               >
                 <Upload size={16} />
                 Import CSV
-              </button>
-            <button
-              onClick={() => handleCreateList('properties')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                backgroundColor: '#fbbf24',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 500,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f59e0b'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#fbbf24'
-              }}
-            >
-              <Plus size={16} />
-              Create a list
-            </button>
+              </Button>
+              <Button
+                onClick={() => handleCreateList('properties')}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+              >
+                <Plus size={16} />
+                Create a list
+              </Button>
             </div>
           </div>
 
@@ -461,103 +431,49 @@ export default function ListsPage() {
               gap: '12px',
               alignItems: 'center'
             }}>
-              <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-                <Search style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '18px',
-                  height: '18px',
-                  color: '#9ca3af',
-                  pointerEvents: 'none'
-                }} />
-                <input
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search lists"
-                  style={{
-                    width: '100%',
-                    paddingLeft: '40px',
-                    paddingRight: '12px',
-                    paddingTop: '8px',
-                    paddingBottom: '8px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#6366f1'
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)'
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#d1d5db'
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
+                  className="pl-10"
                 />
               </div>
 
-              <button
+              <Button
+                variant={showFilters ? "default" : "outline"}
                 onClick={() => setShowFilters(!showFilters)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 12px',
-                  backgroundColor: showFilters ? '#f3f4f6' : '#ffffff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                }}
               >
                 <Filter size={16} />
                 Show Filters
-              </button>
+              </Button>
 
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="lastModified">Last Modified</option>
-                <option value="name">Name</option>
-                <option value="created">Created</option>
-              </select>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lastModified">Last Modified</SelectItem>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="created">Created</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <div style={{ position: 'relative' }} ref={viewOptionsRef}>
-                <button
+              <div className="relative" ref={viewOptionsRef}>
+                <Button
+                  variant={showViewOptions ? "default" : "outline"}
+                  size="icon"
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
                     setShowViewOptions(!showViewOptions)
                   }}
-                  style={{
-                    padding: '8px',
-                    backgroundColor: showViewOptions ? '#f3f4f6' : '#ffffff',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.15s'
-                  }}
                   title="View options"
                 >
                   <Settings size={16} />
-                </button>
+                </Button>
                 
                 {showViewOptions && (
                   <div
@@ -904,276 +820,109 @@ export default function ListsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    overflow: 'hidden'
-                  }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            <input type="checkbox" style={{ marginRight: '8px' }} />
-                            LIST NAME
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            # OF RECORDS
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            TYPE
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            CREATED BY
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            LAST MODIFIED
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'right',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            ACTIONS
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredPeopleLists.map((list) => (
-                          <tr
-                            key={list.id}
-                            style={{
-                              borderBottom: '1px solid #e5e7eb',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.15s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#f9fafb'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#ffffff'
-                            }}
-                            onClick={() => router.push(`/dashboard/lists/${list.id}`)}
-                          >
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input
-                                  type="checkbox"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                                <span style={{
-                                  fontSize: '14px',
-                                  fontWeight: 500,
-                                  color: '#111827',
-                                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                  cursor: 'pointer',
-                                  textDecoration: 'none',
-                                  transition: 'color 0.15s'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.color = '#6366f1'
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.color = '#111827'
-                                }}
-                                >
-                                  {list.name}
-                                </span>
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <span style={{
-                                fontSize: '15px',
-                                fontWeight: 600,
-                                color: '#111827',
-                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-                                letterSpacing: '0.025em'
-                              }}>
-                                {list.item_count || 0}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '4px 8px',
-                                backgroundColor: '#dbeafe',
-                                color: '#1e40af',
-                                borderRadius: '12px',
-                                fontSize: '12px',
-                                fontWeight: 500
-                              }}>
-                                <Users size={12} />
-                                Prospects
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                              You
-                            </td>
-                            <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                              {formatDate(list.updated_at || list.created_at)}
-                            </td>
-                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'flex-end',
-                                gap: '8px'
-                              }}>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleExportListCSV(list.id, list.name)
-                                  }}
-                                  title="Download CSV"
-                                  style={{
-                                    padding: '6px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent'
-                                  }}
-                                >
-                                  <Download size={16} color="#6b7280" />
-                                </button>
-                                <div style={{ position: 'relative' }}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setOpenMenuId(openMenuId === list.id ? null : list.id)
-                                    }}
-                                    style={{
-                                      padding: '6px',
-                                      border: 'none',
-                                      background: 'transparent',
-                                      cursor: 'pointer',
-                                      borderRadius: '4px'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.backgroundColor = 'transparent'
-                                    }}
-                                  >
-                                    <MoreVertical size={16} color="#6b7280" />
-                                  </button>
-                                  {openMenuId === list.id && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        right: 0,
-                                        top: '100%',
-                                        marginTop: '4px',
-                                        backgroundColor: '#ffffff',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '6px',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                        zIndex: 1000,
-                                        minWidth: '160px',
-                                        padding: '4px'
+                  <Card>
+                    <SimpleBar className="max-h-[580px]">
+                      <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-base font-semibold py-3">
+                                <Checkbox />
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                LIST NAME
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                # OF RECORDS
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                TYPE
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                CREATED BY
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                LAST MODIFIED
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3 text-right">
+                                ACTIONS
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredPeopleLists.map((list) => (
+                              <TableRow
+                                key={list.id}
+                                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                                onClick={() => router.push(`/dashboard/lists/${list.id}`)}
+                              >
+                                <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox />
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <span className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
+                                    {list.name}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                                    {list.item_count || 0}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <Badge variant="lightPrimary" className="inline-flex items-center gap-1">
+                                    <Users size={12} />
+                                    Prospects
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                  You
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                  {formatDate(list.updated_at || list.created_at)}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleExportListCSV(list.id, list.name)
                                       }}
-                                      onClick={(e) => e.stopPropagation()}
+                                      title="Download CSV"
                                     >
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleDeleteList(list.id, list.name)
-                                        }}
-                                        disabled={deletingListId === list.id}
-                                        style={{
-                                          width: '100%',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '8px',
-                                          padding: '8px 12px',
-                                          border: 'none',
-                                          background: 'transparent',
-                                          cursor: deletingListId === list.id ? 'not-allowed' : 'pointer',
-                                          fontSize: '14px',
-                                          color: deletingListId === list.id ? '#9ca3af' : '#dc2626',
-                                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                          textAlign: 'left'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          if (deletingListId !== list.id) {
-                                            e.currentTarget.style.backgroundColor = '#fef2f2'
-                                          }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'transparent'
-                                        }}
-                                      >
-                                        <Trash2 size={16} />
-                                        {deletingListId === list.id ? 'Deleting...' : 'Delete'}
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                                      <Download size={16} />
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                          <MoreVertical size={16} />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-40">
+                                        <DropdownMenuItem
+                                          className="flex gap-2 items-center cursor-pointer text-red-600 focus:text-red-600"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDeleteList(list.id, list.name)
+                                          }}
+                                          disabled={deletingListId === list.id}
+                                        >
+                                          <Trash2 size={16} />
+                                          {deletingListId === list.id ? 'Deleting...' : 'Delete'}
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </SimpleBar>
+                  </Card>
                 )}
               </div>
 
@@ -1209,305 +958,119 @@ export default function ListsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    overflow: 'hidden'
-                  }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            <input type="checkbox" style={{ marginRight: '8px' }} />
-                            LIST NAME
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            # OF RECORDS
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            TYPE
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            CREATED BY
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            LAST MODIFIED
-                          </th>
-                          <th style={{
-                            padding: '12px 16px',
-                            textAlign: 'right',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          }}>
-                            ACTIONS
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredPropertiesLists.map((list) => (
-                          <tr
-                            key={list.id}
-                            style={{
-                              borderBottom: '1px solid #e5e7eb',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.15s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#f9fafb'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#ffffff'
-                            }}
-                            onClick={() => router.push(`/dashboard/lists/${list.id}`)}
-                          >
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input
-                                  type="checkbox"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                                <span style={{
-                                  fontSize: '14px',
-                                  fontWeight: 500,
-                                  color: '#111827',
-                                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                  cursor: 'pointer',
-                                  textDecoration: 'none',
-                                  transition: 'color 0.15s'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.color = '#6366f1'
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.color = '#111827'
-                                }}
-                                >
-                                  {list.name}
-                                </span>
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <span style={{
-                                fontSize: '15px',
-                                fontWeight: 600,
-                                color: '#111827',
-                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-                                letterSpacing: '0.025em'
-                              }}>
-                                {list.item_count || 0}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '4px 8px',
-                                backgroundColor: '#fef3c7',
-                                color: '#92400e',
-                                borderRadius: '12px',
-                                fontSize: '12px',
-                                fontWeight: 500
-                              }}>
-                                <Building2 size={12} />
-                                Properties
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                              You
-                            </td>
-                            <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                              {formatDate(list.updated_at || list.created_at)}
-                            </td>
-                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'flex-end',
-                                gap: '8px'
-                              }}>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleExportListCSV(list.id, list.name)
-                                  }}
-                                  style={{
-                                    padding: '6px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent'
-                                  }}
-                                  title="Download CSV"
-                                >
-                                  <Download size={16} color="#6b7280" />
-                                </button>
-                                <div style={{ position: 'relative' }}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setOpenMenuId(openMenuId === list.id ? null : list.id)
-                                    }}
-                                    style={{
-                                      padding: '6px',
-                                      border: 'none',
-                                      background: 'transparent',
-                                      cursor: 'pointer',
-                                      borderRadius: '4px'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.backgroundColor = '#f3f4f6'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.backgroundColor = 'transparent'
-                                    }}
-                                  >
-                                    <MoreVertical size={16} color="#6b7280" />
-                                  </button>
-                                  {openMenuId === list.id && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        right: 0,
-                                        top: '100%',
-                                        marginTop: '4px',
-                                        backgroundColor: '#ffffff',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '6px',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                        zIndex: 1000,
-                                        minWidth: '160px',
-                                        padding: '4px'
+                  <Card>
+                    <SimpleBar className="max-h-[580px]">
+                      <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-base font-semibold py-3">
+                                <Checkbox />
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                LIST NAME
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                # OF RECORDS
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                TYPE
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                CREATED BY
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3">
+                                LAST MODIFIED
+                              </TableHead>
+                              <TableHead className="text-base font-semibold py-3 text-right">
+                                ACTIONS
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredPropertiesLists.map((list) => (
+                              <TableRow
+                                key={list.id}
+                                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                                onClick={() => router.push(`/dashboard/lists/${list.id}`)}
+                              >
+                                <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox />
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <span className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
+                                    {list.name}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <span className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                                    {list.item_count || 0}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <Badge variant="lightWarning" className="inline-flex items-center gap-1">
+                                    <Building2 size={12} />
+                                    Properties
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                  You
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                  {formatDate(list.updated_at || list.created_at)}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleExportListCSV(list.id, list.name)
                                       }}
-                                      onClick={(e) => e.stopPropagation()}
+                                      title="Download CSV"
                                     >
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleEditList(list)
-                                        }}
-                                        style={{
-                                          width: '100%',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '8px',
-                                          padding: '8px 12px',
-                                          border: 'none',
-                                          background: 'transparent',
-                                          cursor: 'pointer',
-                                          fontSize: '14px',
-                                          color: '#374151',
-                                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                          textAlign: 'left'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.backgroundColor = '#f9fafb'
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'transparent'
-                                        }}
-                                      >
-                                        <Edit size={16} />
-                                        Edit
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleDeleteList(list.id, list.name)
-                                        }}
-                                        disabled={deletingListId === list.id}
-                                        style={{
-                                          width: '100%',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '8px',
-                                          padding: '8px 12px',
-                                          border: 'none',
-                                          background: 'transparent',
-                                          cursor: deletingListId === list.id ? 'not-allowed' : 'pointer',
-                                          fontSize: '14px',
-                                          color: deletingListId === list.id ? '#9ca3af' : '#dc2626',
-                                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                          textAlign: 'left'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          if (deletingListId !== list.id) {
-                                            e.currentTarget.style.backgroundColor = '#fef2f2'
-                                          }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'transparent'
-                                        }}
-                                      >
-                                        <Trash2 size={16} />
-                                        {deletingListId === list.id ? 'Deleting...' : 'Delete'}
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                                      <Download size={16} />
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                          <MoreVertical size={16} />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-40">
+                                        <DropdownMenuItem
+                                          className="flex gap-2 items-center cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleEditList(list)
+                                          }}
+                                        >
+                                          <Edit size={16} />
+                                          Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="flex gap-2 items-center cursor-pointer text-red-600 focus:text-red-600"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDeleteList(list.id, list.name)
+                                          }}
+                                          disabled={deletingListId === list.id}
+                                        >
+                                          <Trash2 size={16} />
+                                          {deletingListId === list.id ? 'Deleting...' : 'Delete'}
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </SimpleBar>
+                  </Card>
                 )}
               </div>
             </>

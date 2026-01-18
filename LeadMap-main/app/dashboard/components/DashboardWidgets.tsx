@@ -336,8 +336,8 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
   }))
 
   // Prepare chart data
-  const chartSeries = stages.map(s => s.value)
-  const chartLabels = stages.map(s => s.name)
+  const chartSeries = stages.map((s: { name: string; value: number; percentage: number }) => s.value)
+  const chartLabels = stages.map((s: { name: string; value: number; percentage: number }) => s.name)
   
   // Color mapping for stages
   const stageColors = [
@@ -400,9 +400,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
         colors: isDark ? 'var(--color-white, #ffffff)' : 'var(--color-foreground, #1f2937)',
       },
       markers: {
-        width: 8,
-        height: 8,
-        radius: 4,
+        size: 8,
       },
     },
     colors: stageColors.slice(0, stages.length),

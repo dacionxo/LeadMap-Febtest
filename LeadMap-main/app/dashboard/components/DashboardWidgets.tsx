@@ -38,6 +38,12 @@ import {
   TrendingDown,
   GitBranch
 } from 'lucide-react'
+import { Card } from '@/app/components/ui/card'
+import { Badge, BadgeProps } from '@/app/components/ui/badge'
+import SimpleBar from 'simplebar-react'
+import 'simplebar-react/dist/simplebar.min.css'
+import { motion } from 'framer-motion'
+import { Icon } from '@iconify/react'
 
 export interface DashboardWidget {
   id: string
@@ -149,30 +155,84 @@ function QuickActionsWidget({ widget }: { widget: DashboardWidget; data?: any })
 }
 
 function RecentActivityWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const activities = data || [
-    { id: '1', type: 'enrichment', title: 'Lead enrichment completed', description: '25 leads enriched with contact information', time: '2 hours ago', icon: Sparkles },
-    { id: '2', type: 'campaign', title: 'Campaign launched', description: 'Expired listings outreach campaign started', time: '5 hours ago', icon: Target },
-    { id: '3', type: 'lead', title: 'New prospects added', description: '150 new property listings imported', time: '1 day ago', icon: Users }
+  // Map API data to TailwindAdmin format or use defaults
+  const activitiesData = data || [
+    { id: '1', type: 'enrichment', title: 'Lead enrichment completed', description: '25 leads enriched with contact information', time: '2 hours ago', icon: 'tabler:sparkles' },
+    { id: '2', type: 'campaign', title: 'Campaign launched', description: 'Expired listings outreach campaign started', time: '5 hours ago', icon: 'tabler:target' },
+    { id: '3', type: 'lead', title: 'New prospects added', description: '150 new property listings imported', time: '1 day ago', icon: 'tabler:users' }
   ]
-  
+
+  // Transform API data to match TailwindAdmin structure
+  const activities = activitiesData.map((activity: any) => {
+    // Map icon names to iconify format if needed
+    let iconName = activity.icon
+    if (typeof iconName === 'string' && !iconName.startsWith('tabler:')) {
+      // Convert lucide icon names to iconify format
+      const iconMap: Record<string, string> = {
+        'Sparkles': 'tabler:sparkles',
+        'Target': 'tabler:target',
+        'Users': 'tabler:users',
+        'Activity': 'tabler:activity',
+        'Mail': 'tabler:mail',
+        'Phone': 'tabler:phone',
+        'MapPin': 'tabler:map-pin',
+        'Calendar': 'tabler:calendar',
+      }
+      iconName = iconMap[iconName] || 'tabler:activity'
+    }
+
+    // Map activity types to colors
+    const colorMap: Record<string, { bg: string; text: string }> = {
+      'enrichment': { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400' },
+      'campaign': { bg: 'bg-green-100 dark:bg-green-900/20', text: 'text-green-600 dark:text-green-400' },
+      'lead': { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400' },
+      'default': { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400' }
+    }
+    const colors = colorMap[activity.type] || colorMap.default
+
+    return {
+      key: activity.id || activity.key,
+      icon: iconName,
+      title: activity.title,
+      desc: activity.description || activity.desc || 'working on',
+      time: activity.time || activity.date || 'now',
+      bgColor: colors.bg,
+      color: colors.text,
+    }
+  })
+
   return (
-    <div className="space-y-3">
-      {activities.map((activity: any) => {
-        const Icon = activity.icon || Activity
-        return (
-          <div key={activity.id} className="flex items-start space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0 last:pb-0">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.title}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{activity.description}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{activity.time}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
+    <SimpleBar className="max-h-[248px] pr-6">
+      <div className="flex flex-col gap-6">
+        {activities.map((item: any, i: number) => {
+          return (
+            <motion.div
+              key={item.key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.5,
+                delay: i * 0.4,
+              }}
+              className="flex items-center justify-between"
+            >
+              <div className="flex gap-3 items-center">
+                <div
+                  className={`h-11 w-11 rounded-full ${item.bgColor} ${item.color} flex justify-center items-center`}
+                >
+                  <Icon icon={item.icon} className="text-xl" />
+                </div>
+                <div>
+                  <h6 className="text-sm text-gray-900 dark:text-white">{item.title}</h6>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{item.desc}</p>
+                </div>
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{item.time}</span>
+            </motion.div>
+          )
+        })}
+      </div>
+    </SimpleBar>
   )
 }
 
@@ -242,32 +302,84 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
 }
 
 function TasksWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const tasks = data || [
-    { id: 1, title: 'Follow up with expired listing owner', due: 'Today', priority: 'high' },
-    { id: 2, title: 'Review probate leads', due: 'Tomorrow', priority: 'medium' },
-    { id: 3, title: 'Schedule property viewing', due: 'In 2 days', priority: 'low' }
+  // Map API data to TailwindAdmin format or use defaults
+  const tasksData = data || [
+    { id: 1, title: 'Follow up with expired listing owner', due: 'Today', priority: 'high', date: '21 August 2025', description: 'Contact expired listing owner to discuss property', tasks: 2, comments: 0 },
+    { id: 2, title: 'Review probate leads', due: 'Tomorrow', priority: 'medium', date: '22 August 2025', description: 'Review and qualify new probate leads', tasks: 1, comments: 3 },
+    { id: 3, title: 'Schedule property viewing', due: 'In 2 days', priority: 'low', date: '23 August 2025', description: 'Schedule viewing for interested prospects', tasks: 0, comments: 1 }
   ]
-  
+
+  // Transform API data to match TailwindAdmin structure
+  const tasks = tasksData.map((task: any) => {
+    // Map priority to status and badge color
+    const statusMap: Record<string, { status: string; badgeColor: string }> = {
+      'high': { status: 'Inprogress', badgeColor: 'lightPrimary' },
+      'medium': { status: 'Inpending', badgeColor: 'lightError' },
+      'low': { status: 'Completed', badgeColor: 'lightSuccess' },
+      'completed': { status: 'Completed', badgeColor: 'lightSuccess' },
+      'pending': { status: 'Inpending', badgeColor: 'lightError' },
+      'inprogress': { status: 'Inprogress', badgeColor: 'lightPrimary' },
+    }
+    const statusInfo = statusMap[task.priority?.toLowerCase()] || statusMap['medium']
+
+    return {
+      key: task.id?.toString() || task.key,
+      status: task.status || statusInfo.status,
+      date: task.date || task.due || 'Today',
+      title: task.title,
+      description: task.description || task.desc || '',
+      tasks: task.tasks || 0,
+      comments: task.comments || 0,
+      badgeColor: task.badgeColor || statusInfo.badgeColor,
+    }
+  })
+
   return (
-    <div className="space-y-2">
-      {tasks.map((task: any) => (
-        <div key={task.id} className="p-2 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-sm text-gray-900 dark:text-white">{task.title}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Due: {task.due}</p>
+    <SimpleBar className="max-h-[500px]">
+      <div className="space-y-6">
+        {tasks.map((item: any, i: number) => (
+          <motion.div
+            key={item.key}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: i * 0.2 }}
+            className="pb-6 border-b last:border-none border-gray-200 dark:border-gray-700"
+          >
+            <div className="flex items-center justify-between">
+              <Badge
+                variant={item.badgeColor as BadgeProps["variant"]}
+                className="rounded-md py-1.5 text-sm"
+              >
+                {item.status}
+              </Badge>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{item.date}</span>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${
-              task.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
-              task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' :
-              'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-            }`}>
-              {task.priority}
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
+            <h6 className="mt-4 text-sm font-medium text-gray-900 dark:text-white">{item.title}</h6>
+            {item.description && (
+              <p className="pt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
+            )}
+            <div className="flex gap-4 items-center mt-4">
+              <div className="flex gap-2 items-center text-sm text-gray-600 dark:text-gray-400">
+                <Icon
+                  icon="tabler:clipboard"
+                  className="text-lg text-blue-600 dark:text-blue-400"
+                  aria-label="task count"
+                />
+                <span>{`${item.tasks} Tasks`}</span>
+              </div>
+              <div className="flex gap-2 items-center text-sm text-gray-600 dark:text-gray-400">
+                <Icon
+                  icon="tabler:message-dots"
+                  className="text-lg text-blue-600 dark:text-blue-400"
+                  aria-label="comment count"
+                />
+                <span>{`${item.comments} Comments`}</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </SimpleBar>
   )
 }
 

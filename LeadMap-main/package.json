@@ -45,6 +45,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
+    "framer-motion": "^12.26.2",
     "googleapis": "^144.0.0",
     "grapesjs": "^0.22.14",
     "grapesjs-mjml": "^1.0.7",

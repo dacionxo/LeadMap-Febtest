@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Badge } from '@/app/components/ui/badge'
+import { Checkbox } from '@/app/components/ui/checkbox'
+import SimpleBar from 'simplebar-react'
+import 'simplebar-react/dist/simplebar.min.css'
 
 interface NextStep {
   id: string
@@ -75,99 +81,101 @@ export default function NextSteps() {
   }
 
   return (
-    <div className="mb-8 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Your next actions</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Explore recommended actions to build on your setup and unlock more value
-          </p>
+    <Card className="mb-8">
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h4 className="card-title">Your next actions</h4>
+            <p className="card-subtitle">
+              Explore recommended actions to build on your setup and unlock more value
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={hideCompleted}
+                onCheckedChange={(checked) => setHideCompleted(checked as boolean)}
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">Hide completed</span>
+            </label>
+          </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={hideCompleted}
-              onChange={(e) => setHideCompleted(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Hide completed</span>
-          </label>
-        </div>
+
+        {/* Progress Indicator */}
+        {completedCount > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+              <span>Account Setup</span>
+              <span>{completedCount} of {steps.length} completed</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(completedCount / steps.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Progress Indicator */}
-      {completedCount > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-            <span>Account Setup</span>
-            <span>{completedCount} of {steps.length} completed</span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(completedCount / steps.length) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Steps List */}
-      <div className="space-y-3">
-        {visibleSteps.map((step) => (
-          <div
-            key={step.id}
-            className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-opacity duration-300"
-            style={{ opacity: step.completed ? 0.6 : 1 }}
-          >
-            <div className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3 flex-1">
-                  <button
-                    onClick={() => toggleStep(step.id)}
-                    className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-                      step.completed
-                        ? 'bg-blue-600 border-blue-600'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    {step.completed && <Check className="w-3 h-3 text-white" />}
-                  </button>
-                  <div className="flex-1">
-                    <h3 className={`font-medium mb-1 ${step.completed ? 'text-gray-500 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'}`}>
-                      {step.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{step.description}</p>
+      <SimpleBar className="max-h-[500px]">
+        <div className="space-y-3">
+          {visibleSteps.map((step) => (
+            <div
+              key={step.id}
+              className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-opacity duration-300"
+              style={{ opacity: step.completed ? 0.6 : 1 }}
+            >
+              <div className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="mt-1">
+                      <Checkbox
+                        checked={step.completed}
+                        onCheckedChange={() => toggleStep(step.id)}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h6 className={`text-sm font-medium mb-1 ${step.completed ? 'text-gray-500 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'}`}>
+                        {step.title}
+                      </h6>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{step.description}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2 ml-4">
-                  <button
-                    onClick={() => handleStart(step.href)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 ${
-                      step.completed
-                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white'
-                    }`}
-                  >
-                    {step.completed ? 'Completed' : 'Start'}
-                  </button>
-                  <button
-                    onClick={() => setExpandedStep(expandedStep === step.id ? null : step.id)}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
-                  >
-                    {expandedStep === step.id ? (
-                      <ChevronUp className="w-5 h-5" />
+                  <div className="flex items-center gap-2 ml-4">
+                    {step.completed ? (
+                      <Badge variant="lightSuccess" className="rounded-md py-1.5 text-sm">
+                        Completed
+                      </Badge>
                     ) : (
-                      <ChevronDown className="w-5 h-5" />
+                      <Button
+                        onClick={() => handleStart(step.href)}
+                        variant="default"
+                        size="sm"
+                      >
+                        Start
+                      </Button>
                     )}
-                  </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setExpandedStep(expandedStep === step.id ? null : step.id)}
+                    >
+                      {expandedStep === step.id ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      </SimpleBar>
+    </Card>
   )
 }
 

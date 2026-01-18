@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
 import { Badge, BadgeProps } from '@/app/components/ui/badge'
 import { Card } from '@/app/components/ui/card'
 import { Icon } from '@iconify/react'
+import { ApexOptions } from 'apexcharts'
 import { motion } from 'framer-motion'
 import {
   Activity,
@@ -29,11 +29,11 @@ import {
   X,
   Zap
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 import SimpleBar from 'simplebar-react'
 import 'simplebar-react/dist/simplebar.min.css'
-import dynamic from 'next/dynamic'
-import { ApexOptions } from 'apexcharts'
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 export interface DashboardWidget {

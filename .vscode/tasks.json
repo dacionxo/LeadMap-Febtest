@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "postiz: install",
+      "type": "shell",
+      "command": "pnpm install",
+      "options": { "cwd": "${workspaceFolder}/postiz-app" },
+      "problemMatcher": []
+    },
+    {
+      "label": "postiz: dev",
+      "type": "shell",
+      "command": "pnpm run dev",
+      "options": { "cwd": "${workspaceFolder}/postiz-app" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "portal: install",
+      "type": "shell",
+      "command": "npm install",
+      "options": { "cwd": "${workspaceFolder}/portal-backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "portal: dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/portal-backend" },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

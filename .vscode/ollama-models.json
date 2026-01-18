@@ -1,0 +1,11 @@
+{
+  "models": [
+    {
+      "id": "ollama-cloud",
+      "displayName": "Ollama Cloud (user-provided)",
+      "apiEnvVar": "OLLAMA_API_KEY",
+      "apiEndpoint": "https://api.ollama.com",
+      "modelName": "ollama"
+    }
+  ]
+}

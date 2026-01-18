@@ -1,24 +1,24 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@import './layouts/container.css';
-@import './layouts/sidebar.css';
-@import './layouts/horizontal.css';
-@import './layouts/header.css';
-@import './pages/dashboards.css';
-@import './pages/widgets.css';
+@import "./layouts/container.css";
+@import "./layouts/sidebar.css";
+@import "./layouts/horizontal.css";
+@import "./layouts/header.css";
+@import "./pages/dashboards.css";
+@import "./pages/widgets.css";
 
-@import './pages/landingpage.css';
-@import './pages/frontend-pages.css';
-@import './pages/auth.css';
-@import './pages/app.css';
+@import "./pages/landingpage.css";
+@import "./pages/frontend-pages.css";
+@import "./pages/auth.css";
+@import "./pages/app.css";
 
-@import './theme/dark.css';
-@import './override/reboot.css';
-@import './layouts/rtl.css';
+@import "./theme/dark.css";
+@import "./override/reboot.css";
+@import "./layouts/rtl.css";
 
-@import './theme/default-theme.css';
+@import "./theme/default-theme.css";
 
-@import 'tw-animate-css';
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -195,10 +195,12 @@
   /* ----------------------------------- custom color variable end ----------------------------------- */
 
   /* shadow */
-  --shadow-md: rgb(145 158 171 / 30%) 0px 0px 2px 0px,
+  --shadow-md:
+    rgb(145 158 171 / 30%) 0px 0px 2px 0px,
     rgb(145 158 171 / 12%) 0px 12px 24px -4px;
   --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-  --shadow-dark-md: rgba(145, 158, 171, 0.3) 0px 0px 2px 0px,
+  --shadow-dark-md:
+    rgba(145, 158, 171, 0.3) 0px 0px 2px 0px,
     rgba(145, 158, 171, 0.02) 0px 12px 24px -4px;
   --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --shadow-btn-shadow: rgba(0, 0, 0, 0.05) 0 9px 17.5px;
@@ -618,10 +620,10 @@
   h6 {
     @apply text-dark dark:text-white font-semibold;
   }
-  input[type='radio']:focus {
+  input[type="radio"]:focus {
     @apply !ring-primary;
   }
-  input[type='radio']:checked {
+  input[type="radio"]:checked {
     @apply !bg-primary;
   }
 

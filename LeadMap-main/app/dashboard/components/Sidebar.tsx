@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Icon } from '@iconify/react'
 import { useApp } from '@/app/providers'
 import { useSidebar } from './SidebarContext'
+// @ts-ignore
 import SimpleBar from 'simplebar-react'
 import 'simplebar-react/dist/simplebar.min.css'
 

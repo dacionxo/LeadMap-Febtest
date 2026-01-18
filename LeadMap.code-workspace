@@ -1,0 +1,100 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "Root"
+    },
+    {
+      "path": "portal-backend",
+      "name": "Portal Backend"
+    },
+    {
+      "path": "postiz-app",
+      "name": "Postiz App"
+    },
+    {
+      "path": "context7",
+      "name": "Context7"
+    },
+    {
+      "path": "dev-playgrounds",
+      "name": "Dev Playgrounds"
+    },
+    {
+      "path": "addresser",
+      "name": "Addresser"
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "eslint.validate": [
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact"
+    ],
+    "eslint.format.enable": true,
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.preferGoToSourceDefinition": true,
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/.git": true,
+      "**/dist": true
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.next": true
+    },
+    "tailwindCSS.experimental.classRegex": [
+      ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+    ],
+    "deno.enable": true,
+    "deno.lint": true
+    ,
+    "terminal.integrated.profiles.windows": {
+      "PowerShell 7": {
+        "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "args": [],
+        "icon": "terminal-powershell"
+      }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell 7"
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.vscode-typescript-next",
+      "ms-vscode-remote.remote-wsl",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "denoland.vscode-deno",
+      "dsznajder.es7-react-js-snippets",
+      "bradlc.vscode-tailwindcss",
+      "unifiedjs.vscode-mdx",
+      "styled-components.vscode-styled-components",
+      "eamodio.gitlens",
+      "mhutchie.git-graph"
+    ]
+  }
+}

@@ -25,9 +25,14 @@ import {
   Calendar,
   CheckCircle2,
   AlertCircle,
-  Briefcase
+  Briefcase,
+  Percent
 } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Card } from '@/app/components/ui/card'
+import { Badge } from '@/app/components/ui/badge'
+import { Icon } from '@iconify/react'
+import { cn } from '@/app/lib/utils'
 
 interface QuickAction {
   id: string
@@ -47,6 +52,9 @@ interface MetricCard {
   gradient: string
   change?: string
   trend?: 'up' | 'down' | 'neutral'
+  iconify?: string
+  bgColor?: string
+  txtColor?: string
 }
 
 interface RecentActivity {
@@ -226,6 +234,31 @@ export default function DashboardContent() {
       }, 0) || 0
       const avgValue = total > 0 ? Math.round(totalValue / total) : 0
 
+      // Fetch deals for CRM metrics
+      let deals: any[] = []
+      try {
+        const { data: dealsData, error: dealsError } = await supabase
+          .from('deals')
+          .select('id, stage, value, created_at, updated_at')
+          .order('created_at', { ascending: false })
+        
+        if (!dealsError && dealsData) {
+          deals = dealsData
+        }
+      } catch (err) {
+        console.warn('Error fetching deals:', err)
+      }
+
+      // Calculate CRM metrics
+      const activeDeals = deals?.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).length || 0
+      const pipelineValue = deals?.reduce((sum, d) => {
+        const value = typeof d.value === 'number' ? d.value : parseFloat(d.value?.toString() || '0') || 0
+        return sum + value
+      }, 0) || 0
+      const closedDeals = deals?.filter(d => d.stage === 'closed_won').length || 0
+      const totalDeals = deals?.length || 0
+      const conversionRate = totalDeals > 0 ? Math.round((closedDeals / totalDeals) * 100) : 0
+
       // Calculate trends from previous data
       const previous = previousDataRef.current
       const calculateTrend = (current: number, previous: number): { change: string; trend: 'up' | 'down' | 'neutral' } => {
@@ -249,6 +282,11 @@ export default function DashboardContent() {
       const expiredTrend = calculateTrend(expired, previous.expired || 0)
       const probateTrend = calculateTrend(probate, previous.probate || 0)
 
+      // Calculate CRM trends
+      const activeDealsTrend = calculateTrend(activeDeals, previous.activeDeals || 0)
+      const pipelineValueTrend = calculateTrend(pipelineValue, previous.pipelineValue || 0)
+      const conversionRateTrend = calculateTrend(conversionRate, previous.conversionRate || 0)
+
       // Store current data for next trend calculation
       previousDataRef.current = {
         total,
@@ -256,7 +294,10 @@ export default function DashboardContent() {
         enriched,
         avgValue,
         expired,
-        probate
+        probate,
+        activeDeals,
+        pipelineValue,
+        conversionRate
       }
 
       setMetrics([
@@ -267,7 +308,10 @@ export default function DashboardContent() {
           color: 'text-blue-400',
           gradient: 'from-blue-500 to-cyan-500',
           change: totalTrend.change,
-          trend: totalTrend.trend
+          trend: totalTrend.trend,
+          iconify: 'tabler:users',
+          bgColor: 'lightprimary',
+          txtColor: 'primary'
         },
         {
           label: 'Active Listings',
@@ -276,7 +320,10 @@ export default function DashboardContent() {
           color: 'text-green-400',
           gradient: 'from-green-500 to-emerald-500',
           change: activeTrend.change,
-          trend: activeTrend.trend
+          trend: activeTrend.trend,
+          iconify: 'tabler:building',
+          bgColor: 'lightsuccess',
+          txtColor: 'success'
         },
         {
           label: 'Enriched Leads',
@@ -285,7 +332,10 @@ export default function DashboardContent() {
           color: 'text-purple-400',
           gradient: 'from-purple-500 to-indigo-500',
           change: enrichedTrend.change,
-          trend: enrichedTrend.trend
+          trend: enrichedTrend.trend,
+          iconify: 'tabler:sparkles',
+          bgColor: 'lightsecondary',
+          txtColor: 'secondary'
         },
         {
           label: 'Avg Property Value',
@@ -294,7 +344,10 @@ export default function DashboardContent() {
           color: 'text-orange-400',
           gradient: 'from-orange-500 to-red-500',
           change: avgValueTrend.change,
-          trend: avgValueTrend.trend
+          trend: avgValueTrend.trend,
+          iconify: 'tabler:currency-dollar',
+          bgColor: 'lightwarning',
+          txtColor: 'warning'
         },
         {
           label: 'Expired Listings',
@@ -303,7 +356,10 @@ export default function DashboardContent() {
           color: 'text-red-400',
           gradient: 'from-red-500 to-pink-500',
           change: expiredTrend.change,
-          trend: expiredTrend.trend
+          trend: expiredTrend.trend,
+          iconify: 'tabler:clock',
+          bgColor: 'lighterror',
+          txtColor: 'error'
         },
         {
           label: 'Probate Leads',
@@ -312,7 +368,46 @@ export default function DashboardContent() {
           color: 'text-indigo-400',
           gradient: 'from-indigo-500 to-purple-500',
           change: probateTrend.change,
-          trend: probateTrend.trend
+          trend: probateTrend.trend,
+          iconify: 'tabler:file-text',
+          bgColor: 'lightinfo',
+          txtColor: 'info'
+        },
+        {
+          label: 'Active Deals',
+          value: activeDeals.toLocaleString(),
+          icon: Briefcase,
+          color: 'text-blue-400',
+          gradient: 'from-blue-500 to-cyan-500',
+          change: activeDealsTrend.change,
+          trend: activeDealsTrend.trend,
+          iconify: 'tabler:briefcase',
+          bgColor: 'lightprimary',
+          txtColor: 'primary'
+        },
+        {
+          label: 'Pipeline Value',
+          value: `$${(pipelineValue / 1000).toFixed(0)}K`,
+          icon: DollarSign,
+          color: 'text-green-400',
+          gradient: 'from-green-500 to-emerald-500',
+          change: pipelineValueTrend.change,
+          trend: pipelineValueTrend.trend,
+          iconify: 'tabler:currency-dollar',
+          bgColor: 'lightsuccess',
+          txtColor: 'success'
+        },
+        {
+          label: 'Conversion Rate',
+          value: `${conversionRate}%`,
+          icon: Percent,
+          color: 'text-purple-400',
+          gradient: 'from-purple-500 to-indigo-500',
+          change: conversionRateTrend.change,
+          trend: conversionRateTrend.trend,
+          iconify: 'tabler:percentage',
+          bgColor: 'lightsecondary',
+          txtColor: 'secondary'
         }
       ])
 
@@ -431,45 +526,53 @@ export default function DashboardContent() {
           </div>
         )}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
+          <div className="grid xl:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+              <Card key={i} className="animate-pulse">
                 <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </div>
+              </Card>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid xl:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
             {metrics.map((metric, index) => {
-              const Icon = metric.icon
+              const badgeVariant = metric.trend === 'up' ? 'lightSuccess' : metric.trend === 'down' ? 'lightError' : 'gray'
               return (
-                <div
-                  key={metric.label}
-                  className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-all duration-200 group cursor-pointer"
-                  onClick={() => router.push('/dashboard/prospect-enrich')}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 rounded-lg bg-gradient-to-br ${metric.gradient} shadow-md group-hover:scale-110 transition-transform duration-200`}>
-                      <Icon className="w-5 h-5 text-white" />
+                <Card key={metric.label} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push('/dashboard/prospect-enrich')}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col justify-between gap-4">
+                      <div>
+                        <h3 className="2xl:text-28 text-2xl font-semibold">
+                          {metric.value}
+                        </h3>
+                        <p className="2xl:text-base text-sm font-normal">
+                          {metric.label}
+                        </p>
+                      </div>
+                      {metric.change && (
+                        <div>
+                          <Badge variant={badgeVariant} className="rounded-md text-sm">
+                            {metric.trend === 'down' && <Icon icon="tabler:chevron-down" className="text-lg shrink-0 inline-block me-1" />}
+                            {metric.trend === 'up' && <Icon icon="tabler:chevron-up" className="text-lg shrink-0 inline-block me-1" />}
+                            {metric.change}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
-                    {metric.change && (
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full flex items-center space-x-1 ${
-                        metric.trend === 'up'
-                          ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                          : metric.trend === 'down'
-                          ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                          : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        <TrendingUp className={`w-3 h-3 ${metric.trend === 'down' ? 'rotate-180' : ''}`} />
-                        <span>{metric.change}</span>
-                      </span>
-                    )}
+                    <div className={cn(
+                      "p-3 rounded-lg",
+                      metric.bgColor === 'lightprimary' && "bg-lightprimary text-primary",
+                      metric.bgColor === 'lightsuccess' && "bg-lightsuccess text-success",
+                      metric.bgColor === 'lightwarning' && "bg-lightwarning text-warning",
+                      metric.bgColor === 'lighterror' && "bg-lighterror text-error",
+                      metric.bgColor === 'lightinfo' && "bg-lightinfo text-info",
+                      metric.bgColor === 'lightsecondary' && "bg-lightsecondary text-secondary",
+                      !metric.bgColor && "bg-lightprimary text-primary"
+                    )}>
+                      <Icon icon={metric.iconify || 'tabler:chart'} width={24} height={24} />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metric.value}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{metric.label}</p>
-                  </div>
-                </div>
+                </Card>
               )
             })}
           </div>

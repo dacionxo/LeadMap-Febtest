@@ -34,6 +34,13 @@ import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import SimpleBar from 'simplebar-react'
 import 'simplebar-react/dist/simplebar.min.css'
+import { LabelList, Pie, PieChart as RechartsPieChart } from 'recharts'
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/app/components/ui/chart'
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 export interface DashboardWidget {
@@ -335,93 +342,67 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
     percentage: stage.percentage || 0
   }))
 
-  // Prepare chart data
-  const chartSeries = stages.map((s: { name: string; value: number; percentage: number }) => s.value)
-  const chartLabels = stages.map((s: { name: string; value: number; percentage: number }) => s.name)
-  
-  // Color mapping for stages
-  const stageColors = [
-    'var(--color-primary, #3b82f6)',
-    'var(--color-secondary, #49beff)',
-    'var(--color-success, #10b981)',
-    'var(--color-warning, #f59e0b)',
-    'var(--color-info, #3b82f6)'
-  ]
+  // Calculate total for percentage calculation
+  const total = stages.reduce((sum, s) => sum + s.value, 0) || 1
 
-  // Detect dark mode - use a state hook for reactivity
-  const [isDark, setIsDark] = useState(false)
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsDark(document.documentElement.classList.contains('dark'))
-      // Watch for dark mode changes
-      const observer = new MutationObserver(() => {
-        setIsDark(document.documentElement.classList.contains('dark'))
-      })
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class']
-      })
-      return () => observer.disconnect()
+  // Prepare chart data for recharts (Label List pattern)
+  const chartData = stages.map((stage: any, index: number) => {
+    // Color mapping for stages - matching the original colors
+    const colorMap = [
+      'var(--color-chart-1, #3b82f6)',
+      'var(--color-chart-2, #49beff)',
+      'var(--color-chart-3, #10b981)',
+      'var(--color-chart-4, #f59e0b)',
+      'var(--color-chart-5, #8b5cf6)'
+    ]
+    
+    // Map stage names to chart keys
+    const stageKeyMap: Record<string, string> = {
+      'New': 'new',
+      'Contacted': 'contacted',
+      'Qualified': 'qualified',
+      'Proposal': 'proposal',
+      'Closed': 'closed'
     }
-  }, [])
+    
+    const stageKey = stageKeyMap[stage.name] || `stage${index}`
+    
+    return {
+      [stageKey]: stage.value,
+      browser: stageKey,
+      visitors: stage.value,
+      fill: colorMap[index] || colorMap[0],
+      name: stage.name,
+      value: stage.value,
+      percentage: total > 0 ? Math.round((stage.value / total) * 100) : 0
+    }
+  })
 
-  const ChartData: ApexOptions = {
-    series: chartSeries,
-    labels: chartLabels,
-    chart: {
-      height: 300,
-      type: 'pie',
-      fontFamily: 'inherit',
-      foreColor: isDark ? 'var(--color-white40, rgba(255, 255, 255, 0.4))' : 'var(--color-black40, rgba(0, 0, 0, 0.4))',
+  const chartConfig: ChartConfig = {
+    visitors: {
+      label: 'Deals',
     },
-    stroke: {
-      show: true,
-      colors: [isDark ? 'var(--color-dark, #1f2937)' : 'var(--color-white, #ffffff)'],
-      width: 2,
+    new: {
+      label: 'New',
+      color: 'var(--color-chart-1, #3b82f6)',
     },
-    dataLabels: {
-      enabled: true,
-      formatter: function (val: number, opts: any) {
-        return opts.w.config.labels[opts.seriesIndex] + '\n' + val.toFixed(0) + '%'
-      },
-      style: {
-        fontSize: '12px',
-        fontWeight: 600,
-      },
+    contacted: {
+      label: 'Contacted',
+      color: 'var(--color-chart-2, #49beff)',
     },
-    legend: {
-      show: true,
-      position: 'bottom',
-      fontSize: '14px',
-      fontFamily: 'inherit',
-      fontWeight: 400,
-      labels: {
-        colors: isDark ? 'var(--color-white, #ffffff)' : 'var(--color-foreground, #1f2937)',
-      },
-      markers: {
-        size: 8,
-      },
+    qualified: {
+      label: 'Qualified',
+      color: 'var(--color-chart-3, #10b981)',
     },
-    colors: stageColors.slice(0, stages.length),
-    tooltip: {
-      theme: isDark ? 'dark' : 'light',
-      fillSeriesColor: false,
-      y: {
-        formatter: function (val: number, opts: any) {
-          return opts.w.config.labels[opts.seriesIndex] + ': ' + val
-        }
-      }
+    proposal: {
+      label: 'Proposal',
+      color: 'var(--color-chart-4, #f59e0b)',
     },
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '0%',
-        },
-        expandOnClick: false,
-      },
+    closed: {
+      label: 'Closed',
+      color: 'var(--color-chart-5, #8b5cf6)',
     },
-  }
+  } satisfies ChartConfig
 
   return (
     <Card className="h-full">
@@ -431,17 +412,39 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
       </div>
       <div className="flex flex-col gap-6">
         <div>
-          <Chart
-            options={ChartData}
-            series={ChartData.series}
-            type="pie"
-            height="300px"
-            width="100%"
-          />
+          <ChartContainer
+            config={chartConfig}
+            className='[&_.recharts-text]:fill-background'>
+            <RechartsPieChart>
+              <ChartTooltip
+                content={<ChartTooltipContent nameKey='visitors' hideLabel />}
+              />
+              <Pie data={chartData} dataKey='visitors'>
+                <LabelList
+                  dataKey='browser'
+                  className='fill-link'
+                  stroke='none'
+                  fontSize={12}
+                  formatter={(value: keyof typeof chartConfig) =>
+                    chartConfig[value]?.label
+                  }
+                />
+              </Pie>
+            </RechartsPieChart>
+          </ChartContainer>
         </div>
         <div className="flex flex-col gap-2">
           {stages.map((stage: any, index: number) => {
-            const color = stageColors[index] || stageColors[0]
+            const colorMap = [
+              'var(--color-chart-1, #3b82f6)',
+              'var(--color-chart-2, #49beff)',
+              'var(--color-chart-3, #10b981)',
+              'var(--color-chart-4, #f59e0b)',
+              'var(--color-chart-5, #8b5cf6)'
+            ]
+            const color = colorMap[index] || colorMap[0]
+            const percentage = total > 0 ? Math.round((stage.value / total) * 100) : 0
+            
             return (
               <motion.div
                 key={index}
@@ -464,7 +467,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
                     {stage.value}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    ({stage.percentage}%)
+                    ({percentage}%)
                   </p>
                 </div>
               </motion.div>

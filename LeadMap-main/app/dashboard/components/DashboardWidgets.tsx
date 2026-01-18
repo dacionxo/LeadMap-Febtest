@@ -343,7 +343,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
   }))
 
   // Calculate total for percentage calculation
-  const total = stages.reduce((sum, s) => sum + s.value, 0) || 1
+  const total = stages.reduce((sum: number, s: { name: string; value: number; percentage: number }) => sum + s.value, 0) || 1
 
   // Prepare chart data for recharts (Label List pattern)
   const chartData = stages.map((stage: any, index: number) => {

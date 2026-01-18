@@ -39,6 +39,17 @@ module.exports = {
           800: '#354cc6',
           900: '#3242a0',
         },
+        // NextAdmin color system
+        dark: {
+          DEFAULT: '#111928',
+          2: '#1F2A37',
+          3: '#374151',
+          4: '#4B5563',
+          5: '#6B7280',
+          6: '#9CA3AF',
+          7: '#D1D5DB',
+          8: '#E5E7EB',
+        },
         secondary: {
           DEFAULT: '#49beff', // Tailwindadmin secondary
           50: '#e6f7ff',
@@ -91,6 +102,14 @@ module.exports = {
           800: '#166534',
           900: '#14532d',
         },
+        green: {
+          DEFAULT: '#22AD5C',
+          dark: '#1A8245',
+        },
+        red: {
+          DEFAULT: '#F23030',
+          dark: '#E10E0E',
+        },
         warning: {
           DEFAULT: '#f59e0b',
           50: '#fffbeb',
@@ -118,6 +137,15 @@ module.exports = {
           900: '#7f1d1d',
         },
         gray: {
+          DEFAULT: '#EFF4FB',
+          dark: '#122031',
+          1: '#F9FAFB',
+          2: '#F3F4F6',
+          3: '#E5E7EB',
+          4: '#D1D5DB',
+          5: '#9CA3AF',
+          6: '#6B7280',
+          7: '#374151',
           50: '#f9fafb',
           100: '#f3f4f6',
           200: '#e5e7eb',
@@ -146,7 +174,6 @@ module.exports = {
         lightwarning: 'rgba(246, 181, 30, 0.12)',
         lighterror: 'rgba(239, 68, 68, 0.12)',
         ld: '#e5e5e5', // border color used in Tailwindadmin
-        dark: '#1c2536', // dark background color
         info: '#8754ec',
         success: '#13deb9',
         warning: '#f6b51e',
@@ -160,10 +187,29 @@ module.exports = {
         lightemphasis: '#dfe5ef',
         bordergray: '#e5e5e5',
       },
+      fontSize: {
+        'heading-1': ['60px', '72px'],
+        'heading-2': ['48px', '58px'],
+        'heading-3': ['40px', '48px'],
+        'heading-4': ['35px', '45px'],
+        'heading-5': ['28px', '40px'],
+        'heading-6': ['24px', '30px'],
+      },
+      spacing: {
+        4.5: '1.125rem',
+        5.5: '1.375rem',
+        6.5: '1.625rem',
+        7.5: '1.875rem',
+        8.5: '2.125rem',
+        9.5: '2.375rem',
+        10.5: '2.625rem',
+      },
       boxShadow: {
         'dark-md': 'rgba(145, 158, 171, 0.3) 0px 0px 2px 0px, rgba(145, 158, 171, 0.02) 0px 12px 24px -4px',
         'md': 'rgb(145 158 171 / 30%) 0px 0px 2px 0px, rgb(145 158 171 / 12%) 0px 12px 24px -4px',
         'btn-shadow': 'rgba(0, 0, 0, 0.05) 0 9px 17.5px',
+        '1': '0px 1px 2px 0px rgba(84, 87, 118, 0.12)',
+        'card': '0px 1px 2px 0px rgba(0, 0, 0, 0.12)',
       }
     },
   },

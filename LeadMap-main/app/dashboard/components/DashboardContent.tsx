@@ -1,38 +1,28 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Clock, 
-  Upload, 
-  Sparkles, 
-  MessageSquare,
-  RefreshCw,
-  FileText,
-  MapPin,
-  TrendingUp,
-  Zap,
-  ArrowRight,
-  Activity,
-  Target,
-  Users,
-  DollarSign,
-  Building2,
-  BarChart3,
-  Plus,
-  Filter,
-  Search as SearchIcon,
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
-  Briefcase,
-  Percent
-} from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Card } from '@/app/components/ui/card'
 import { Badge } from '@/app/components/ui/badge'
-import { Icon } from '@iconify/react'
 import { cn } from '@/app/lib/utils'
+import { Icon } from '@iconify/react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import {
+  ArrowRight,
+  BarChart3,
+  Briefcase,
+  Building2,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  FileText,
+  Percent,
+  RefreshCw,
+  Search as SearchIcon,
+  Sparkles,
+  Target,
+  Upload,
+  Users
+} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 interface QuickAction {
   id: string
@@ -526,26 +516,30 @@ export default function DashboardContent() {
           </div>
         )}
         {loading ? (
-          <div className="grid xl:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-3 2xl:gap-7.5">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-              <Card key={i} className="animate-pulse">
+              <div key={i} className="rounded-[10px] bg-white p-4 shadow-1 dark:bg-gray-dark dark:shadow-card md:p-6 xl:p-7.5 animate-pulse">
                 <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </Card>
+              </div>
             ))}
           </div>
         ) : (
-          <div className="grid xl:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-3 2xl:gap-7.5">
             {metrics.map((metric, index) => {
               const badgeVariant = metric.trend === 'up' ? 'lightSuccess' : metric.trend === 'down' ? 'lightError' : 'gray'
               return (
-                <Card key={metric.label} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push('/dashboard/prospect-enrich')}>
+                <div 
+                  key={metric.label} 
+                  className="rounded-[10px] bg-white p-4 shadow-1 dark:bg-gray-dark dark:shadow-card md:p-6 xl:p-7.5 cursor-pointer hover:shadow-lg transition-shadow" 
+                  onClick={() => router.push('/dashboard/prospect-enrich')}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex flex-col justify-between gap-4">
                       <div>
-                        <h3 className="2xl:text-28 text-2xl font-semibold">
+                        <h3 className="text-heading-6 font-bold text-dark dark:text-white">
                           {metric.value}
                         </h3>
-                        <p className="2xl:text-base text-sm font-normal">
+                        <p className="text-sm font-medium text-dark-6 dark:text-gray-400">
                           {metric.label}
                         </p>
                       </div>
@@ -572,7 +566,7 @@ export default function DashboardContent() {
                       <Icon icon={metric.iconify || 'tabler:chart'} width={24} height={24} />
                     </div>
                   </div>
-                </Card>
+                </div>
               )
             })}
           </div>

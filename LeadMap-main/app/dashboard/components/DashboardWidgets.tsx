@@ -3,36 +3,48 @@
 import { Badge, BadgeProps } from '@/app/components/ui/badge'
 import { Card } from '@/app/components/ui/card'
 import {
-    ChartConfig,
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
 } from '@/app/components/ui/chart'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu'
 import { Icon } from '@iconify/react'
 import { motion } from 'framer-motion'
 import {
-    Activity,
-    ArrowRight,
-    BarChart3,
-    Briefcase,
-    Building2,
-    Calendar,
-    Clock,
-    DollarSign,
-    FileText,
-    GitBranch,
-    GripVertical,
-    LineChart,
-    Percent,
-    PieChart,
-    Search as SearchIcon,
-    Sparkles,
-    Target,
-    TrendingUp,
-    Upload,
-    Users,
-    X,
-    Zap
+  Activity,
+  ArrowRight,
+  BarChart3,
+  Briefcase,
+  Building2,
+  Calendar,
+  Clock,
+  DollarSign,
+  FileText,
+  Filter,
+  GitBranch,
+  GripVertical,
+  LineChart,
+  MoreVertical,
+  Percent,
+  PieChart,
+  RefreshCw,
+  Search as SearchIcon,
+  Settings2,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Upload,
+  Users,
+  X,
+  Zap
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
@@ -42,7 +54,6 @@ import 'react-funnel-pipeline/dist/index.css'
 import { LabelList, Pie, PieChart as RechartsPieChart } from 'recharts'
 import SimpleBar from 'simplebar-react'
 import 'simplebar-react/dist/simplebar.min.css'
-import { KpiWidget } from './KpiWidget'
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 export interface DashboardWidget {
@@ -66,19 +77,17 @@ interface WidgetProps {
 
 export function WidgetContainer({ widget, onRemove, isEditable = false, data }: WidgetProps) {
   const Icon = widget.icon
-  
+
   // Components that have their own Card wrapper with title (1-to-1 TailwindAdmin match)
-  // All metric widgets now use the new KpiWidget component which has its own styling
-  const hasOwnCard = widget.id === 'recent-activity' || 
-                     widget.id === 'upcoming-tasks' || 
-                     widget.id === 'pipeline-funnel' || 
-                     widget.id === 'deal-stage-distribution' ||
-                     widget.type === 'metric' // Metric widgets have their own card styling
-  
+  const hasOwnCard = widget.id === 'recent-activity' ||
+    widget.id === 'upcoming-tasks' ||
+    widget.id === 'pipeline-funnel' ||
+    widget.id === 'deal-stage-distribution' ||
+    widget.type === 'metric' // Metric widgets have their own card styling
+
   return (
-    <div className={`relative ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} hover:shadow-lg transition-all duration-200 ${
-      widget.size === 'large' ? 'col-span-2' : ''
-    }`}>
+    <div className={`relative ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} hover:shadow-lg transition-all duration-200 ${widget.size === 'large' ? 'col-span-2' : ''
+      }`}>
       {isEditable && (
         <>
           <div className="absolute top-2 left-2 cursor-move text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 z-10">
@@ -108,289 +117,117 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
   )
 }
 
-// Individual KPI Widget Components - World-Class Design
-function TotalProspectsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+// Widget Components - NextDeal Specific
+function ProspectMetricsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
   const value = data?.value || 0
   const change = data?.change || '+0%'
   const trend = data?.trend || 'neutral'
 
-  const handleFilterClick = () => {
+  // Format trend indicator
+  const getTrendText = () => {
+    if (!change || change === '+0%' || trend === 'neutral') {
+      return '+0% from last month'
+    }
+    return `${change} from last month`
+  }
+
+  // Format value based on type
+  const formatValue = (val: any): string => {
+    if (typeof val === 'string') {
+      // Already formatted (e.g., "$42.5K", "3%")
+      return val
+    }
+    if (typeof val === 'number') {
+      return val.toLocaleString()
+    }
+    return String(val || '0')
+  }
+
+  const formattedValue = formatValue(value)
+  const trendText = getTrendText()
+
+  const handleFilterClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     // TODO: Implement filter functionality
-    console.log('Filter clicked for Total Prospects')
-  }
-
-  const handleMenuClick = () => {
-    // TODO: Implement menu functionality
-    console.log('Menu clicked for Total Prospects')
+    console.log('Filter clicked for', widget.title)
   }
 
   return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
+    <div className="relative bg-white dark:bg-gray-900 rounded-lg border-[1.5px] border-teal-500 dark:border-teal-600 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden p-6">
+      {/* Header Section */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+            {widget.title}
+          </h3>
+          <button
+            onClick={handleFilterClick}
+            className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+            aria-label="Filter"
+          >
+            <Filter className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
 
-function ActiveListingsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || 0
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
+        {/* Three-dot menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+              aria-label="Widget options"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Widget Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleFilterClick}>
+              <Filter className="w-4 h-4 mr-2" />
+              Filter Data
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings2 className="w-4 h-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Active Listings')
-  }
+      {/* Main Content Area */}
+      <div className="mt-4">
+        <div className="mb-2">
+          <p className="text-4xl font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
+            {formattedValue}
+          </p>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
+          {trendText}
+        </p>
+      </div>
 
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Active Listings')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function EnrichedLeadsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || 0
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Enriched Leads')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Enriched Leads')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function AvgPropertyValueWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || '$0K'
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Avg Property Value')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Avg Property Value')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function ExpiredListingsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || 0
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Expired Listings')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Expired Listings')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function ProbateLeadsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || 0
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Probate Leads')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Probate Leads')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function ActiveDealsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || 0
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Active Deals')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Active Deals')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function PipelineValueWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || '$0K'
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Pipeline Value')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Pipeline Value')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function ConversionRateWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || '0%'
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Conversion Rate')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Conversion Rate')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
-  )
-}
-
-function WinRateWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || '0%'
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-
-  const handleFilterClick = () => {
-    console.log('Filter clicked for Win Rate')
-  }
-
-  const handleMenuClick = () => {
-    console.log('Menu clicked for Win Rate')
-  }
-
-  return (
-    <KpiWidget
-      title={widget.title}
-      value={value}
-      change={change}
-      changeLabel="from last month"
-      trend={trend}
-      icon={widget.icon}
-      onFilterClick={handleFilterClick}
-      onMenuClick={handleMenuClick}
-    />
+      {/* Small teal dot in bottom-right corner (resize/decorative indicator) */}
+      <div className="absolute bottom-3 right-3 w-2 h-2 bg-teal-500 dark:bg-teal-400 rounded-full" />
+    </div>
   )
 }
 
 function QuickActionsWidget({ widget }: { widget: DashboardWidget; data?: any }) {
   const router = useRouter()
-  
+
   const actions = [
     { id: 'prospect', title: 'Find Prospects', description: 'Discover new property leads', icon: SearchIcon, href: '/dashboard/prospect-enrich', gradient: 'from-blue-500 to-cyan-500' },
     { id: 'enrich', title: 'Enrich Leads', description: 'Add contact information', icon: Sparkles, href: '/dashboard/enrichment', gradient: 'from-purple-500 to-indigo-500' },
     { id: 'campaign', title: 'Start Campaign', description: 'Launch outreach campaign', icon: Target, href: '/dashboard/crm/sequences', gradient: 'from-green-500 to-emerald-500' },
     { id: 'import', title: 'Import Data', description: 'Upload CSV files', icon: Upload, href: '/admin', gradient: 'from-orange-500 to-red-500' }
   ]
-  
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {actions.map((action) => {
@@ -580,7 +417,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
       'var(--color-chart-4, #f59e0b)',
       'var(--color-chart-5, #8b5cf6)'
     ]
-    
+
     // Map stage names to chart keys
     const stageKeyMap: Record<string, string> = {
       'New': 'new',
@@ -589,9 +426,9 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
       'Proposal': 'proposal',
       'Closed': 'closed'
     }
-    
+
     const stageKey = stageKeyMap[stage.name] || `stage${index}`
-    
+
     return {
       [stageKey]: stage.value,
       browser: stageKey,
@@ -670,7 +507,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
             ]
             const color = colorMap[index] || colorMap[0]
             const percentage = total > 0 ? Math.round((stage.value / total) * 100) : 0
-            
+
             return (
               <motion.div
                 key={index}
@@ -800,7 +637,7 @@ function ManualActionsWidget({ widget, data }: { widget: DashboardWidget; data?:
     email: 0,
     total: 0
   }
-  
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
@@ -833,7 +670,7 @@ function LeadSourceWidget({ widget, data }: { widget: DashboardWidget; data?: an
     { name: 'Property Listings', count: 20, percentage: 15 },
     { name: 'Other', count: 10, percentage: 8 }
   ]
-  
+
   return (
     <div className="space-y-3">
       {sources.map((source: any, index: number) => (
@@ -844,7 +681,7 @@ function LeadSourceWidget({ widget, data }: { widget: DashboardWidget; data?: an
               <span className="text-sm font-semibold text-gray-900 dark:text-white">{source.count}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div 
+              <div
                 className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${source.percentage}%` }}
               />
@@ -876,7 +713,7 @@ function SalesEfficiencyWidget({ widget, data }: { widget: DashboardWidget; data
     avgDealSize: '$45K',
     salesCycle: '28 days'
   }
-  
+
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
@@ -901,13 +738,13 @@ function SalesEfficiencyWidget({ widget, data }: { widget: DashboardWidget; data
 
 // Available Widgets Registry - NextDeal Specific
 export const availableWidgets: DashboardWidget[] = [
-  // Core Metrics - Individual Widgets with World-Class Design
+  // Core Metrics
   {
     id: 'total-prospects',
     type: 'metric',
     title: 'Total Prospects',
     icon: Users,
-    component: TotalProspectsWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -917,7 +754,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Active Listings',
     icon: Building2,
-    component: ActiveListingsWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -927,7 +764,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Enriched Leads',
     icon: Sparkles,
-    component: EnrichedLeadsWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -937,7 +774,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Avg Property Value',
     icon: DollarSign,
-    component: AvgPropertyValueWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'metrics',
     size: 'small'
@@ -947,7 +784,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Expired Listings',
     icon: Clock,
-    component: ExpiredListingsWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -957,18 +794,18 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Probate Leads',
     icon: FileText,
-    component: ProbateLeadsWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
   },
-  // CRM Metrics - Individual Widgets with World-Class Design
+  // CRM Metrics
   {
     id: 'active-deals',
     type: 'metric',
     title: 'Active Deals',
     icon: Briefcase,
-    component: ActiveDealsWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'crm',
     size: 'small'
@@ -978,7 +815,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Pipeline Value',
     icon: DollarSign,
-    component: PipelineValueWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'crm',
     size: 'small'
@@ -988,7 +825,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Conversion Rate',
     icon: Percent,
-    component: ConversionRateWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'crm',
     size: 'small'
@@ -998,7 +835,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Win Rate',
     icon: Target,
-    component: WinRateWidget,
+    component: ProspectMetricsWidget,
     defaultEnabled: false,
     category: 'crm',
     size: 'small'

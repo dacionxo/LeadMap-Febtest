@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
-import CustomizableDashboard from './CustomizableDashboardV2'
+import CustomizableDashboard from './CustomizableDashboard'
 
 export default function DashboardClient() {
   return (

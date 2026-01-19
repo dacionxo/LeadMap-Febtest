@@ -42,6 +42,7 @@ import 'react-funnel-pipeline/dist/index.css'
 import { LabelList, Pie, PieChart as RechartsPieChart } from 'recharts'
 import SimpleBar from 'simplebar-react'
 import 'simplebar-react/dist/simplebar.min.css'
+import { KpiWidget } from './KpiWidget'
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 export interface DashboardWidget {
@@ -67,6 +68,7 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
   const Icon = widget.icon
   
   // Components that have their own Card wrapper with title (1-to-1 TailwindAdmin match)
+  // All metric widgets now use the new KpiWidget component which has its own styling
   const hasOwnCard = widget.id === 'recent-activity' || 
                      widget.id === 'upcoming-tasks' || 
                      widget.id === 'pipeline-funnel' || 
@@ -106,57 +108,276 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
   )
 }
 
-// Widget Components - NextDeal Specific
-function ProspectMetricsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+// Individual KPI Widget Components - World-Class Design
+function TotalProspectsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
   const value = data?.value || 0
   const change = data?.change || '+0%'
   const trend = data?.trend || 'neutral'
-  
-  // Determine color based on widget title - using TailwindAdmin color patterns
-  const getValueColor = () => {
-    const title = widget.title.toLowerCase()
-    if (title.includes('total prospects') || title.includes('active deals')) {
-      return 'text-primary'
-    }
-    if (title.includes('active listings') || title.includes('pipeline value')) {
-      return 'text-success'
-    }
-    if (title.includes('enriched leads') || title.includes('conversion rate')) {
-      return 'text-secondary'
-    }
-    if (title.includes('avg property value')) {
-      return 'text-warning'
-    }
-    if (title.includes('expired listings')) {
-      return 'text-error'
-    }
-    if (title.includes('probate leads')) {
-      return 'text-info'
-    }
-    if (title.includes('win rate')) {
-      return 'text-warning'
-    }
-    return 'text-body'
+
+  const handleFilterClick = () => {
+    // TODO: Implement filter functionality
+    console.log('Filter clicked for Total Prospects')
   }
 
-  // Format trend indicator
-  const getTrendText = () => {
-    if (!change || change === '+0%' || trend === 'neutral') {
-      return '+0% from last month'
-    }
-    const arrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : ''
-    return `${arrow} ${change} from last month`
+  const handleMenuClick = () => {
+    // TODO: Implement menu functionality
+    console.log('Menu clicked for Total Prospects')
   }
-
-  const formattedValue = typeof value === 'number' ? value.toLocaleString() : value
-  const trendText = getTrendText()
 
   return (
-    <div className="rounded-[10px] bg-white dark:bg-gray-dark shadow-1 dark:shadow-card p-6 hover:shadow-lg transition-all duration-300">
-      <h2 className="text-xl font-semibold text-dark dark:text-white mb-2">{widget.title}</h2>
-      <p className={`text-3xl font-bold ${getValueColor()}`}>{formattedValue}</p>
-      <p className="text-sm text-body dark:text-gray-400 mt-2">{trendText}</p>
-    </div>
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function ActiveListingsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || 0
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Active Listings')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Active Listings')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function EnrichedLeadsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || 0
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Enriched Leads')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Enriched Leads')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function AvgPropertyValueWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || '$0K'
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Avg Property Value')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Avg Property Value')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function ExpiredListingsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || 0
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Expired Listings')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Expired Listings')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function ProbateLeadsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || 0
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Probate Leads')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Probate Leads')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function ActiveDealsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || 0
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Active Deals')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Active Deals')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function PipelineValueWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || '$0K'
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Pipeline Value')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Pipeline Value')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function ConversionRateWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || '0%'
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Conversion Rate')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Conversion Rate')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
+  )
+}
+
+function WinRateWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
+  const value = data?.value || '0%'
+  const change = data?.change || '+0%'
+  const trend = data?.trend || 'neutral'
+
+  const handleFilterClick = () => {
+    console.log('Filter clicked for Win Rate')
+  }
+
+  const handleMenuClick = () => {
+    console.log('Menu clicked for Win Rate')
+  }
+
+  return (
+    <KpiWidget
+      title={widget.title}
+      value={value}
+      change={change}
+      changeLabel="from last month"
+      trend={trend}
+      icon={widget.icon}
+      onFilterClick={handleFilterClick}
+      onMenuClick={handleMenuClick}
+    />
   )
 }
 
@@ -680,13 +901,13 @@ function SalesEfficiencyWidget({ widget, data }: { widget: DashboardWidget; data
 
 // Available Widgets Registry - NextDeal Specific
 export const availableWidgets: DashboardWidget[] = [
-  // Core Metrics
+  // Core Metrics - Individual Widgets with World-Class Design
   {
     id: 'total-prospects',
     type: 'metric',
     title: 'Total Prospects',
     icon: Users,
-    component: ProspectMetricsWidget,
+    component: TotalProspectsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -696,7 +917,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Active Listings',
     icon: Building2,
-    component: ProspectMetricsWidget,
+    component: ActiveListingsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -706,7 +927,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Enriched Leads',
     icon: Sparkles,
-    component: ProspectMetricsWidget,
+    component: EnrichedLeadsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -716,7 +937,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Avg Property Value',
     icon: DollarSign,
-    component: ProspectMetricsWidget,
+    component: AvgPropertyValueWidget,
     defaultEnabled: true,
     category: 'metrics',
     size: 'small'
@@ -726,7 +947,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Expired Listings',
     icon: Clock,
-    component: ProspectMetricsWidget,
+    component: ExpiredListingsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
@@ -736,18 +957,18 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Probate Leads',
     icon: FileText,
-    component: ProspectMetricsWidget,
+    component: ProbateLeadsWidget,
     defaultEnabled: true,
     category: 'prospects',
     size: 'small'
   },
-  // CRM Metrics
+  // CRM Metrics - Individual Widgets with World-Class Design
   {
     id: 'active-deals',
     type: 'metric',
     title: 'Active Deals',
     icon: Briefcase,
-    component: ProspectMetricsWidget,
+    component: ActiveDealsWidget,
     defaultEnabled: true,
     category: 'crm',
     size: 'small'
@@ -757,7 +978,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Pipeline Value',
     icon: DollarSign,
-    component: ProspectMetricsWidget,
+    component: PipelineValueWidget,
     defaultEnabled: true,
     category: 'crm',
     size: 'small'
@@ -767,7 +988,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Conversion Rate',
     icon: Percent,
-    component: ProspectMetricsWidget,
+    component: ConversionRateWidget,
     defaultEnabled: true,
     category: 'crm',
     size: 'small'
@@ -777,7 +998,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Win Rate',
     icon: Target,
-    component: ProspectMetricsWidget,
+    component: WinRateWidget,
     defaultEnabled: false,
     category: 'crm',
     size: 'small'

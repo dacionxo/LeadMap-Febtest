@@ -1,6 +1,5 @@
 'use client'
 
-import { KpiStatCard } from './KpiStatCard'
 import { Badge, BadgeProps } from '@/app/components/ui/badge'
 import { Card } from '@/app/components/ui/card'
 import {
@@ -104,48 +103,6 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
 }
 
 // Widget Components - NextDeal Specific
-function ProspectMetricsWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
-  const value = data?.value || 0
-  const change = data?.change || '+0%'
-  const trend = data?.trend || 'neutral'
-  const accent = data?.accent || 'primary'
-  const icon = widget.icon
-  
-  // Use KpiStatCard in compact variant (no card wrapper since it's inside WidgetContainer)
-  return (
-    <div className="space-y-2">
-      {icon && (
-        <div className={`inline-block p-3 rounded-lg mb-2 ${
-          accent === 'primary' ? 'bg-lightprimary text-primary' :
-          accent === 'success' ? 'bg-lightsuccess text-success' :
-          accent === 'warning' ? 'bg-lightwarning text-warning' :
-          accent === 'error' ? 'bg-lighterror text-error' :
-          accent === 'info' ? 'bg-lightinfo text-info' :
-          'bg-lightprimary text-primary'
-        }`}>
-          {React.createElement(icon, { className: 'w-6 h-6' })}
-        </div>
-      )}
-      <div className="text-2xl font-bold text-dark dark:text-white card-title">{typeof value === 'number' ? value.toLocaleString() : value}</div>
-      <div className="text-sm text-dark-6 dark:text-gray-400 card-subtitle">{widget.title}</div>
-      {change && (
-        <div className="flex items-center gap-2 mt-2">
-          <Badge 
-            variant={trend === 'up' ? 'lightSuccess' : trend === 'down' ? 'lightError' : 'gray'} 
-            className="rounded-full text-sm font-semibold px-2.5 py-1"
-          >
-            <span className="flex items-center gap-1">
-              <TrendingUp className={`w-3.5 h-3.5 ${trend === 'down' ? 'rotate-180' : ''}`} />
-              {change}
-            </span>
-          </Badge>
-          <span className="text-sm text-gray-500 dark:text-gray-400">from last month</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
 function QuickActionsWidget({ widget }: { widget: DashboardWidget; data?: any }) {
   const router = useRouter()
   
@@ -666,108 +623,6 @@ function SalesEfficiencyWidget({ widget, data }: { widget: DashboardWidget; data
 
 // Available Widgets Registry - NextDeal Specific
 export const availableWidgets: DashboardWidget[] = [
-  // Core Metrics
-  {
-    id: 'total-prospects',
-    type: 'metric',
-    title: 'Total Prospects',
-    icon: Users,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'prospects',
-    size: 'small'
-  },
-  {
-    id: 'active-listings',
-    type: 'metric',
-    title: 'Active Listings',
-    icon: Building2,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'prospects',
-    size: 'small'
-  },
-  {
-    id: 'enriched-leads',
-    type: 'metric',
-    title: 'Enriched Leads',
-    icon: Sparkles,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'prospects',
-    size: 'small'
-  },
-  {
-    id: 'avg-property-value',
-    type: 'metric',
-    title: 'Avg Property Value',
-    icon: DollarSign,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'metrics',
-    size: 'small'
-  },
-  {
-    id: 'expired-listings',
-    type: 'metric',
-    title: 'Expired Listings',
-    icon: Clock,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'prospects',
-    size: 'small'
-  },
-  {
-    id: 'probate-leads',
-    type: 'metric',
-    title: 'Probate Leads',
-    icon: FileText,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'prospects',
-    size: 'small'
-  },
-  // CRM Metrics
-  {
-    id: 'active-deals',
-    type: 'metric',
-    title: 'Active Deals',
-    icon: Briefcase,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'crm',
-    size: 'small'
-  },
-  {
-    id: 'pipeline-value',
-    type: 'metric',
-    title: 'Pipeline Value',
-    icon: DollarSign,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'crm',
-    size: 'small'
-  },
-  {
-    id: 'conversion-rate',
-    type: 'metric',
-    title: 'Conversion Rate',
-    icon: Percent,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'crm',
-    size: 'small'
-  },
-  {
-    id: 'win-rate',
-    type: 'metric',
-    title: 'Win Rate',
-    icon: Target,
-    component: ProspectMetricsWidget,
-    defaultEnabled: false,
-    category: 'crm',
-    size: 'small'
-  },
   // Activity Widgets
   {
     id: 'recent-activity',

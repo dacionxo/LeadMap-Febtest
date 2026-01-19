@@ -6,11 +6,26 @@
 'use client'
 
 import { useCallback, useMemo } from 'react'
-import GridLayout, { Layout, Responsive, WidthProvider } from 'react-grid-layout'
+import type { Layout } from 'react-grid-layout'
+import { Responsive, WidthProvider } from 'react-grid-layout/legacy'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import { WidgetDefinition, WidgetLayout } from '../types'
 import { WidgetContainer } from './WidgetContainer'
+
+// Layout item interface (individual item in a layout array)
+export interface LayoutItem {
+  i: string
+  x: number
+  y: number
+  w: number
+  h: number
+  minW?: number
+  minH?: number
+  maxW?: number
+  maxH?: number
+  static?: boolean
+}
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -19,11 +34,11 @@ interface WidgetGridProps {
   widgetData: Record<string, any>
   widgetLoading: Record<string, boolean>
   widgetErrors: Record<string, string | null>
-  layouts?: { lg?: Layout[]; md?: Layout[]; sm?: Layout[] }
+  layouts?: { lg?: LayoutItem[]; md?: LayoutItem[]; sm?: LayoutItem[] }
   isEditable?: boolean
   isFullscreen?: boolean
   fullscreenWidgetId?: string | null
-  onLayoutChange?: (layouts: { lg?: Layout[]; md?: Layout[]; sm?: Layout[] }) => void
+  onLayoutChange?: (layouts: { lg?: LayoutItem[]; md?: LayoutItem[]; sm?: LayoutItem[] }) => void
   onRemove?: (id: string) => void
   onRefresh?: (id: string) => void
   onSettings?: (id: string) => void
@@ -49,9 +64,9 @@ export function WidgetGrid({
 }: WidgetGridProps) {
   // Generate default layouts from widget definitions
   const defaultLayouts = useMemo(() => {
-    const lg: Layout[] = []
-    const md: Layout[] = []
-    const sm: Layout[] = []
+    const lg: LayoutItem[] = []
+    const md: LayoutItem[] = []
+    const sm: LayoutItem[] = []
 
     widgets.forEach((widget, index) => {
       const meta = widget.meta
@@ -63,7 +78,7 @@ export function WidgetGrid({
       const x = (index * defaultSize.w) % cols
       const y = Math.floor((index * defaultSize.w) / cols) * defaultSize.h
 
-      const baseLayout: Layout = {
+      const baseLayout: LayoutItem = {
         i: widget.id,
         x,
         y,
@@ -86,9 +101,19 @@ export function WidgetGrid({
   const currentLayouts = layouts || defaultLayouts
 
   const handleLayoutChange = useCallback(
-    (layout: Layout[], allLayouts: { [key: string]: Layout[] }) => {
+    (layout: Layout, allLayouts: Partial<Record<string, Layout>>) => {
       if (onLayoutChange) {
-        onLayoutChange(allLayouts)
+        // Convert Layout (which is LayoutItem[]) to our format
+        const formatted: { lg?: LayoutItem[]; md?: LayoutItem[]; sm?: LayoutItem[] } = {}
+        Object.keys(allLayouts).forEach(key => {
+          if (key === 'lg' || key === 'md' || key === 'sm') {
+            const layoutArray = allLayouts[key]
+            if (layoutArray) {
+              formatted[key] = layoutArray as LayoutItem[]
+            }
+          }
+        })
+        onLayoutChange(formatted)
       }
     },
     [onLayoutChange]

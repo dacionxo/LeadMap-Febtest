@@ -3,7 +3,7 @@
  * Strongly typed configurations for all widget types
  */
 
-import { React.ComponentType } from 'react'
+import { ComponentType } from 'react'
 
 export type WidgetType = 
   | 'kpi_number'
@@ -16,6 +16,7 @@ export type WidgetType =
   | 'activity_feed'
   | 'battery_progress'
   | 'text'
+  | 'actions'
 
 export type TrendDirection = 'up' | 'down' | 'neutral'
 
@@ -39,7 +40,7 @@ export interface WidgetDisplayConfig {
   decimals?: number
   showTrend?: boolean
   showIcon?: boolean
-  colorScheme?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
+  colorScheme?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'secondary'
   thresholds?: {
     value: number
     color: string
@@ -64,8 +65,8 @@ export interface WidgetDefinition {
   type: WidgetType
   title: string
   description?: string
-  icon: React.ComponentType<{ className?: string }>
-  component: React.ComponentType<WidgetComponentProps>
+  icon: ComponentType<{ className?: string }>
+  component: ComponentType<WidgetComponentProps>
   defaultEnabled: boolean
   category: 'metrics' | 'activity' | 'charts' | 'actions' | 'crm' | 'prospects'
   
@@ -91,7 +92,7 @@ export interface WidgetDefinition {
   // Metadata
   meta?: {
     name: string
-    icon?: React.ComponentType<{ className?: string }>
+    icon?: ComponentType<{ className?: string }>
     minSize?: { w: number; h: number }
     maxSize?: { w: number; h: number }
     defaultSize?: { w: number; h: number }

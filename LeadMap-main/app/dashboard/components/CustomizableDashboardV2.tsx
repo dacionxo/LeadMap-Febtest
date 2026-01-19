@@ -11,15 +11,14 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useApp } from '@/app/providers'
 import { availableWidgets, getWidgetDefinition } from '../widgets/registry'
 import { WidgetDefinition, RefreshPolicy } from '../widgets/types'
-import { WidgetGrid } from '../widgets/components/WidgetGrid'
-import type { Layout } from 'react-grid-layout'
+import { WidgetGrid, LayoutItem } from '../widgets/components/WidgetGrid'
 
 export default function CustomizableDashboardV2() {
   const { profile } = useApp()
   const supabase = useMemo(() => createClientComponentClient(), [])
   const [isEditMode, setIsEditMode] = useState(false)
   const [enabledWidgetIds, setEnabledWidgetIds] = useState<string[]>([])
-  const [widgetLayouts, setWidgetLayouts] = useState<{ lg?: Layout[]; md?: Layout[]; sm?: Layout[] }>({})
+  const [widgetLayouts, setWidgetLayouts] = useState<{ lg?: LayoutItem[]; md?: LayoutItem[]; sm?: LayoutItem[] }>({})
   const [showAddWidget, setShowAddWidget] = useState(false)
   const [widgetData, setWidgetData] = useState<Record<string, any>>({})
   const [widgetLoading, setWidgetLoading] = useState<Record<string, boolean>>({})
@@ -450,9 +449,10 @@ export default function CustomizableDashboardV2() {
     // Remove from layouts
     const newLayouts = { ...widgetLayouts }
     Object.keys(newLayouts).forEach(breakpoint => {
-      if (newLayouts[breakpoint as keyof typeof newLayouts]) {
-        newLayouts[breakpoint as keyof typeof newLayouts] = newLayouts[breakpoint as keyof typeof newLayouts]!.filter(
-          (l: Layout) => l.i !== widgetId
+      const bp = breakpoint as keyof typeof newLayouts
+      if (newLayouts[bp]) {
+        newLayouts[bp] = newLayouts[bp]!.filter(
+          (l: LayoutItem) => l.i !== widgetId
         )
       }
     })
@@ -463,7 +463,7 @@ export default function CustomizableDashboardV2() {
     return availableWidgets.filter(w => !enabledWidgetIds.includes(w.id))
   }
 
-  const handleLayoutChange = (layouts: { lg?: Layout[]; md?: Layout[]; sm?: Layout[] }) => {
+  const handleLayoutChange = (layouts: { lg?: LayoutItem[]; md?: LayoutItem[]; sm?: LayoutItem[] }) => {
     setWidgetLayouts(layouts)
   }
 

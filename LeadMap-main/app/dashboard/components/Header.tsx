@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import { useApp } from '@/app/providers'
@@ -31,7 +31,11 @@ const MessagesLink: MessageType[] = [
   },
 ]
 
-export default function Header() {
+type HeaderProps = {
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
+}
+
+export default function Header({ scrollContainerRef }: HeaderProps) {
   const { profile, signOut } = useApp()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
@@ -44,64 +48,21 @@ export default function Header() {
   const notificationsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Find the scroll container (main element with overflow-y-auto)
-    const findScrollContainer = (): HTMLElement | null => {
-      // Try to find the main element that contains this header
-      const headerElement = document.querySelector('header.sticky')
-      if (!headerElement) return null
-      
-      // Find the parent main element
-      let parent = headerElement.parentElement
-      while (parent) {
-        if (parent.tagName === 'MAIN' && parent.classList.contains('overflow-y-auto')) {
-          return parent as HTMLElement
-        }
-        parent = parent.parentElement
-      }
-      
-      // Fallback: query selector
-      return document.querySelector('main.overflow-y-auto') as HTMLElement
+    const el = scrollContainerRef?.current
+
+    const handleScroll = () => {
+      const y = el ? el.scrollTop : window.scrollY
+      setIsSticky(y > 50)
     }
 
-    const setupScrollListener = (container: HTMLElement) => {
-      const handleScroll = () => {
-        if (container.scrollTop > 50) {
-          setIsSticky(true)
-        } else {
-          setIsSticky(false)
-        }
-      }
+    // Run once on mount so state is correct if already scrolled
+    handleScroll()
 
-      container.addEventListener('scroll', handleScroll)
-      
-      // Check initial scroll position
-      handleScroll()
+    const target: any = el ?? window
+    target.addEventListener('scroll', handleScroll, { passive: true })
 
-      return () => {
-        container.removeEventListener('scroll', handleScroll)
-      }
-    }
-
-    let scrollContainer = findScrollContainer()
-    let cleanup: (() => void) | undefined
-    
-    if (!scrollContainer) {
-      // Retry after a short delay if container not found (for SSR/hydration)
-      const timeoutId = setTimeout(() => {
-        const retryContainer = findScrollContainer()
-        if (retryContainer) {
-          cleanup = setupScrollListener(retryContainer)
-        }
-      }, 100)
-      return () => {
-        clearTimeout(timeoutId)
-        if (cleanup) cleanup()
-      }
-    }
-
-    cleanup = setupScrollListener(scrollContainer)
-    return cleanup
-  }, [])
+    return () => target.removeEventListener('scroll', handleScroll)
+  }, [scrollContainerRef])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -142,10 +103,10 @@ export default function Header() {
   return (
     <>
       <header
-        className={`sticky top-0 z-[100] bg-white dark:bg-dark transition-shadow duration-300 ${
+        className={`sticky top-0 z-[100] transition-all ${
           isSticky
-            ? 'shadow-md dark:shadow-dark-md'
-            : ''
+            ? 'bg-white dark:bg-dark shadow-md dark:shadow-dark-md'
+            : 'bg-white dark:bg-dark'
         }`}
       >
         <nav className="px-2 dark:border-gray-700 rounded-none bg-white dark:bg-dark py-4 sm:px-6">

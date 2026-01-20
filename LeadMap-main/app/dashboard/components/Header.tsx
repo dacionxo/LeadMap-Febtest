@@ -46,7 +46,7 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
   const [mobileMenu, setMobileMenu] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
-  const headerRef = useRef<HTMLHeaderElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const el = scrollContainerRef?.current

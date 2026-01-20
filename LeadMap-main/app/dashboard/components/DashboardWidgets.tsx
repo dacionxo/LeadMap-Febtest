@@ -52,7 +52,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import { LabelList, Pie, PieChart as RechartsPieChart } from 'recharts'
 import SimpleBar from 'simplebar-react'
 import 'simplebar-react/dist/simplebar.min.css'
-// @ts-expect-error - CSS import has no type declarations
 import 'react-funnel-pipeline/dist/index.css'
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 

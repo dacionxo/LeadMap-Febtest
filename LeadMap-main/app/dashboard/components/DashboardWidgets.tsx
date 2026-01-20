@@ -400,8 +400,9 @@ function PipelineFunnelWidget({ widget, data }: { widget: DashboardWidget; data?
   return (
     <Card className="h-full flex flex-col">
       <div className="mb-3">
-        <h4 className="card-title">Pipeline Funnel</h4>
-        <p className="card-subtitle">Deal progression through stages</p>
+        <h4 className="card-title text-center">Pipeline Funnel</h4>
+        <p className="card-subtitle text-center">Deal progression through stages</p>
+        <div className="border-b border-border dark:border-darkborder mt-3"></div>
       </div>
       <div className="w-full flex-1 flex items-center min-h-0">
         <FunnelChart

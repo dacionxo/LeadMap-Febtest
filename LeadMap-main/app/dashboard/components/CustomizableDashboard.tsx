@@ -5,11 +5,6 @@ import { Plus, Settings2, Save, RefreshCw } from 'lucide-react'
 import { availableWidgets, WidgetContainer, DashboardWidget } from './DashboardWidgets'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useApp } from '@/app/providers'
-import { Responsive, WidthProvider } from 'react-grid-layout/legacy'
-import 'react-grid-layout/css/styles.css'
-import 'react-resizable/css/styles.css'
-
-const ResponsiveGridLayout = WidthProvider(Responsive)
 
 export default function CustomizableDashboard() {
   const { profile } = useApp()
@@ -17,7 +12,6 @@ export default function CustomizableDashboard() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>([])
   const [widgetPositions, setWidgetPositions] = useState<Record<string, number>>({})
-  const [layouts, setLayouts] = useState<any>({ lg: [] })
   const [showAddWidget, setShowAddWidget] = useState(false)
   const [widgetData, setWidgetData] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
@@ -282,27 +276,27 @@ export default function CustomizableDashboard() {
         'recent-activity': hasRealData && recentActivities.length > 0 ? recentActivities : [
           {
             id: '1',
-            type: 'enrichment',
-            title: 'Lead enrichment completed',
-            description: '25 leads enriched with contact information',
-            time: '2 hours ago',
-            iconType: 'sparkles'
+            type: 'contact',
+            title: 'New contact added',
+            description: 'Contact added to CRM',
+            time: '12/4/2025',
+            iconType: 'users'
           },
           {
             id: '2',
-            type: 'campaign',
-            title: 'Campaign launched',
-            description: 'Expired listings outreach campaign started',
-            time: '5 hours ago',
-            iconType: 'target'
+            type: 'contact',
+            title: 'New contact added',
+            description: 'Contact added to CRM',
+            time: '12/4/2025',
+            iconType: 'users'
           },
           {
             id: '3',
-            type: 'lead',
-            title: 'New prospects added',
-            description: `${total} new property listings imported`,
-            time: '1 day ago',
-            iconType: 'users'
+            type: 'deal',
+            title: 'Deal updated',
+            description: 'Deal moved to new',
+            time: '12/2/2025',
+            iconType: 'target'
           }
         ],
         'upcoming-tasks': tasks && tasks.length > 0 ? tasks.map(t => ({
@@ -321,26 +315,25 @@ export default function CustomizableDashboard() {
           ]
         } : {
           stages: [
-            { name: 'New Leads', value: total, percentage: 100 },
-            { name: 'Contacted', value: Math.round(total * 0.6), percentage: 60 },
-            { name: 'Qualified', value: Math.round(total * 0.3), percentage: 30 },
-            { name: 'Proposal', value: Math.round(total * 0.13), percentage: 13 },
-            { name: 'Closed', value: Math.round(total * 0.05), percentage: 5 }
+            { name: 'New', value: 1, percentage: 100 },
+            { name: 'Contacted', value: 1, percentage: 33 },
+            { name: 'Qualified', value: 1, percentage: 33 },
+            { name: 'Proposal', value: 0, percentage: 0 }
           ]
         },
         'deal-stage-distribution': hasRealData && deals && deals.length > 0 ? {
           stages: [
-            { name: 'New', value: deals.filter(d => d.stage === 'new').length, color: 'bg-blue-500' },
-            { name: 'Contacted', value: deals.filter(d => d.stage === 'contacted').length, color: 'bg-purple-500' },
-            { name: 'Qualified', value: deals.filter(d => d.stage === 'qualified').length, color: 'bg-green-500' },
-            { name: 'Proposal', value: deals.filter(d => d.stage === 'proposal').length, color: 'bg-orange-500' }
+            { name: 'New', value: deals.filter(d => d.stage === 'new').length, percentage: deals.length > 0 ? Math.round((deals.filter(d => d.stage === 'new').length / deals.length) * 100) : 0 },
+            { name: 'Contacted', value: deals.filter(d => d.stage === 'contacted').length, percentage: deals.length > 0 ? Math.round((deals.filter(d => d.stage === 'contacted').length / deals.length) * 100) : 0 },
+            { name: 'Qualified', value: deals.filter(d => d.stage === 'qualified').length, percentage: deals.length > 0 ? Math.round((deals.filter(d => d.stage === 'qualified').length / deals.length) * 100) : 0 },
+            { name: 'Proposal', value: deals.filter(d => d.stage === 'proposal').length, percentage: deals.length > 0 ? Math.round((deals.filter(d => d.stage === 'proposal').length / deals.length) * 100) : 0 }
           ]
         } : {
           stages: [
-            { name: 'New', value: 45, color: 'bg-blue-500' },
-            { name: 'Contacted', value: 30, color: 'bg-purple-500' },
-            { name: 'Qualified', value: 20, color: 'bg-green-500' },
-            { name: 'Proposal', value: 5, color: 'bg-orange-500' }
+            { name: 'New', value: 1, percentage: 33 },
+            { name: 'Contacted', value: 1, percentage: 33 },
+            { name: 'Qualified', value: 1, percentage: 33 },
+            { name: 'Proposal', value: 0, percentage: 0 }
           ]
         },
         'lead-source-report': {
@@ -382,55 +375,6 @@ export default function CustomizableDashboard() {
     fetchWidgetData(false)
   }
 
-  const initializeLayouts = (widgetIds: string[]) => {
-    const defaultLayouts: any = { lg: [] }
-    widgetIds.forEach((widgetId, index) => {
-      const widget = availableWidgets.find(w => w.id === widgetId)
-      if (widget) {
-        const colCount = 12 // 12-column grid
-        // Determine widget dimensions based on size and type
-        let cols = 4 // Default: 1 column (4/12)
-        let rows = 3 // Default: 3 rows
-        
-        if (widget.size === 'large') {
-          cols = 6 // Large: 2 columns (6/12)
-          rows = 4 // Large widgets need more height
-        } else if (widget.size === 'medium') {
-          cols = 4 // Medium: 1 column (4/12)
-          rows = 4 // Medium widgets (charts, activity) need more height
-        } else {
-          // Small widgets (metrics)
-          cols = 4
-          rows = 2 // Small widgets are compact
-        }
-        
-        // Special cases for specific widgets
-        if (widget.id === 'recent-activity' || widget.id === 'upcoming-tasks') {
-          rows = 5 // Activity widgets need more vertical space
-        } else if (widget.id === 'pipeline-funnel' || widget.id === 'deal-stage-distribution') {
-          rows = 5 // Chart widgets need more height
-        } else if (widget.id === 'quick-actions') {
-          rows = 3 // Quick actions can be more compact
-        } else if (widget.id === 'performance-overview') {
-          rows = 5 // Performance chart needs more space
-        }
-        
-        const x = (index * cols) % colCount
-        const y = Math.floor((index * cols) / colCount) * rows
-        
-        defaultLayouts.lg.push({
-          i: widgetId,
-          x,
-          y,
-          w: cols,
-          h: rows,
-          minW: 4,
-          minH: 2,
-        })
-      }
-    })
-    setLayouts(defaultLayouts)
-  }
 
   const loadDashboardConfig = async () => {
     if (!profile?.id) return
@@ -447,20 +391,27 @@ export default function CustomizableDashboard() {
         const config = data.dashboard_config
         setEnabledWidgets(config.enabledWidgets || [])
         setWidgetPositions(config.positions || {})
-        // Load grid layouts if available
-        if (config.layouts) {
-          setLayouts(config.layouts)
-        } else {
-          // Initialize layouts from enabled widgets
-          initializeLayouts(config.enabledWidgets || [])
-        }
       } else {
-        // Default configuration
-        const defaultWidgets = availableWidgets
-          .filter(w => w.defaultEnabled)
-          .map(w => w.id)
+        // Default configuration - all widgets listed by user in order
+        const defaultWidgets = [
+          'total-prospects',
+          'active-listings',
+          'enriched-leads',
+          'avg-property-value',
+          'expired-listings',
+          'probate-leads',
+          'active-deals',
+          'pipeline-value',
+          'conversion-rate',
+          'recent-activity',
+          'upcoming-tasks',
+          'manual-actions',
+          'quick-actions',
+          'pipeline-funnel',
+          'deal-stage-distribution',
+          'performance-overview'
+        ]
         setEnabledWidgets(defaultWidgets)
-        initializeLayouts(defaultWidgets)
       }
     } catch (error) {
       console.error('Error loading dashboard config:', error)
@@ -480,7 +431,6 @@ export default function CustomizableDashboard() {
       const config = {
         enabledWidgets,
         positions: widgetPositions,
-        layouts, // Save grid layouts
         updatedAt: new Date().toISOString()
       }
 
@@ -563,23 +513,40 @@ export default function CustomizableDashboard() {
     const newPositions = { ...widgetPositions }
     delete newPositions[widgetId]
     setWidgetPositions(newPositions)
-    
-    // Remove widget from layout
-    const newLayouts = { ...layouts }
-    if (newLayouts.lg) {
-      newLayouts.lg = newLayouts.lg.filter((item: any) => item.i !== widgetId)
-      setLayouts(newLayouts)
-    }
   }
 
 
   const getEnabledWidgets = () => {
+    // Define the desired order of widgets
+    const widgetOrder = [
+      'total-prospects',
+      'active-listings',
+      'enriched-leads',
+      'avg-property-value',
+      'expired-listings',
+      'probate-leads',
+      'active-deals',
+      'pipeline-value',
+      'conversion-rate',
+      'recent-activity',
+      'upcoming-tasks',
+      'manual-actions',
+      'quick-actions',
+      'pipeline-funnel',
+      'deal-stage-distribution',
+      'performance-overview'
+    ]
+    
     return availableWidgets
       .filter(w => enabledWidgets.includes(w.id))
       .sort((a, b) => {
-        const posA = widgetPositions[a.id] ?? 999
-        const posB = widgetPositions[b.id] ?? 999
-        return posA - posB
+        const indexA = widgetOrder.indexOf(a.id)
+        const indexB = widgetOrder.indexOf(b.id)
+        // If widget not in order list, put it at the end
+        if (indexA === -1 && indexB === -1) return 0
+        if (indexA === -1) return 1
+        if (indexB === -1) return -1
+        return indexA - indexB
       })
   }
 
@@ -696,20 +663,12 @@ export default function CustomizableDashboard() {
           ))}
         </div>
       ) : (
-        <ResponsiveGridLayout
-          className="layout"
-          layouts={layouts}
-          onLayoutChange={handleLayoutChange}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-          rowHeight={90}
-          isDraggable={isEditMode}
-          isResizable={isEditMode}
-          margin={[12, 12]}
-          containerPadding={[0, 0]}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {getEnabledWidgets().map(widget => (
-            <div key={widget.id} className="h-full">
+            <div 
+              key={widget.id} 
+              className={`${widget.size === 'large' ? 'md:col-span-2' : ''} ${widget.size === 'medium' ? '' : ''}`}
+            >
               <WidgetContainer
                 widget={widget}
                 onRemove={isEditMode ? removeWidget : undefined}
@@ -718,7 +677,7 @@ export default function CustomizableDashboard() {
               />
             </div>
           ))}
-        </ResponsiveGridLayout>
+        </div>
       )}
 
       {getEnabledWidgets().length === 0 && (

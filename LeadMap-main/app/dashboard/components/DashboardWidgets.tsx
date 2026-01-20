@@ -275,7 +275,21 @@ function RecentActivityWidget({ widget, data }: { widget: DashboardWidget; data?
   const activities = activitiesData.map((activity: any) => {
     // Map icon names to iconify format if needed
     let iconName = activity.icon
-    if (typeof iconName === 'string' && !iconName.startsWith('tabler:')) {
+    if (!iconName && activity.iconType) {
+      // Map iconType to iconify format
+      const iconTypeMap: Record<string, string> = {
+        'users': 'tabler:users',
+        'target': 'tabler:target',
+        'sparkles': 'tabler:sparkles',
+        'activity': 'tabler:activity',
+        'mail': 'tabler:mail',
+        'phone': 'tabler:phone',
+        'mappin': 'tabler:map-pin',
+        'calendar': 'tabler:calendar',
+      }
+      iconName = iconTypeMap[activity.iconType.toLowerCase()] || 'tabler:activity'
+    }
+    if (typeof iconName === 'string' && !iconName.startsWith('tabler:') && !iconName.startsWith('lucide:')) {
       // Convert lucide icon names to iconify format
       const iconMap: Record<string, string> = {
         'Sparkles': 'tabler:sparkles',
@@ -295,6 +309,8 @@ function RecentActivityWidget({ widget, data }: { widget: DashboardWidget; data?
       'enrichment': { bg: 'bg-lightprimary', text: 'text-primary' },
       'campaign': { bg: 'bg-lightsuccess', text: 'text-success' },
       'lead': { bg: 'bg-lightinfo dark:bg-darkinfo', text: 'text-info' },
+      'contact': { bg: 'bg-lightprimary', text: 'text-primary' },
+      'deal': { bg: 'bg-lightsuccess', text: 'text-success' },
       'default': { bg: 'bg-lightprimary', text: 'text-primary' }
     }
     const colors = colorMap[activity.type] || colorMap.default
@@ -518,7 +534,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
               'var(--color-chart-5, #8b5cf6)'
             ]
             const color = colorMap[index] || colorMap[0]
-            const percentage = total > 0 ? Math.round((stage.value / total) * 100) : 0
+            const percentage = stage.percentage !== undefined ? stage.percentage : (total > 0 ? Math.round((stage.value / total) * 100) : 0)
 
             return (
               <motion.div

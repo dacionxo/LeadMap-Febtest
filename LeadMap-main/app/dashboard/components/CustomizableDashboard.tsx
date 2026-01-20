@@ -345,12 +345,6 @@ export default function CustomizableDashboard() {
             { name: 'Other', count: Math.round(total * 0.1), percentage: 10 }
           ]
         },
-        'manual-actions': {
-          phone: 0,
-          sms: 0,
-          email: 0,
-          total: 0
-        },
         'sales-efficiency': {
           avgResponseTime: '2.5h',
           conversionRate: '12%',
@@ -405,8 +399,6 @@ export default function CustomizableDashboard() {
           'conversion-rate',
           'recent-activity',
           'upcoming-tasks',
-          'manual-actions',
-          'quick-actions',
           'pipeline-funnel',
           'deal-stage-distribution',
           'performance-overview'
@@ -493,8 +485,6 @@ export default function CustomizableDashboard() {
       'conversion-rate',
       'recent-activity',
       'upcoming-tasks',
-      'manual-actions',
-      'quick-actions',
       'pipeline-funnel',
       'deal-stage-distribution',
       'performance-overview'

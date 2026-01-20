@@ -1007,27 +1007,6 @@ export const availableWidgets: DashboardWidget[] = [
     category: 'activity',
     size: 'medium'
   },
-  {
-    id: 'manual-actions',
-    type: 'activity',
-    title: 'Manual Actions',
-    icon: Zap,
-    component: ManualActionsWidget,
-    defaultEnabled: false,
-    category: 'actions',
-    size: 'medium'
-  },
-  // Quick Actions
-  {
-    id: 'quick-actions',
-    type: 'actions',
-    title: 'Quick Actions',
-    icon: Zap,
-    component: QuickActionsWidget,
-    defaultEnabled: true,
-    category: 'actions',
-    size: 'large'
-  },
   // Charts
   {
     id: 'pipeline-funnel',

@@ -415,12 +415,26 @@ export default function CustomizableDashboard() {
       }
     } catch (error) {
       console.error('Error loading dashboard config:', error)
-      // Fallback to defaults
-      const defaultWidgets = availableWidgets
-        .filter(w => w.defaultEnabled)
-        .map(w => w.id)
+      // Fallback to defaults - all widgets listed by user in order
+      const defaultWidgets = [
+        'total-prospects',
+        'active-listings',
+        'enriched-leads',
+        'avg-property-value',
+        'expired-listings',
+        'probate-leads',
+        'active-deals',
+        'pipeline-value',
+        'conversion-rate',
+        'recent-activity',
+        'upcoming-tasks',
+        'manual-actions',
+        'quick-actions',
+        'pipeline-funnel',
+        'deal-stage-distribution',
+        'performance-overview'
+      ]
       setEnabledWidgets(defaultWidgets)
-      initializeLayouts(defaultWidgets)
     }
   }
 

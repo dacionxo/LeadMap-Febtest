@@ -404,15 +404,17 @@ function PipelineFunnelWidget({ widget, data }: { widget: DashboardWidget; data?
         <p className="card-subtitle text-center">Deal progression through stages</p>
         <div className="border-b border-border dark:border-darkborder mt-3"></div>
       </div>
-      <div className="w-full flex-1 flex items-center min-h-0">
-        <FunnelChart
-          data={funnelData.length > 0 ? funnelData : [{ name: 'No Data', value: 1 }]}
-          pallette={colorPalette}
-          showValues={true}
-          showNames={true}
-          chartWidth={undefined} // Use full width of container
-          chartHeight={280}
-        />
+      <div className="w-full flex-1 flex items-center justify-center min-h-0">
+        <div className="w-full flex justify-center">
+          <FunnelChart
+            data={funnelData.length > 0 ? funnelData : [{ name: 'No Data', value: 1 }]}
+            pallette={colorPalette}
+            showValues={true}
+            showNames={true}
+            chartWidth={undefined} // Use full width of container
+            chartHeight={280}
+          />
+        </div>
       </div>
     </Card>
   )

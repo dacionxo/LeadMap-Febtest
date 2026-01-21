@@ -43,7 +43,7 @@ function TypingAnimationMotion({ userName }: { userName?: string }) {
     return () => clearTimeout(timeout)
   }, [j, i, isDeleting, words])
 
-  return <h5 className="text-lg lg:whitespace-nowrap" style={{ color: '#000000' }}>Welcome {text}</h5>
+  return <h5 className="text-lg lg:whitespace-nowrap" style={{ color: '#1C255D' }}>Welcome {text}</h5>
 }
 
 export const WelcomeCard = () => {
@@ -65,30 +65,30 @@ export const WelcomeCard = () => {
             </div>
             <div className="flex gap-6 items-center">
               <div className="pe-6 rtl:pe-auto rtl:ps-6 border-e border-black border-opacity-20 dark:border-darkborder">
-                <h3 className="flex items-start mb-0 text-3xl" style={{ color: '#000000' }}>
+                <h3 className="flex items-start mb-0 text-3xl" style={{ color: '#1C255D' }}>
                   <span>
                     $<CountUp to={2340} />
                   </span>
                   <Icon
                     icon="tabler:arrow-up-right"
                     className="text-base"
-                    style={{ color: '#000000' }}
+                    style={{ color: '#1C255D' }}
                   />
                 </h3>
-                <p className="text-sm mt-1" style={{ color: '#000000' }}>Today's Sales</p>
+                <p className="text-sm mt-1" style={{ color: '#1C255D' }}>Today's Sales</p>
               </div>
               <div>
-                <h3 className="flex items-start mb-0 text-3xl" style={{ color: '#000000' }}>
+                <h3 className="flex items-start mb-0 text-3xl" style={{ color: '#1C255D' }}>
                   <span>
                     <CountUp to={35} />%
                   </span>
                   <Icon
                     icon="tabler:arrow-up-right"
                     className="text-base"
-                    style={{ color: '#000000' }}
+                    style={{ color: '#1C255D' }}
                   />
                 </h3>
-                <p className="text-sm mt-1" style={{ color: '#000000' }}>Overall Performance</p>
+                <p className="text-sm mt-1" style={{ color: '#1C255D' }}>Overall Performance</p>
               </div>
             </div>
           </div>

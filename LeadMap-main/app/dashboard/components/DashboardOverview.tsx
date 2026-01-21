@@ -24,11 +24,11 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   return (
     <>
-      <Card className='pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#4F7CFF', boxShadow: '0 1.5rem 3rem rgba(0,0,0,0.075)' }}>
+      <Card className='pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#EEF3FF', boxShadow: '0 1.5rem 3rem rgba(0,0,0,0.075)' }}>
         <div className='grid grid-cols-12 gap-6'>
           <div className='md:col-span-6 col-span-12'>
             <div className='flex items-center gap-3 mt-2'>
-              <h5 className='text-lg' style={{ color: '#FFFFFF', textShadow: '0.2px 0.2px 0.2px rgba(0, 0, 0, 0.4)' }}>
+              <h5 className='text-lg' style={{ color: '#1C255D' }}>
                 Dashboard Overview
               </h5>
               {onRefresh && (
@@ -36,19 +36,19 @@ export default function DashboardOverview({
                   onClick={onRefresh}
                   disabled={refreshing}
                   className="p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ color: '#FFFFFF' }}
+                  style={{ color: '#1C255D' }}
                   title="Refresh data"
                 >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} style={{ color: '#FFFFFF' }} />
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} style={{ color: '#1C255D' }} />
                 </button>
               )}
               {lastUpdated && (
-                <p className='text-xs' style={{ color: '#FFFFFF', opacity: 0.9, textShadow: '0.2px 0.2px 0.2px rgba(0, 0, 0, 0.4)' }}>
+                <p className='text-xs' style={{ color: '#1C255D', opacity: 0.9 }}>
                   Last updated: {lastUpdated.toLocaleTimeString()}
                 </p>
               )}
             </div>
-            <p className='text-sm font-medium py-5' style={{ color: '#FFFFFF', opacity: 0.9, textShadow: '0.2px 0.2px 0.2px rgba(0, 0, 0, 0.4)' }}>
+            <p className='text-sm font-medium py-5' style={{ color: '#1C255D', opacity: 0.9 }}>
               Track your prospects, campaigns, and deals in one place. Customize your dashboard to see what matters most.
             </p>
             {error && (

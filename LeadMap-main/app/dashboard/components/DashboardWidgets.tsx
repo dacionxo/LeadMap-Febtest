@@ -366,7 +366,7 @@ function RecentActivityWidget({ widget, data }: { widget: DashboardWidget; data?
   })
 
   return (
-    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)', backgroundColor: '#FFFFFF' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Recent Activity</h4>
         <p className="card-subtitle text-center">Preparation for the upcoming activity</p>
@@ -524,7 +524,7 @@ function PipelineFunnelWidget({ widget, data }: { widget: DashboardWidget; data?
   ]
 
   return (
-    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)', backgroundColor: '#FFFFFF' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Pipeline Funnel</h4>
         <p className="card-subtitle text-center">Deal progression through stages</p>
@@ -646,7 +646,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
   } satisfies ChartConfig
 
   return (
-    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)', backgroundColor: '#FFFFFF' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Deal Stage Distribution</h4>
         <p className="card-subtitle text-center">Breakdown of deals by stage</p>
@@ -756,7 +756,7 @@ function TasksWidget({ widget, data }: { widget: DashboardWidget; data?: any }) 
   })
 
   return (
-    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)', backgroundColor: '#FFFFFF' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Tasks</h4>
         <p className="card-subtitle text-center">The power of prioritizing your tasks</p>

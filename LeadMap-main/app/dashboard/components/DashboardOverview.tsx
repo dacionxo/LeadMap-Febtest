@@ -24,7 +24,7 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   return (
     <>
-      <Card className='shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#5D87FF' }}>
+      <Card className='shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#4F7CFF' }}>
         <div className='grid grid-cols-12 gap-6'>
           <div className='md:col-span-6 col-span-12'>
             <div className='flex items-center gap-3 mt-2'>
@@ -59,8 +59,8 @@ export default function DashboardOverview({
           </div>
           <div className='md:col-span-6 col-span-12 flex items-center justify-end gap-2'>
             {onCustomize && !isEditMode && (
-              <Button 
-                variant={'info'} 
+              <Button
+                variant={'info'}
                 onClick={onCustomize}
                 style={{ backgroundColor: '#FFFFFF', borderColor: '#FFFFFF', color: '#1C2536' }}
                 className='flex items-center justify-center'

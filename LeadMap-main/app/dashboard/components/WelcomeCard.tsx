@@ -10,7 +10,7 @@ import { useApp } from '@/app/providers'
 
 // Typing animation component
 function TypingAnimationMotion({ userName }: { userName?: string }) {
-  const words = userName 
+  const words = userName
     ? [`back ${userName}!`, 'to your dashboard!']
     : ['back!', 'to your dashboard!']
   const [i, setI] = useState(0)
@@ -50,7 +50,7 @@ export const WelcomeCard = () => {
   const { profile } = useApp()
 
   return (
-    <Card className="bg-lightprimary dark:bg-lightprimary overflow-hidden shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] relative h-full rounded-xl">
+    <Card className="overflow-hidden shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] relative h-full rounded-xl" style={{ backgroundColor: '#CBD7FA' }}>
       <div className="grid grid-cols-12 h-full">
         <div className="md:col-span-7 col-span-12 content-center">
           <div className="flex flex-col gap-8">
@@ -94,8 +94,8 @@ export const WelcomeCard = () => {
         <div className="md:col-span-5 md:block hidden relative overflow-hidden">
           <div className="absolute right-0 bottom-0 w-full h-full flex items-end justify-end">
             <div className="w-full h-full max-w-[280px] max-h-[280px]">
-              <Lottie 
-                animationData={onlinedoctor} 
+              <Lottie
+                animationData={onlinedoctor}
                 loop={true}
                 style={{ width: '100%', height: '100%' }}
               />

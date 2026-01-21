@@ -35,7 +35,7 @@ export default function DashboardOverview({
               <button
                 onClick={onRefresh}
                 disabled={refreshing}
-                className="p-1 ml-2 text-ld hover:text-primary hover:bg-lightprimary rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-block align-middle"
+                className="ml-2 p-1 text-ld hover:text-primary hover:bg-lightprimary rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed align-middle"
                 title="Refresh data"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -45,7 +45,7 @@ export default function DashboardOverview({
               Track your prospects, campaigns, and deals in one place. Customize your dashboard to see what matters most.
             </p>
             {lastUpdated && (
-              <p className='text-xs text-ld opacity-60 mb-4'>
+              <p className='text-xs text-ld opacity-60 mb-2'>
                 Last updated: {lastUpdated.toLocaleTimeString()}
               </p>
             )}
@@ -55,10 +55,7 @@ export default function DashboardOverview({
               </div>
             )}
             {onCustomize && !isEditMode && (
-              <Button variant={'info'} className='inline-flex items-center gap-2'>
-                <Settings2 className="w-4 h-4" />
-                Customize
-              </Button>
+              <Button variant={'info'}>Customize</Button>
             )}
           </div>
           <div className='md:col-span-6 col-span-12'>

@@ -87,9 +87,7 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
   // #region agent log
   const shouldApplyShadow = hasOwnCard && widget.type === 'metric'
   const shadowStyle = shouldApplyShadow ? { boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' } : undefined
-  // Remove hover:shadow-lg for metric widgets to prevent override
-  const hoverClass = widget.type === 'metric' ? '' : 'hover:shadow-lg'
-  fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardWidgets.tsx:85',message:'WidgetContainer render',data:{widgetId:widget.id,widgetType:widget.type,hasOwnCard,shouldApplyShadow,shadowStyle,hoverClass},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardWidgets.tsx:85',message:'WidgetContainer render',data:{widgetId:widget.id,widgetType:widget.type,hasOwnCard,shouldApplyShadow,shadowStyle},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
 
   const containerRef = useCallback((el: HTMLDivElement | null) => {
@@ -105,7 +103,7 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
 
   return (
     <div 
-      className={`relative h-full ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} ${hoverClass} transition-all duration-200 ${widget.size === 'large' ? 'col-span-2' : ''
+      className={`relative h-full ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} hover:shadow-lg transition-all duration-200 ${widget.size === 'large' ? 'col-span-2' : ''
       }`}
       style={shadowStyle}
       ref={containerRef}
@@ -192,8 +190,7 @@ function ProspectMetricsWidget({ widget, data }: { widget: DashboardWidget; data
 
   return (
     <div 
-      className="relative bg-white dark:bg-gray-900 rounded-lg border-[1.5px] border-teal-500 dark:border-teal-600 transition-all duration-200 overflow-hidden p-4" 
-      style={{ boxShadow: shadowValue, WebkitBoxShadow: shadowValue } as React.CSSProperties}
+      className="relative bg-white dark:bg-gray-900 rounded-lg shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] transition-all duration-200 overflow-hidden p-4" 
       ref={metricsRef}
     >
       {/* Header Section */}

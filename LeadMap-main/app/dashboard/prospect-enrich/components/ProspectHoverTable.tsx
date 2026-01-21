@@ -391,8 +391,8 @@ export default function ProspectHoverTable({
 
   // EXACT 1:1 MATCH TO TAILWINDADMIN'S HOVERTABLE STRUCTURE
   return (
-    <div className="border rounded-lg border-ld overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="border rounded-lg border-ld overflow-hidden h-full flex flex-col">
+      <div className="overflow-x-auto overflow-y-auto flex-1">
         <Table>
           <TableHeader>
             <TableRow>

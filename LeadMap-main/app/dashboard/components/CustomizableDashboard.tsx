@@ -5,6 +5,7 @@ import { Plus, Settings2, Save, RefreshCw } from 'lucide-react'
 import { availableWidgets, WidgetContainer, DashboardWidget } from './DashboardWidgets'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useApp } from '@/app/providers'
+import DashboardOverview from './DashboardOverview'
 
 export default function CustomizableDashboard() {
   const { profile } = useApp()
@@ -509,75 +510,47 @@ export default function CustomizableDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Edit Mode Toggle */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center space-x-3 mb-2">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-            <button
-              onClick={handleManualRefresh}
-              disabled={refreshing || loading}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh data"
-            >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-          <div className="flex items-center space-x-4">
-            <p className="text-gray-600 dark:text-gray-400">
-              Track your prospects, campaigns, and deals in one place. Customize your dashboard to see what matters most.
-            </p>
-            {lastUpdated && (
-              <span className="text-xs text-gray-500 dark:text-gray-500">
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-          {error && (
-            <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center space-x-3">
-          {isEditMode ? (
-            <>
-              <button
-                onClick={() => setShowAddWidget(!showAddWidget)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Widget</span>
-              </button>
-              <button
-                onClick={saveDashboardConfig}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditMode(false)
-                  setShowAddWidget(false)
-                  loadDashboardConfig()
-                }}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors duration-200"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setIsEditMode(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg transition-colors duration-200"
-            >
-              <Settings2 className="w-4 h-4" />
-              <span>Customize</span>
-            </button>
-          )}
-        </div>
+      {/* Header with Edit Mode Toggle - Using Download Banner Design */}
+      <div className="flex items-center justify-between mb-6 w-full">
+        <DashboardOverview
+          lastUpdated={lastUpdated}
+          refreshing={refreshing || loading}
+          error={error}
+          onRefresh={handleManualRefresh}
+          onCustomize={isEditMode ? undefined : () => setIsEditMode(true)}
+          isEditMode={isEditMode}
+        />
       </div>
+      
+      {/* Edit Mode Controls */}
+      {isEditMode && (
+        <div className="flex items-center justify-end space-x-3 mb-4">
+          <button
+            onClick={() => setShowAddWidget(!showAddWidget)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Widget</span>
+          </button>
+          <button
+            onClick={saveDashboardConfig}
+            className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save</span>
+          </button>
+          <button
+            onClick={() => {
+              setIsEditMode(false)
+              setShowAddWidget(false)
+              loadDashboardConfig()
+            }}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors duration-200"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Add Widget Dropdown */}
       {showAddWidget && (

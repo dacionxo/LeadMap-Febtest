@@ -11,10 +11,16 @@ import { Social } from "../components/dashboards/modern/Social";
 import { SellingProducts } from "../components/dashboards/modern/SellingProducts";
 import { WeeklyStats } from "../components/dashboards/modern/WeeklyStats";
 import { TopPerformer } from "../components/dashboards/modern/TopPerformer";
+import { DashboardOverview } from "../components/dashboards/modern/DashboardOverview";
 
 const page = () => {
   return (
     <>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <DashboardOverview />
+        </div>
+      </div>
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12">
           <TopCards />
@@ -52,6 +58,7 @@ const page = () => {
         </div>
         <div className="lg:col-span-8 col-span-12">
           <TopPerformer />
+        </div>
         </div>
       </div>
 

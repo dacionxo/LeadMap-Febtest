@@ -48,7 +48,7 @@ import {
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { LabelList, Pie, PieChart as RechartsPieChart } from 'recharts'
 import SimpleBar from 'simplebar-react'
 import 'simplebar-react/dist/simplebar.min.css'
@@ -84,11 +84,31 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
     widget.id === 'deal-stage-distribution' ||
     widget.type === 'metric' // Metric widgets have their own card styling
 
+  // #region agent log
+  const shouldApplyShadow = hasOwnCard && widget.type === 'metric'
+  const shadowStyle = shouldApplyShadow ? { boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' } : undefined
+  // Remove hover:shadow-lg for metric widgets to prevent override
+  const hoverClass = widget.type === 'metric' ? '' : 'hover:shadow-lg'
+  fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardWidgets.tsx:85',message:'WidgetContainer render',data:{widgetId:widget.id,widgetType:widget.type,hasOwnCard,shouldApplyShadow,shadowStyle,hoverClass},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+
+  const containerRef = useCallback((el: HTMLDivElement | null) => {
+    if (el && widget.type === 'metric') {
+      setTimeout(() => {
+        const computed = window.getComputedStyle(el)
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardWidgets.tsx:96',message:'Computed styles on WidgetContainer',data:{widgetId:widget.id,boxShadow:computed.boxShadow,hasBoxShadow:computed.boxShadow !== 'none',allShadows:computed.boxShadow,className:el.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+      }, 100)
+    }
+  }, [widget.id, widget.type])
+
   return (
     <div 
-      className={`relative h-full ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} hover:shadow-lg transition-all duration-200 ${widget.size === 'large' ? 'col-span-2' : ''
+      className={`relative h-full ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} ${hoverClass} transition-all duration-200 ${widget.size === 'large' ? 'col-span-2' : ''
       }`}
-      style={hasOwnCard && widget.type === 'metric' ? { boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' } : undefined}
+      style={shadowStyle}
+      ref={containerRef}
     >
       {isEditable && (
         <>
@@ -154,8 +174,28 @@ function ProspectMetricsWidget({ widget, data }: { widget: DashboardWidget; data
     console.log('Filter clicked for', widget.title)
   }
 
+  const shadowValue = '0 0.125rem 0.25rem rgba(0,0,0,0.075)'
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardWidgets.tsx:161',message:'ProspectMetricsWidget render',data:{widgetTitle:widget.title,shadowValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+
+  const metricsRef = useCallback((el: HTMLDivElement | null) => {
+    if (el) {
+      setTimeout(() => {
+        const computed = window.getComputedStyle(el)
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardWidgets.tsx:169',message:'Computed styles on ProspectMetricsWidget',data:{widgetTitle:widget.title,boxShadow:computed.boxShadow,hasBoxShadow:computed.boxShadow !== 'none',borderColor:computed.borderColor,className:el.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+      }, 100)
+    }
+  }, [widget.title])
+
   return (
-    <div className="relative bg-white dark:bg-gray-900 rounded-lg border-[1.5px] border-teal-500 dark:border-teal-600 transition-all duration-200 overflow-hidden p-4" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
+    <div 
+      className="relative bg-white dark:bg-gray-900 rounded-lg border-[1.5px] border-teal-500 dark:border-teal-600 transition-all duration-200 overflow-hidden p-4" 
+      style={{ boxShadow: shadowValue, WebkitBoxShadow: shadowValue } as React.CSSProperties}
+      ref={metricsRef}
+    >
       {/* Header Section */}
       <div className="relative flex items-center justify-center mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
         {/* Filter button - positioned on left */}

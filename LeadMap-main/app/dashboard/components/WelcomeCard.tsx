@@ -43,14 +43,14 @@ function TypingAnimationMotion({ userName }: { userName?: string }) {
     return () => clearTimeout(timeout)
   }, [j, i, isDeleting, words])
 
-  return <h5 className="text-lg lg:whitespace-nowrap">Welcome {text}</h5>
+  return <h5 className="text-lg lg:whitespace-nowrap" style={{ color: '#FFFFFF' }}>Welcome {text}</h5>
 }
 
 export const WelcomeCard = () => {
   const { profile } = useApp()
 
   return (
-    <Card className="overflow-hidden shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] relative h-full rounded-xl" style={{ backgroundColor: '#2F5BFF' }}>
+    <Card className="overflow-hidden shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] relative h-full rounded-xl" style={{ backgroundColor: '#141B33' }}>
       <div className="grid grid-cols-12 h-full">
         <div className="md:col-span-7 col-span-12 content-center">
           <div className="flex flex-col gap-8">
@@ -64,29 +64,31 @@ export const WelcomeCard = () => {
               <TypingAnimationMotion userName={profile?.name} />
             </div>
             <div className="flex gap-6 items-center">
-              <div className="pe-6 rtl:pe-auto rtl:ps-6 border-e border-border border-opacity-20 dark:border-darkborder">
-                <h3 className="flex items-start mb-0 text-3xl">
+              <div className="pe-6 rtl:pe-auto rtl:ps-6 border-e border-white border-opacity-20 dark:border-darkborder">
+                <h3 className="flex items-start mb-0 text-3xl" style={{ color: '#FFFFFF' }}>
                   <span>
                     $<CountUp to={2340} />
                   </span>
                   <Icon
                     icon="tabler:arrow-up-right"
-                    className="text-base text-success"
+                    className="text-base"
+                    style={{ color: '#FFFFFF' }}
                   />
                 </h3>
-                <p className="text-sm mt-1">Today's Sales</p>
+                <p className="text-sm mt-1" style={{ color: '#FFFFFF' }}>Today's Sales</p>
               </div>
               <div>
-                <h3 className="flex items-start mb-0 text-3xl">
+                <h3 className="flex items-start mb-0 text-3xl" style={{ color: '#FFFFFF' }}>
                   <span>
                     <CountUp to={35} />%
                   </span>
                   <Icon
                     icon="tabler:arrow-up-right"
-                    className="text-base text-success"
+                    className="text-base"
+                    style={{ color: '#FFFFFF' }}
                   />
                 </h3>
-                <p className="text-sm mt-1">Overall Performance</p>
+                <p className="text-sm mt-1" style={{ color: '#FFFFFF' }}>Overall Performance</p>
               </div>
             </div>
           </div>

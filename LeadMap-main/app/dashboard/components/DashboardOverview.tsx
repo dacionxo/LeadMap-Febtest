@@ -3,6 +3,8 @@
 import React from 'react'
 import { Settings2, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
 
 interface DashboardOverviewProps {
   lastUpdated?: Date | null
@@ -21,30 +23,32 @@ export default function DashboardOverview({
   onCustomize,
   isEditMode = false
 }: DashboardOverviewProps) {
+  // Using TailwindAdmin's exact download banner design structure
+  // bg-lightprimary equivalent: using blue-50/indigo-50 gradient for lightprimary feel
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 w-full">
-      <div className="grid grid-cols-12 gap-6 items-center">
+    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 shadow-none pb-0 w-full border-0">
+      <div className="grid grid-cols-12 gap-6">
         <div className="md:col-span-6 col-span-12">
           <div className="flex items-center space-x-3 mb-2">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h5 className="text-lg mt-2 font-semibold text-gray-900 dark:text-white">
               Dashboard Overview
-            </h1>
+            </h5>
             {onRefresh && (
               <button
                 onClick={onRefresh}
                 disabled={refreshing}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Refresh data"
               >
                 <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
             )}
           </div>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm font-medium py-5 text-gray-600 dark:text-gray-400 opacity-75">
             Track your prospects, campaigns, and deals in one place. Customize your dashboard to see what matters most.
           </p>
           {lastUpdated && (
-            <p className="text-xs text-gray-500 dark:text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </p>
           )}
@@ -53,31 +57,26 @@ export default function DashboardOverview({
               {error}
             </div>
           )}
-        </div>
-        <div className="md:col-span-6 col-span-12 flex items-center justify-end gap-4">
-          <div className="hidden md:block flex-1">
-            <div className="flex justify-end">
-              <Image
-                src="/images/backgrounds/track-bg.png"
-                alt="banner"
-                width={400}
-                height={240}
-                className="object-contain"
-              />
-            </div>
-          </div>
-          {onCustomize && (
-            <button
+          {onCustomize && !isEditMode && (
+            <Button 
+              variant="default"
               onClick={onCustomize}
-              disabled={isEditMode}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200 shrink-0"
             >
-              <Settings2 className="w-4 h-4" />
-              <span>Customize</span>
-            </button>
+              <Settings2 className="w-4 h-4 mr-2" />
+              Customize
+            </Button>
           )}
         </div>
+        <div className="md:col-span-6 col-span-12">
+          <Image
+            src="/images/backgrounds/track-bg.png"
+            alt="banner"
+            width={400}
+            height={240}
+            className="ms-auto hidden md:block"
+          />
+        </div>
       </div>
-    </div>
+    </Card>
   )
 }

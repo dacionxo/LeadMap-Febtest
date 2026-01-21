@@ -85,8 +85,11 @@ export function WidgetContainer({ widget, onRemove, isEditable = false, data }: 
     widget.type === 'metric' // Metric widgets have their own card styling
 
   return (
-    <div className={`relative h-full ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} hover:shadow-lg transition-all duration-200 ${widget.size === 'large' ? 'col-span-2' : ''
-      }`}>
+    <div 
+      className={`relative h-full ${hasOwnCard ? '' : 'bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'} hover:shadow-lg transition-all duration-200 ${widget.size === 'large' ? 'col-span-2' : ''
+      }`}
+      style={hasOwnCard && widget.type === 'metric' ? { boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' } : undefined}
+    >
       {isEditable && (
         <>
           <div className="absolute top-2 left-2 cursor-move text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 z-10">

@@ -25,7 +25,7 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   return (
     <>
-      <Card className='bg-lightprimary dark:bg-lightprimary shadow-none pb-0 mt-[30px]'>
+      <Card className='bg-lightprimary dark:bg-lightprimary shadow-none pb-0 mt-[30px] rounded-lg'>
         <div className='grid grid-cols-12 gap-6'>
           <div className='md:col-span-6 col-span-12'>
             <h5 className='text-lg mt-2'>
@@ -65,6 +65,7 @@ export default function DashboardOverview({
               width={400}
               height={240}
               className='ms-auto'
+              style={{ maxWidth: '100%', height: 'auto' }}
             />
           </div>
         </div>

@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useApp } from '@/app/providers'
 import { useTheme } from '@/components/ThemeProvider'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import LeadsTable from '@/components/LeadsTable'
 import MapView from '@/components/MapView'
 import EmailTemplateModal from '@/components/EmailTemplateModal'
 import SaveButton from './components/AddToCrmButton'
@@ -14,11 +13,9 @@ import { normalizeListingIdentifier } from '@/app/dashboard/lists/utils/identifi
 import ProspectInsights from './components/ProspectInsights'
 import ApolloFilterSidebar from './components/ApolloFilterSidebar'
 import ApolloActionBar from './components/ApolloActionBar'
-import ApolloContactCard from './components/ApolloContactCard'
 import ApolloPagination from './components/ApolloPagination'
 import LeadDetailModal from './components/LeadDetailModal'
 import ImportLeadsModal from './components/ImportLeadsModal'
-import VirtualizedListingsTable from './components/VirtualizedListingsTable'
 import ProspectHoverTable from './components/ProspectHoverTable'
 import AddToListModal from './components/AddToListModal'
 import AddToCampaignModal from './components/AddToCampaignModal'
@@ -107,7 +104,7 @@ function ProspectEnrichInner() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [showAddToListModal, setShowAddToListModal] = useState(false)
   const [showAddToCampaignModal, setShowAddToCampaignModal] = useState(false)
-  const [useVirtualizedTable, setUseVirtualizedTable] = useState(true) // Enable virtualized table by default
+  // Removed useVirtualizedTable - only using ProspectHoverTable now
   const [remoteListingsCount, setRemoteListingsCount] = useState(0)
   
   // Data Hook
@@ -129,7 +126,7 @@ function ProspectEnrichInner() {
   
   const supabase = useMemo(() => createClientComponentClient(), [])
   const headerScrollRef = useRef<HTMLDivElement>(null)
-  const dataScrollContainerRef = useRef<HTMLDivElement>(null)
+  // Removed dataScrollContainerRef - no longer needed
 
   const activeCategory = useMemo(() => getPrimaryCategory(selectedFilters), [selectedFilters])
   
@@ -154,14 +151,7 @@ function ProspectEnrichInner() {
     return getTableName(activeCategory)
   }, [activeCategory, getTableName])
   
-  const shouldUseVirtualizedTable = useMemo(() => {
-    // Only use virtualized table for table-based categories that have a valid table name
-    // This prevents "all" (which aggregates from multiple tables) from using the virtualized table
-    const isNotAllCategory = activeCategory !== 'all' // "all" aggregates from multiple tables, so can't use virtualized table
-    return useVirtualizedTable && 
-           viewTypeSelector === 'table' && 
-           isNotAllCategory
-  }, [useVirtualizedTable, viewTypeSelector, activeCategory])
+  // Removed shouldUseVirtualizedTable - only using ProspectHoverTable now
 
   // Market Segments (Apollo.io style) - only include valid FilterType values
   const marketSegments = useMemo(() => {
@@ -1231,318 +1221,12 @@ function ProspectEnrichInner() {
   }, [filteredListings, currentPage, itemsPerPage])
 
   const activeTableItemCount = useMemo(() => {
-    if (shouldUseVirtualizedTable) {
-      return remoteListingsCount
-    }
-    return filteredListings.length
-  }, [shouldUseVirtualizedTable, remoteListingsCount, filteredListings])
+    return remoteListingsCount || filteredListings.length
+  }, [remoteListingsCount, filteredListings.length])
 
   const totalPages = Math.max(1, Math.ceil(Math.max(activeTableItemCount, 1) / itemsPerPage))
 
-  const tableHeaderColumns = useMemo(() => (
-    <div style={{
-      display: 'flex',
-      width: 'max-content',
-      minWidth: '100%'
-    }}>
-      <div style={{ 
-        marginRight: '16px', 
-        flexShrink: 0, 
-        width: '18px',
-        display: 'flex',
-        alignItems: 'center'
-      }} />
-      <div style={{ 
-        flex: '0 0 280px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Address
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 130px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Price
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 120px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Status
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 100px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          AI Score
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 100px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Total Beds
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 110px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Total Baths
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 140px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Housing Square Feet
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 200px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Description
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 150px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Agent Name
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 180px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Agent Email
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 130px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Agent Phone
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 130px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Agent Phone 2
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 160px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Listing Agent Phone 2
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 160px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Listing Agent Phone
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 100px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Year Built
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 130px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Last Sale Price
-        </span>
-      </div>
-      <div style={{ 
-        flex: '0 0 130px', 
-        marginRight: '24px',
-        minWidth: 0
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Last Sale Date
-        </span>
-      </div>
-      <div style={{ 
-        flexShrink: 0,
-        width: '120px',
-        display: 'flex',
-        justifyContent: 'flex-end'
-      }}>
-        <span style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: isDark ? '#ffffff' : '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Actions
-        </span>
-      </div>
-    </div>
-  ), [isDark])
+  // Removed tableHeaderColumns - ProspectHoverTable handles its own header
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -2044,248 +1728,66 @@ function ProspectEnrichInner() {
                   </div>
                 )}
 
-                {/* Contact List Container - Apollo.io Style */}
-                <div 
-                  className="prospect-table-container"
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    background: isDark ? '#0f172a' : '#ffffff',
-                    position: 'relative',
-                    minHeight: 0,
-                    width: '100%',
-                    minWidth: 0,
-                    overflow: 'hidden'
-                  }}>
-                  {/* Virtualized Table for Performance (1M+ listings) - Apollo-style Architecture */}
-                  {/* Only use virtualized table for table-based categories (all except "all" aggregate) */}
-                  {shouldUseVirtualizedTable ? (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-                      {/* Single Scroll Container - Scrolls horizontally and expands vertically */}
-                      <div 
-                        ref={dataScrollContainerRef}
-                        className="data-scroll-container"
-                        style={{ 
-                          width: '100%',
-                          overflowX: 'auto',
-                          overflowY: 'auto',
-                          position: 'relative',
-                          scrollbarWidth: 'thin',
-                          scrollbarColor: isDark ? 'rgba(99, 102, 241, 0.5) rgba(15, 23, 42, 0.3)' : 'rgba(99, 102, 241, 0.3) rgba(229, 231, 235, 0.5)'
-                        }}
-                      >
-                        {/* Checkbox Table Content - Using shadcn/ui Table with Checkbox */}
-                        {/* When activeCategory is 'all', pass listings prop to use aggregated data instead of fetching from single table */}
-                        <ProspectHoverTable
-                          tableName={activeCategory === 'all' ? undefined : resolvedTableName}
-                          listings={activeCategory === 'all' ? filteredListings : undefined}
-                          filters={{
-                            search: searchTerm,
-                            city: apolloFilters.city?.[0],
-                            state: apolloFilters.state?.[0],
-                            minPrice: apolloFilters.price_range?.min?.toString(),
-                            maxPrice: apolloFilters.price_range?.max?.toString(),
-                            status: apolloFilters.status?.[0]
-                          }}
-                          sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
-                          sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
-                          pagination={{
-                            currentPage,
-                            pageSize: itemsPerPage,
-                            onPageChange: setCurrentPage,
-                            onPageSizeChange: setItemsPerPage
-                          }}
-                          onStatsChange={(stats) => {
-                            setRemoteListingsCount(stats.totalCount)
-                            // Update totalPages if needed for proper pagination display
-                          }}
-                          onListingClick={(listing) => {
-                            setSelectedListingId(listing.listing_id)
-                            setShowLeadModal(true)
-                          }}
-                          selectedIds={selectedIds}
-                          onSelect={(listingId, selected) => {
-                            const newSelected = new Set(selectedIds)
-                            if (selected) {
-                              newSelected.add(listingId)
-                            } else {
-                              newSelected.delete(listingId)
-                            }
-                            setSelectedIds(newSelected)
-                          }}
-                          crmContactIds={crmContactIds}
-                          onSave={handleSaveProspect}
-                          category={activeCategory}
-                          onAction={(action, listing) => {
-                            if (action === 'email') {
-                              handleGenerateEmail(listing as any)
-                            } else if (action === 'call') {
-                              if (listing.agent_phone) {
-                                window.open(`tel:${listing.agent_phone}`)
-                              }
-                            } else if (action === 'save' || action === 'added_to_crm') {
-                              handleSave(listing as any)
-                            } else if (action === 'unsave' || action === 'removed_from_crm') {
-                              handleSaveProspect(listing as any, false)
-                            } else if (action === 'view') {
-                              setSelectedListingId(listing.listing_id)
-                              setShowLeadModal(true)
-                            }
-                          }}
-                          isDark={isDark}
-                          showSummary={false}
-                          showPagination={false}
-                        />
-                      </div>
-
-                      {/* Sticky Footer - Pagination (outside scroll container) */}
-                      <div style={{
-                        position: 'sticky',
-                        bottom: 0,
-                        background: isDark ? 'rgba(15, 23, 42, 0.98)' : '#ffffff',
-                        borderTop: isDark ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid #e5e7eb',
-                        zIndex: 20,
-                        padding: '12px 24px',
-                        backdropFilter: 'blur(10px)'
-                      }}>
-                        <ApolloPagination
-                          currentPage={currentPage}
-                          totalPages={totalPages}
-                          pageSize={itemsPerPage}
-                          totalItems={activeTableItemCount}
-                          onPageChange={setCurrentPage}
-                          onPageSizeChange={setItemsPerPage}
-                          isDark={isDark}
-                        />
-                      </div>
-                    </div>
-                  ) : listingsLoading ? (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '48px',
-                      color: isDark ? '#94a3b8' : '#6b7280',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      fontSize: '14px'
-                    }}>
-                      Loading prospects...
-                    </div>
-                  ) : paginatedListings.length === 0 ? (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '48px',
-                      color: isDark ? '#94a3b8' : '#6b7280',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      fontSize: '14px'
-                    }}>
-                      No prospects found
-                    </div>
-                  ) : (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0 }}>
-                      {/* Scroll Container with Header Inside */}
-                      <div 
-                        ref={dataScrollContainerRef}
-                        className="data-scroll-container"
-                        style={{ 
-                          width: '100%',
-                          overflowX: 'auto',
-                          overflowY: 'auto',
-                          position: 'relative',
-                          scrollbarWidth: 'thin',
-                          scrollbarColor: isDark ? 'rgba(99, 102, 241, 0.5) rgba(15, 23, 42, 0.3)' : 'rgba(99, 102, 241, 0.3) rgba(229, 231, 235, 0.5)'
-                        }}
-                      >
-                        {/* Checkbox Table Content - Using shadcn/ui Table with Checkbox */}
-                        {/* When activeCategory is 'all', pass listings prop to use aggregated data instead of fetching from single table */}
-                        <ProspectHoverTable
-                          tableName={activeCategory === 'all' ? undefined : resolvedTableName}
-                          listings={activeCategory === 'all' ? filteredListings : undefined}
-                          filters={{
-                            search: searchTerm,
-                            city: apolloFilters.city?.[0],
-                            state: apolloFilters.state?.[0],
-                            minPrice: apolloFilters.price_range?.min?.toString(),
-                            maxPrice: apolloFilters.price_range?.max?.toString(),
-                            status: apolloFilters.status?.[0]
-                          }}
-                          sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
-                          sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
-                          pagination={{
-                            currentPage,
-                            pageSize: itemsPerPage,
-                            onPageChange: setCurrentPage,
-                            onPageSizeChange: setItemsPerPage
-                          }}
-                          onStatsChange={(stats) => {
-                            setRemoteListingsCount(stats.totalCount)
-                            // Update totalPages if needed for proper pagination display
-                          }}
-                          onListingClick={(listing) => {
-                            setSelectedListingId(listing.listing_id)
-                            setShowLeadModal(true)
-                          }}
-                          selectedIds={selectedIds}
-                          onSelect={(listingId, selected) => {
-                            const newSelected = new Set(selectedIds)
-                            if (selected) {
-                              newSelected.add(listingId)
-                            } else {
-                              newSelected.delete(listingId)
-                            }
-                            setSelectedIds(newSelected)
-                          }}
-                          crmContactIds={crmContactIds}
-                          onSave={handleSaveProspect}
-                          category={activeCategory}
-                          onAction={(action, listing) => {
-                            if (action === 'email') {
-                              handleGenerateEmail(listing as any)
-                            } else if (action === 'call') {
-                              if (listing.agent_phone) {
-                                window.open(`tel:${listing.agent_phone}`)
-                              }
-                            } else if (action === 'save' || action === 'added_to_crm') {
-                              handleSave(listing as any)
-                            } else if (action === 'unsave' || action === 'removed_from_crm') {
-                              handleSaveProspect(listing as any, false)
-                            } else if (action === 'view') {
-                              setSelectedListingId(listing.listing_id)
-                              setShowLeadModal(true)
-                            }
-                          }}
-                          isDark={isDark}
-                          showSummary={false}
-                          showPagination={false}
-                        />
-                      </div>
-
-                      {/* Sticky Footer - Pagination (outside scroll container) */}
-                      <div style={{
-                        position: 'sticky',
-                        bottom: 0,
-                        background: isDark ? 'rgba(15, 23, 42, 0.98)' : '#ffffff',
-                        borderTop: isDark ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid #e5e7eb',
-                        zIndex: 20,
-                        padding: '12px 24px',
-                        backdropFilter: 'blur(10px)'
-                      }}>
-                        <ApolloPagination
-                          currentPage={currentPage}
-                          totalPages={totalPages}
-                          pageSize={itemsPerPage}
-                          totalItems={activeTableItemCount}
-                          onPageChange={setCurrentPage}
-                          onPageSizeChange={setItemsPerPage}
-                          isDark={isDark}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Hover Table - 1:1 Match to TailwindAdmin's /shadcn-tables/hover */}
+                <ProspectHoverTable
+                  tableName={activeCategory === 'all' ? undefined : resolvedTableName}
+                  listings={activeCategory === 'all' ? filteredListings : undefined}
+                  filters={{
+                    search: searchTerm,
+                    city: apolloFilters.city?.[0],
+                    state: apolloFilters.state?.[0],
+                    minPrice: apolloFilters.price_range?.min?.toString(),
+                    maxPrice: apolloFilters.price_range?.max?.toString(),
+                    status: apolloFilters.status?.[0]
+                  }}
+                  sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
+                  sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
+                  pagination={{
+                    currentPage,
+                    pageSize: itemsPerPage,
+                    onPageChange: setCurrentPage,
+                    onPageSizeChange: setItemsPerPage
+                  }}
+                  onStatsChange={(stats) => {
+                    setRemoteListingsCount(stats.totalCount)
+                  }}
+                  onListingClick={(listing) => {
+                    setSelectedListingId(listing.listing_id)
+                    setShowLeadModal(true)
+                  }}
+                  selectedIds={selectedIds}
+                  onSelect={(listingId, selected) => {
+                    const newSelected = new Set(selectedIds)
+                    if (selected) {
+                      newSelected.add(listingId)
+                    } else {
+                      newSelected.delete(listingId)
+                    }
+                    setSelectedIds(newSelected)
+                  }}
+                  crmContactIds={crmContactIds}
+                  onSave={handleSaveProspect}
+                  category={activeCategory}
+                  onAction={(action, listing) => {
+                    if (action === 'email') {
+                      handleGenerateEmail(listing as any)
+                    } else if (action === 'call') {
+                      if (listing.agent_phone) {
+                        window.open(`tel:${listing.agent_phone}`)
+                      }
+                    } else if (action === 'save' || action === 'added_to_crm') {
+                      handleSave(listing as any)
+                    } else if (action === 'unsave' || action === 'removed_from_crm') {
+                      handleSaveProspect(listing as any, false)
+                    } else if (action === 'view') {
+                      setSelectedListingId(listing.listing_id)
+                      setShowLeadModal(true)
+                    }
+                  }}
+                  isDark={isDark}
+                  showSummary={false}
+                  showPagination={true}
+                />
               </>
             )}
           </div>

@@ -391,7 +391,7 @@ export default function ProspectHoverTable({
 
   // EXACT 1:1 MATCH TO TAILWINDADMIN'S HOVERTABLE STRUCTURE
   return (
-    <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-hidden" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -431,7 +431,7 @@ export default function ProspectHoverTable({
                 return (
                   <TableRow
                     key={listing.listing_id}
-                    className="group/row hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-transparent cursor-pointer transition-colors"
+                    className="group/row hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-transparent cursor-pointer"
                     onClick={() => onListingClick?.(listing)}
                   >
                     {columns.includes('address') && (
@@ -494,43 +494,43 @@ export default function ProspectHoverTable({
                     
                     {columns.includes('description') && (
                       <TableCell>
-                        <p className="text-gray-500 dark:text-gray-400 text-base">{getDescription(listing)}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-base">{getDescription(listing)}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_name') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-500 dark:text-gray-400 text-base">{listing.agent_name || '-'}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_name || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_email') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-500 dark:text-gray-400 text-base">{listing.agent_email || '-'}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_email || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_phone') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-500 dark:text-gray-400 text-base">{listing.agent_phone || '-'}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_phone || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_phone_2') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-500 dark:text-gray-400 text-base">{listing.agent_phone_2 || '-'}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_phone_2 || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('listing_agent_phone_2') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-500 dark:text-gray-400 text-base">{listing.listing_agent_phone_2 || '-'}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.listing_agent_phone_2 || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('listing_agent_phone_5') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-500 dark:text-gray-400 text-base">{listing.listing_agent_phone_5 || '-'}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.listing_agent_phone_5 || '-'}</p>
                       </TableCell>
                     )}
                     
@@ -548,9 +548,9 @@ export default function ProspectHoverTable({
                     
                     {columns.includes('last_sale_date') && (
                       <TableCell className="whitespace-nowrap">
-                        <h6 className="text-base">
+                        <p className="text-gray-600 dark:text-gray-400 text-base">
                           {listing.last_sale_date ? new Date(listing.last_sale_date).toLocaleDateString() : '-'}
-                        </h6>
+                        </p>
                       </TableCell>
                     )}
                     

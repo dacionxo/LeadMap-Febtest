@@ -1211,12 +1211,6 @@ function ProspectEnrichInner() {
   // Always shows the complete count of saved listings in this category, regardless of viewType
   const savedCount = savedListings.length
 
-  const viewTypeOptions: { id: 'total' | 'net_new' | 'saved'; label: string; count: number }[] = [
-    { id: 'total', label: 'Total', count: totalCount },
-    { id: 'net_new', label: 'Net New', count: netNewCount },
-    { id: 'saved', label: 'Saved', count: savedCount },
-  ]
-
   const paginatedListings = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage
     const end = start + itemsPerPage
@@ -1269,100 +1263,68 @@ function ProspectEnrichInner() {
       <DashboardLayout>
       {/* TailwindAdmin Hover Table - 1:1 Match to /shadcn-tables/hover */}
       <div className="w-full py-[30px] md:px-[30px] px-5 h-[calc(100vh-120px)] flex flex-col">
-        <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 flex-1 flex flex-col rounded-[32px] overflow-hidden">
-          <div className="pt-4 p-6 flex-1 flex flex-col overflow-hidden">
-            <div className="pb-4">
-              <div className="rounded-[22px] border border-ld bg-white/80 dark:bg-dark/80 shadow-sm">
-                <div className="grid gap-2 md:grid-cols-3">
-                  {viewTypeOptions.map((option) => {
-                    const isActive = viewType === option.id
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={`flex flex-col items-start gap-1 rounded-[16px] border px-4 py-3 transition ${
-                          isActive
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-transparent bg-white dark:bg-dark/80 text-bodytext hover:border-ld dark:hover:border-white/30'
-                        }`}
-                        onClick={() => setViewType(option.id)}
-                      >
-                        <span className="text-[10px] uppercase tracking-[0.3em] text-bodytext dark:text-white/70">
-                          {option.label}
-                        </span>
-                        <span className="text-sm font-semibold text-ld dark:text-white">
-                          {option.count.toLocaleString()}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 min-h-0">
-              <ProspectHoverTable
-                tableName={activeCategory === 'all' ? undefined : resolvedTableName}
-                listings={activeCategory === 'all' ? filteredListings : undefined}
-                filters={{
-                  search: searchTerm,
-                  city: apolloFilters.city?.[0],
-                  state: apolloFilters.state?.[0],
-                  minPrice: apolloFilters.price_range?.min?.toString(),
-                  maxPrice: apolloFilters.price_range?.max?.toString(),
-                  status: apolloFilters.status?.[0]
-                }}
-                sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
-                sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
-                pagination={{
-                  currentPage,
-                  pageSize: itemsPerPage,
-                  onPageChange: setCurrentPage,
-                  onPageSizeChange: setItemsPerPage
-                }}
-                onStatsChange={(stats) => {
-                  setRemoteListingsCount(stats.totalCount)
-                }}
-                onListingClick={(listing) => {
-                  setSelectedListingId(listing.listing_id)
-                  setShowLeadModal(true)
-                }}
-                selectedIds={selectedIds}
-                onSelect={(listingId, selected) => {
-                  const newSelected = new Set(selectedIds)
-                  if (selected) {
-                    newSelected.add(listingId)
-                  } else {
-                    newSelected.delete(listingId)
-                  }
-                  setSelectedIds(newSelected)
-                }}
-                crmContactIds={crmContactIds}
-                onSave={handleSaveProspect}
-                category={activeCategory}
-                onAction={(action, listing) => {
-                  if (action === 'email') {
-                    handleGenerateEmail(listing as any)
-                  } else if (action === 'call') {
-                    if (listing.agent_phone) {
-                      window.open(`tel:${listing.agent_phone}`)
-                    }
-                  } else if (action === 'save' || action === 'added_to_crm') {
-                    handleSave(listing as any)
-                  } else if (action === 'unsave' || action === 'removed_from_crm') {
-                    handleSaveProspect(listing as any, false)
-                  } else if (action === 'view') {
-                    setSelectedListingId(listing.listing_id)
-                    setShowLeadModal(true)
-                  }
-                }}
-                isDark={isDark}
-                showSummary={false}
-                showPagination={true}
-              />
-            </div>
-          </div>
+        <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 flex-1 flex flex-col overflow-hidden">
+          <ProspectHoverTable
+                          tableName={activeCategory === 'all' ? undefined : resolvedTableName}
+                          listings={activeCategory === 'all' ? filteredListings : undefined}
+                          filters={{
+                            search: searchTerm,
+                            city: apolloFilters.city?.[0],
+                            state: apolloFilters.state?.[0],
+                            minPrice: apolloFilters.price_range?.min?.toString(),
+                            maxPrice: apolloFilters.price_range?.max?.toString(),
+                            status: apolloFilters.status?.[0]
+                          }}
+                          sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
+                          sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
+                          pagination={{
+                            currentPage,
+                            pageSize: itemsPerPage,
+                            onPageChange: setCurrentPage,
+                            onPageSizeChange: setItemsPerPage
+                          }}
+                          onStatsChange={(stats) => {
+                            setRemoteListingsCount(stats.totalCount)
+                          }}
+                          onListingClick={(listing) => {
+                            setSelectedListingId(listing.listing_id)
+                            setShowLeadModal(true)
+                          }}
+                          selectedIds={selectedIds}
+                          onSelect={(listingId, selected) => {
+                            const newSelected = new Set(selectedIds)
+                            if (selected) {
+                              newSelected.add(listingId)
+                            } else {
+                              newSelected.delete(listingId)
+                            }
+                            setSelectedIds(newSelected)
+                          }}
+                          crmContactIds={crmContactIds}
+                          onSave={handleSaveProspect}
+                          category={activeCategory}
+                          onAction={(action, listing) => {
+                            if (action === 'email') {
+                              handleGenerateEmail(listing as any)
+                            } else if (action === 'call') {
+                              if (listing.agent_phone) {
+                                window.open(`tel:${listing.agent_phone}`)
+                              }
+                            } else if (action === 'save' || action === 'added_to_crm') {
+                              handleSave(listing as any)
+                            } else if (action === 'unsave' || action === 'removed_from_crm') {
+                              handleSaveProspect(listing as any, false)
+                            } else if (action === 'view') {
+                              setSelectedListingId(listing.listing_id)
+                              setShowLeadModal(true)
+                            }
+                          }}
+                          isDark={isDark}
+                          showSummary={false}
+            showPagination={true}
+                        />
+                      </div>
         </div>
-      </div>
 
         {/* Lead Detail Modal */}
         {showLeadModal && selectedListingId && (

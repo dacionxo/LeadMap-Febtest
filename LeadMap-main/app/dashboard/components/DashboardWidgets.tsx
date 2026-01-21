@@ -152,7 +152,7 @@ function ProspectMetricsWidget({ widget, data }: { widget: DashboardWidget; data
   }
 
   return (
-    <div className="relative bg-white dark:bg-gray-900 rounded-lg border-[1.5px] border-teal-500 dark:border-teal-600 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden p-4">
+    <div className="relative bg-white dark:bg-gray-900 rounded-lg border-[1.5px] border-teal-500 dark:border-teal-600 transition-all duration-200 overflow-hidden p-4" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
       {/* Header Section */}
       <div className="relative flex items-center justify-center mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
         {/* Filter button - positioned on left */}
@@ -326,7 +326,7 @@ function RecentActivityWidget({ widget, data }: { widget: DashboardWidget; data?
   })
 
   return (
-    <Card className="h-full flex flex-col rounded-xl">
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Recent Activity</h4>
         <p className="card-subtitle text-center">Preparation for the upcoming activity</p>
@@ -484,7 +484,7 @@ function PipelineFunnelWidget({ widget, data }: { widget: DashboardWidget; data?
   ]
 
   return (
-    <Card className="h-full flex flex-col rounded-xl">
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Pipeline Funnel</h4>
         <p className="card-subtitle text-center">Deal progression through stages</p>
@@ -606,7 +606,7 @@ function DealStageDistributionWidget({ widget, data }: { widget: DashboardWidget
   } satisfies ChartConfig
 
   return (
-    <Card className="h-full flex flex-col rounded-xl">
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Deal Stage Distribution</h4>
         <p className="card-subtitle text-center">Breakdown of deals by stage</p>
@@ -716,7 +716,7 @@ function TasksWidget({ widget, data }: { widget: DashboardWidget; data?: any }) 
   })
 
   return (
-    <Card className="h-full flex flex-col rounded-xl">
+    <Card className="h-full flex flex-col rounded-xl" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
       <div className="mb-3">
         <h4 className="card-title text-center">Tasks</h4>
         <p className="card-subtitle text-center">The power of prioritizing your tasks</p>
@@ -842,7 +842,7 @@ function LeadSourceWidget({ widget, data }: { widget: DashboardWidget; data?: an
 
 function PerformanceChartWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
   return (
-    <div className="h-48 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+    <div className="h-48 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg" style={{ boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
       <div className="text-center">
         <LineChart className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-2" />
         <p className="text-sm text-gray-500 dark:text-gray-400">Performance chart visualization</p>

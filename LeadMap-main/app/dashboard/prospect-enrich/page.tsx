@@ -15,6 +15,7 @@ import LeadDetailModal from './components/LeadDetailModal'
 import ImportLeadsModal from './components/ImportLeadsModal'
 import AddToListModal from './components/AddToListModal'
 import AddToCampaignModal from './components/AddToCampaignModal'
+import ProspectHoverTable from './components/ProspectHoverTable'
 import { useProspectData, Listing, FilterType, getPrimaryCategory } from './hooks/useProspectData'
 import { postEnrichLeads } from '@/lib/api'
 import { 
@@ -46,6 +47,7 @@ import {
   Map as MapIcon,
   Lightbulb
 } from 'lucide-react'
+import DashboardLayout from '../components/DashboardLayout'
 
 type ViewType = 'table' | 'map' | 'analytics' | 'insights'
 type SortField = 'price' | 'date' | 'score' | 'location' | 'status'
@@ -1258,77 +1260,141 @@ function ProspectEnrichInner() {
   }, [sortBy])
 
   return (
-    <>
-      {/* All UI components removed - only modals remain */}
-      {/* Lead Detail Modal */}
-        {showLeadModal && selectedListingId && (
-          <LeadDetailModal
-            listingId={selectedListingId}
-            listingList={paginatedListings}
-            onClose={() => {
-              setShowLeadModal(false)
-              setSelectedListingId(null)
+    <DashboardLayout>
+      {/* TailwindAdmin Hover Table - 1:1 Match to /shadcn-tables/hover */}
+      <div className="w-full py-[30px] md:px-[30px] px-5">
+        <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0">
+          <ProspectHoverTable
+            tableName={activeCategory === 'all' ? undefined : resolvedTableName}
+            listings={activeCategory === 'all' ? filteredListings : undefined}
+            filters={{
+              search: searchTerm,
+              city: apolloFilters.city?.[0],
+              state: apolloFilters.state?.[0],
+              minPrice: apolloFilters.price_range?.min?.toString(),
+              maxPrice: apolloFilters.price_range?.max?.toString(),
+              status: apolloFilters.status?.[0]
             }}
-            onUpdate={(updatedListing) => {
-              // Update the listing in the current list via hook
-              updateListing(updatedListing)
+            sortBy={sortBy === 'price_high' ? 'list_price' : sortBy === 'price_low' ? 'list_price' : sortBy === 'date_new' ? 'created_at' : sortBy === 'date_old' ? 'created_at' : sortBy === 'score_high' ? 'ai_investment_score' : 'created_at'}
+            sortOrder={sortBy === 'price_low' || sortBy === 'date_old' ? 'asc' : 'desc'}
+            pagination={{
+              currentPage,
+              pageSize: itemsPerPage,
+              onPageChange: setCurrentPage,
+              onPageSizeChange: setItemsPerPage
             }}
+            onStatsChange={(stats) => {
+              setRemoteListingsCount(stats.totalCount)
+            }}
+            onListingClick={(listing) => {
+              setSelectedListingId(listing.listing_id)
+              setShowLeadModal(true)
+            }}
+            selectedIds={selectedIds}
+            onSelect={(listingId, selected) => {
+              const newSelected = new Set(selectedIds)
+              if (selected) {
+                newSelected.add(listingId)
+              } else {
+                newSelected.delete(listingId)
+              }
+              setSelectedIds(newSelected)
+            }}
+            crmContactIds={crmContactIds}
+            onSave={handleSaveProspect}
+            category={activeCategory}
+            onAction={(action, listing) => {
+              if (action === 'email') {
+                handleGenerateEmail(listing as any)
+              } else if (action === 'call') {
+                if (listing.agent_phone) {
+                  window.open(`tel:${listing.agent_phone}`)
+                }
+              } else if (action === 'save' || action === 'added_to_crm') {
+                handleSave(listing as any)
+              } else if (action === 'unsave' || action === 'removed_from_crm') {
+                handleSaveProspect(listing as any, false)
+              } else if (action === 'view') {
+                setSelectedListingId(listing.listing_id)
+                setShowLeadModal(true)
+              }
+            }}
+            isDark={isDark}
+            showSummary={false}
+            showPagination={true}
           />
-        )}
+        </div>
+      </div>
 
-        {/* Import Leads Modal */}
-        <ImportLeadsModal
-          isOpen={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          onImportComplete={(count) => {
-            // Refresh listings after import
-            fetchListingsData(selectedFilters, sortField, sortOrder)
-            // Optionally navigate to imports view
-            router.push('/dashboard/prospect-enrich?filter=imports')
+      {/* Lead Detail Modal */}
+      {showLeadModal && selectedListingId && (
+        <LeadDetailModal
+          listingId={selectedListingId}
+          listingList={paginatedListings}
+          onClose={() => {
+            setShowLeadModal(false)
+            setSelectedListingId(null)
+          }}
+          onUpdate={(updatedListing) => {
+            // Update the listing in the current list via hook
+            updateListing(updatedListing)
           }}
         />
+      )}
 
-        {/* Email Template Modal */}
-        {showEmailModal && selectedLead && (
-          <EmailTemplateModal
-            lead={selectedLead}
-            onClose={() => {
-              setShowEmailModal(false)
-              setSelectedLead(null)
-            }}
-          />
-        )}
+      {/* Import Leads Modal */}
+      <ImportLeadsModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={(count) => {
+          // Refresh listings after import
+          fetchListingsData(selectedFilters, sortField, sortOrder)
+          // Optionally navigate to imports view
+          router.push('/dashboard/prospect-enrich?filter=imports')
+        }}
+      />
 
-        {/* Add to Lists Modal */}
-        {showAddToListModal && (
-          <AddToListModal
-            supabase={supabase}
-            profileId={profile?.id}
-            selectedCount={selectedIds.size}
-            onAddToList={handleBulkAddToList}
-            onClose={() => setShowAddToListModal(false)}
-            isDark={isDark}
-          />
-        )}
+      {/* Email Template Modal */}
+      {showEmailModal && selectedLead && (
+        <EmailTemplateModal
+          lead={selectedLead}
+          onClose={() => {
+            setShowEmailModal(false)
+            setSelectedLead(null)
+          }}
+        />
+      )}
 
-        {/* Add to Campaigns Modal */}
-        {showAddToCampaignModal && profile?.id && (
-          <AddToCampaignModal
-            supabase={supabase}
-            profileId={profile.id}
-            selectedListings={listings.filter(l => selectedIds.has(l.listing_id || ''))}
-            onClose={() => {
-              setShowAddToCampaignModal(false)
-              setSelectedIds(new Set()) // Clear selection after adding
-            }}
-            onSuccess={() => {
-              // Refresh data if needed
-              fetchCrmContacts(selectedFilters)
-            }}
-            isDark={isDark}
-          />
-        )}
-    </>
+      {/* Add to Lists Modal */}
+      {showAddToListModal && (
+        <AddToListModal
+          supabase={supabase}
+          profileId={profile?.id}
+          selectedCount={selectedIds.size}
+          onAddToList={handleBulkAddToList}
+          onClose={() => setShowAddToListModal(false)}
+          isDark={isDark}
+        />
+      )}
+
+      {/* Add to Campaigns Modal */}
+      {showAddToCampaignModal && profile?.id && (
+        <AddToCampaignModal
+          supabase={supabase}
+          profileId={profile.id}
+          selectedListings={listings.filter(l => selectedIds.has(l.listing_id || ''))}
+          onClose={() => {
+            setShowAddToCampaignModal(false)
+            setSelectedIds(new Set()) // Clear selection after adding
+          }}
+          onSuccess={() => {
+            // Refresh data if needed
+            fetchCrmContacts(selectedFilters)
+          }}
+          isDark={isDark}
+        />
+      )}
+    </DashboardLayout>
   )
 }
 
@@ -1336,7 +1402,7 @@ function ProspectEnrichInner() {
 function ProspectEnrichContent() {
   return (
     <Suspense fallback={
-      <div>
+      <DashboardLayout>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -1389,7 +1455,7 @@ function ProspectEnrichContent() {
             `}</style>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     }>
       <ProspectEnrichInner />
     </Suspense>

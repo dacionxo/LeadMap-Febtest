@@ -65,7 +65,6 @@ export default function DashboardOverview({
               width={400}
               height={240}
               className='ms-auto'
-              style={{ maxWidth: '100%', height: 'auto' }}
             />
           </div>
         </div>

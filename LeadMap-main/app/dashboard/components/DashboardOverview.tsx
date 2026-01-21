@@ -24,7 +24,7 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   return (
     <>
-      <Card className='pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#EEF3FF', boxShadow: '0 1.5rem 3rem rgba(0,0,0,0.075)' }}>
+      <Card className='pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#95c0ff', boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }}>
         <div className='grid grid-cols-12 gap-6'>
           <div className='md:col-span-6 col-span-12'>
             <div className='flex items-center gap-3 mt-2'>
@@ -63,7 +63,7 @@ export default function DashboardOverview({
                 variant={'info'}
                 onClick={onCustomize}
                 style={{ backgroundColor: '#FFFFFF', borderColor: '#FFFFFF', color: '#1C2536' }}
-                className='flex items-center justify-center'
+                className='flex items-center justify-center hover:shadow-lg transition-all duration-200'
               >
                 Customize
               </Button>

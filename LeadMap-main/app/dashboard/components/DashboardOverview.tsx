@@ -24,7 +24,7 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   return (
     <>
-      <Card className='bg-lightprimary dark:bg-lightprimary shadow-none pb-0 mt-[30px] rounded-lg'>
+      <Card className='bg-lightprimary dark:bg-lightprimary shadow-none pb-0 mt-[30px] rounded-xl'>
         <div className='grid grid-cols-12 gap-6'>
           <div className='md:col-span-6 col-span-12'>
             <h5 className='text-lg mt-2'>
@@ -34,7 +34,7 @@ export default function DashboardOverview({
               Track your prospects, campaigns, and deals in one place. Customize your dashboard to see what matters most.
             </p>
             {lastUpdated && (
-              <p className='text-xs text-ld opacity-60 mb-2'>
+              <p className='text-xs text-ld opacity-60 mb-4 pb-2'>
                 Last updated: {lastUpdated.toLocaleTimeString()}
               </p>
             )}

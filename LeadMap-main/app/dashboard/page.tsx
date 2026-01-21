@@ -20,7 +20,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-3">
         <WelcomeCardClient />
         <DashboardClient />
       </div>

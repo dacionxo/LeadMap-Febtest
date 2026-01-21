@@ -24,7 +24,7 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   return (
     <>
-      <Card className='shadow-none pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#5D87FF' }}>
+      <Card className='shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] pb-0 mt-[30px] rounded-xl' style={{ backgroundColor: '#5D87FF' }}>
         <div className='grid grid-cols-12 gap-6'>
           <div className='md:col-span-6 col-span-12'>
             <div className='flex items-center gap-3 mt-2'>

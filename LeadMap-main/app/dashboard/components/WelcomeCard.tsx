@@ -50,10 +50,10 @@ export const WelcomeCard = () => {
   const { profile } = useApp()
 
   return (
-    <Card className="bg-lightprimary dark:bg-lightprimary overflow-hidden shadow-none relative h-full p-3">
+    <Card className="bg-lightprimary dark:bg-lightprimary overflow-hidden shadow-none relative h-full">
       <div className="grid grid-cols-12 h-full">
         <div className="md:col-span-7 col-span-12 content-center">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-8">
             <div className="flex gap-3 items-center">
               <div className="rounded-full overflow-hidden">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm">

@@ -24,13 +24,13 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   return (
     <>
-      <Card className='bg-lightprimary dark:bg-lightprimary shadow-none pb-0 mt-[30px] rounded-lg p-3'>
-        <div className='grid grid-cols-12 gap-4'>
+      <Card className='bg-lightprimary dark:bg-lightprimary shadow-none pb-0 mt-[30px] rounded-lg'>
+        <div className='grid grid-cols-12 gap-6'>
           <div className='md:col-span-6 col-span-12'>
-            <h5 className='text-lg mt-0'>
+            <h5 className='text-lg mt-2'>
               Dashboard Overview
             </h5>
-            <p className='text-ld opacity-75 text-sm font-medium py-3'>
+            <p className='text-ld opacity-75 text-sm font-medium py-5'>
               Track your prospects, campaigns, and deals in one place. Customize your dashboard to see what matters most.
             </p>
             {lastUpdated && (

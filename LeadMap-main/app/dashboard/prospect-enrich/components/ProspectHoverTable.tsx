@@ -391,7 +391,7 @@ export default function ProspectHoverTable({
 
   // EXACT 1:1 MATCH TO TAILWINDADMIN'S HOVERTABLE STRUCTURE
   return (
-    <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-hidden" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="border rounded-md border-ld overflow-hidden">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -419,7 +419,7 @@ export default function ProspectHoverTable({
           <TableBody>
             {listings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <TableCell colSpan={columns.length} className="text-center py-8 text-bodytext">
                   No listings found
                 </TableCell>
               </TableRow>
@@ -431,16 +431,16 @@ export default function ProspectHoverTable({
                 return (
                   <TableRow
                     key={listing.listing_id}
-                    className="group/row hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-transparent cursor-pointer"
+                    className="group/row bg-hover dark:bg-transparent cursor-pointer"
                     onClick={() => onListingClick?.(listing)}
                   >
                     {columns.includes('address') && (
                       <TableCell className="whitespace-nowrap">
                         <div className="flex gap-3 items-center">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          <div className="truncate line-clamp-2 max-w-56">
+                          <MapPin className="h-4 w-4 text-bodytext" />
+                          <div className="truncat line-clamp-2 max-w-56">
                             <h6 className="text-base">{street}</h6>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{cityStateZip}</p>
+                            <p className="text-sm text-bodytext">{cityStateZip}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -494,43 +494,49 @@ export default function ProspectHoverTable({
                     
                     {columns.includes('description') && (
                       <TableCell>
-                        <p className="text-gray-600 dark:text-gray-400 text-base">{getDescription(listing)}</p>
+                        <p className="text-bodytext text-base">{getDescription(listing)}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_name') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_name || '-'}</p>
+                        {" "}
+                        <p className="text-bodytext text-base">{listing.agent_name || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_email') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_email || '-'}</p>
+                        {" "}
+                        <p className="text-bodytext text-base">{listing.agent_email || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_phone') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_phone || '-'}</p>
+                        {" "}
+                        <p className="text-bodytext text-base">{listing.agent_phone || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('agent_phone_2') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.agent_phone_2 || '-'}</p>
+                        {" "}
+                        <p className="text-bodytext text-base">{listing.agent_phone_2 || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('listing_agent_phone_2') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.listing_agent_phone_2 || '-'}</p>
+                        {" "}
+                        <p className="text-bodytext text-base">{listing.listing_agent_phone_2 || '-'}</p>
                       </TableCell>
                     )}
                     
                     {columns.includes('listing_agent_phone_5') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-600 dark:text-gray-400 text-base">{listing.listing_agent_phone_5 || '-'}</p>
+                        {" "}
+                        <p className="text-bodytext text-base">{listing.listing_agent_phone_5 || '-'}</p>
                       </TableCell>
                     )}
                     
@@ -548,7 +554,7 @@ export default function ProspectHoverTable({
                     
                     {columns.includes('last_sale_date') && (
                       <TableCell className="whitespace-nowrap">
-                        <p className="text-gray-600 dark:text-gray-400 text-base">
+                        <p className="text-bodytext text-base">
                           {listing.last_sale_date ? new Date(listing.last_sale_date).toLocaleDateString() : '-'}
                         </p>
                       </TableCell>
@@ -636,7 +642,7 @@ export default function ProspectHoverTable({
       </div>
       
       {showPagination && (
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="border-t border-ld p-4">
           <ApolloPagination
             currentPage={currentPage}
             totalPages={totalPages}

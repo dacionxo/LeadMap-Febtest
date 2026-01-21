@@ -33,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu'
+import { Checkbox } from '@/app/components/ui/checkbox'
 import { MoreVertical, Mail, Phone, Bookmark, BookmarkCheck, ExternalLink, DollarSign, Target, MapPin } from 'lucide-react'
 import TailwindAdminPagination from './TailwindAdminPagination'
 import SaveButton from './AddToCrmButton'
@@ -150,6 +151,8 @@ const DEFAULT_COLUMNS = [
   'actions'
 ]
 
+const HEADER_CELL_CLASS = 'whitespace-nowrap'
+
 function isValidTableName(tableName: string): boolean {
   return VALID_TABLE_NAMES.includes(tableName as any)
 }
@@ -179,6 +182,9 @@ export default function ProspectHoverTable({
   category
 }: ProspectHoverTableProps) {
   const columns = providedColumns || [...DEFAULT_COLUMNS]
+  const headerTitle = category
+    ? `${category.charAt(0).toUpperCase()}${category.slice(1)} Prospects`
+    : 'Prospects'
   
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
@@ -188,6 +194,40 @@ export default function ProspectHoverTable({
 
   const currentPage = pagination?.currentPage ?? internalCurrentPage
   const pageSize = pagination?.pageSize ?? internalPageSize
+
+  const showSelectionColumn = Boolean(onSelect)
+  const getListingKey = (listing: Listing) => listing.listing_id || listing.property_url || ''
+  const listingKeysOnPage = Array.from(new Set(listings.map(getListingKey))).filter(Boolean) as string[]
+  const hasPageListings = listingKeysOnPage.length > 0
+  const allPageSelected =
+    showSelectionColumn &&
+    hasPageListings &&
+    listingKeysOnPage.every((key) => selectedIds.has(key))
+  const somePageSelected =
+    showSelectionColumn &&
+    hasPageListings &&
+    listingKeysOnPage.some((key) => selectedIds.has(key)) &&
+    !allPageSelected
+
+  const handleSelectAll = () => {
+    if (!showSelectionColumn || !onSelect || !hasPageListings) return
+    listingKeysOnPage.forEach((key) => {
+      onSelect(key, !allPageSelected)
+    })
+  }
+
+  const handleRowSelectionChange = (listing: Listing) => {
+    if (!showSelectionColumn || !onSelect) return
+    const key = getListingKey(listing)
+    if (!key) return
+    const alreadySelected = selectedIds.has(key)
+    onSelect(key, !alreadySelected)
+  }
+
+  const isRowSelected = (listing: Listing) => {
+    const key = getListingKey(listing)
+    return Boolean(key && selectedIds.has(key))
+  }
 
   // Fetch listings - PRESERVED API ROUTES (/api/listings/paginated)
   const fetchListings = useCallback(async (page: number) => {
@@ -350,6 +390,8 @@ export default function ProspectHoverTable({
   }, [fetchListings, currentPage])
 
   const totalPages = Math.ceil(totalCount / pageSize)
+  const startItem = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const endItem = totalCount === 0 ? 0 : Math.min(currentPage * pageSize, totalCount)
 
   const formatAddress = (listing: Listing) => {
     const street = listing.street || 'N/A'
@@ -392,34 +434,78 @@ export default function ProspectHoverTable({
   // EXACT 1:1 MATCH TO TAILWINDADMIN'S HOVERTABLE STRUCTURE
   return (
     <div className="border rounded-lg border-ld overflow-hidden h-full flex flex-col">
-      <div className="overflow-x-auto overflow-y-auto flex-1">
-        <Table>
-          <TableHeader>
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+        <div className="sticky top-0 z-20 flex justify-between items-center border-b border-ld bg-white dark:bg-dark px-6 py-4">
+          <div>
+            <p className="text-sm font-semibold text-ld dark:text-white">{headerTitle}</p>
+            <p className="text-xs text-bodytext dark:text-white/70">
+              Showing {startItem.toLocaleString()} - {endItem.toLocaleString()} of {totalCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {showSelectionColumn && selectedIds.size > 0 && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                {selectedIds.size} selected
+              </span>
+            )}
+            <span className="text-xs uppercase tracking-[0.3em] text-bodytext dark:text-white/50">hover</span>
+          </div>
+        </div>
+        <div className="flex-1 min-h-0 overflow-x-auto">
+          <Table className="min-w-full table-auto">
+          <TableHeader className="sticky top-[64px] z-10 bg-white/95 dark:bg-dark">
             <TableRow>
-              {columns.includes('address') && <TableHead>Address</TableHead>}
-              {columns.includes('price') && <TableHead>Price</TableHead>}
-              {columns.includes('status') && <TableHead>Status</TableHead>}
-              {columns.includes('score') && <TableHead>AI Score</TableHead>}
-              {columns.includes('beds') && <TableHead>Beds</TableHead>}
-              {columns.includes('full_baths') && <TableHead>Baths</TableHead>}
-              {columns.includes('sqft') && <TableHead>Sqft</TableHead>}
-              {columns.includes('description') && <TableHead>Description</TableHead>}
-              {columns.includes('agent_name') && <TableHead>Agent Name</TableHead>}
-              {columns.includes('agent_email') && <TableHead>Agent Email</TableHead>}
-              {columns.includes('agent_phone') && <TableHead>Agent Phone</TableHead>}
-              {columns.includes('agent_phone_2') && <TableHead>Agent Phone 2</TableHead>}
-              {columns.includes('listing_agent_phone_2') && <TableHead>Listing Agent Phone 2</TableHead>}
-              {columns.includes('listing_agent_phone_5') && <TableHead>Listing Agent Phone 5</TableHead>}
-              {columns.includes('year_built') && <TableHead>Year Built</TableHead>}
-              {columns.includes('last_sale_price') && <TableHead>Last Sale Price</TableHead>}
-              {columns.includes('last_sale_date') && <TableHead>Last Sale Date</TableHead>}
-              {columns.includes('actions') && <TableHead></TableHead>}
+              {showSelectionColumn && (
+                  <TableHead className="w-[56px] px-3 text-center">
+                    <button
+                      type="button"
+                      className={`flex h-10 w-10 items-center justify-center rounded-md border border-transparent hover:border-ld focus:border-ld focus:outline-none ${
+                        somePageSelected && !allPageSelected ? 'border-primary bg-primary/10' : ''
+                      }`}
+                      onClick={handleSelectAll}
+                      aria-label={
+                        somePageSelected
+                          ? 'Some listings selected. Toggle to select or clear all listings on this page'
+                          : allPageSelected
+                          ? 'Deselect all listings on this page'
+                          : 'Select all listings on this page'
+                      }
+                    >
+                    {somePageSelected && !allPageSelected ? (
+                      <span className="h-[2px] w-4 rounded-full bg-primary" />
+                    ) : (
+                      <Checkbox checked={allPageSelected} />
+                    )}
+                  </button>
+                </TableHead>
+              )}
+              {columns.includes('address') && <TableHead className={HEADER_CELL_CLASS}>Address</TableHead>}
+              {columns.includes('price') && <TableHead className={HEADER_CELL_CLASS}>Price</TableHead>}
+              {columns.includes('status') && <TableHead className={HEADER_CELL_CLASS}>Status</TableHead>}
+              {columns.includes('score') && <TableHead className={HEADER_CELL_CLASS}>AI Score</TableHead>}
+              {columns.includes('beds') && <TableHead className={HEADER_CELL_CLASS}>Beds</TableHead>}
+              {columns.includes('full_baths') && <TableHead className={HEADER_CELL_CLASS}>Baths</TableHead>}
+              {columns.includes('sqft') && <TableHead className={HEADER_CELL_CLASS}>Sqft</TableHead>}
+              {columns.includes('description') && <TableHead className={HEADER_CELL_CLASS}>Description</TableHead>}
+              {columns.includes('agent_name') && <TableHead className={HEADER_CELL_CLASS}>Agent Name</TableHead>}
+              {columns.includes('agent_email') && <TableHead className={HEADER_CELL_CLASS}>Agent Email</TableHead>}
+              {columns.includes('agent_phone') && <TableHead className={HEADER_CELL_CLASS}>Agent Phone</TableHead>}
+              {columns.includes('agent_phone_2') && <TableHead className={HEADER_CELL_CLASS}>Agent Phone 2</TableHead>}
+              {columns.includes('listing_agent_phone_2') && <TableHead className={HEADER_CELL_CLASS}>Listing Agent Phone 2</TableHead>}
+              {columns.includes('listing_agent_phone_5') && <TableHead className={HEADER_CELL_CLASS}>Listing Agent Phone 5</TableHead>}
+              {columns.includes('year_built') && <TableHead className={HEADER_CELL_CLASS}>Year Built</TableHead>}
+              {columns.includes('last_sale_price') && <TableHead className={HEADER_CELL_CLASS}>Last Sale Price</TableHead>}
+              {columns.includes('last_sale_date') && <TableHead className={HEADER_CELL_CLASS}>Last Sale Date</TableHead>}
+              {columns.includes('actions') && <TableHead className={HEADER_CELL_CLASS}></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {listings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8 text-bodytext">
+                <TableCell
+                  colSpan={columns.length + (showSelectionColumn ? 1 : 0)}
+                  className="text-center py-8 text-bodytext dark:text-white/70"
+                >
                   No listings found
                 </TableCell>
               </TableRow>
@@ -434,6 +520,21 @@ export default function ProspectHoverTable({
                     className="group/row bg-hover dark:bg-transparent cursor-pointer"
                     onClick={() => onListingClick?.(listing)}
                   >
+                    {showSelectionColumn && (
+                      <TableCell className="px-3">
+                        <button
+                          type="button"
+                          className="flex h-10 w-10 items-center justify-center rounded-md border border-transparent hover:border-ld focus:border-ld focus:outline-none"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            handleRowSelectionChange(listing)
+                          }}
+                          aria-label={`Select listing ${listing.street || listing.listing_id}`}
+                        >
+                          <Checkbox checked={isRowSelected(listing)} />
+                        </button>
+                      </TableCell>
+                    )}
                     {columns.includes('address') && (
                       <TableCell className="whitespace-nowrap">
                         <div className="flex gap-3 items-center">
@@ -638,7 +739,8 @@ export default function ProspectHoverTable({
               })
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
       
       {showPagination && (

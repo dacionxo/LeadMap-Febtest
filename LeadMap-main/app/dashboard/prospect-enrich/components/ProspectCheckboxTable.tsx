@@ -206,9 +206,6 @@ export default function ProspectCheckboxTable({
 
   const currentPage = pagination?.currentPage ?? internalCurrentPage
   const pageSize = pagination?.pageSize ?? internalPageSize
-  
-  // Refs for virtualization
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Fetch listings
   const fetchListings = useCallback(async (page: number) => {
@@ -392,10 +389,11 @@ export default function ProspectCheckboxTable({
     return { street, cityStateZip }
   }
 
-  // Virtualization setup
+  // Virtualization setup - use table container as scroll element
+  const tableScrollRef = useRef<HTMLDivElement>(null)
   const rowVirtualizer = useVirtualizer({
     count: listings.length,
-    getScrollElement: () => scrollContainerRef.current,
+    getScrollElement: () => tableScrollRef.current,
     estimateSize: () => ROW_HEIGHT_ESTIMATE,
     overscan: VIRTUALIZER_OVERSCAN,
   })
@@ -411,15 +409,12 @@ export default function ProspectCheckboxTable({
     return (
       <TableRow 
         key={listing.listing_id}
-        className={`group/row cursor-pointer transition-colors duration-150 ${
-          isSelected 
-            ? 'bg-blue-50 dark:bg-blue-900/20' 
-            : 'bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-transparent'
+        className={`group/row bg-hover dark:bg-transparent cursor-pointer ${
+          isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
         }`}
         onClick={() => onListingClick?.(listing)}
-        style={{ display: 'flex', width: '100%' }}
       >
-        <TableCell className="whitespace-nowrap w-12 flex-shrink-0">
+        <TableCell className="whitespace-nowrap">
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => handleSelect(listing.listing_id, checked === true)}
@@ -428,7 +423,7 @@ export default function ProspectCheckboxTable({
         </TableCell>
         
         {columns.includes('address') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '280px', width: '280px' }}>
+          <TableCell className="whitespace-nowrap">
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-gray-400" />
               <div>
@@ -454,7 +449,7 @@ export default function ProspectCheckboxTable({
         )}
         
         {columns.includes('price') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '130px', width: '130px' }}>
+          <TableCell className="whitespace-nowrap">
             <div className="flex items-center gap-1">
               <DollarSign className="h-4 w-4 text-gray-400" />
               <div>
@@ -470,7 +465,7 @@ export default function ProspectCheckboxTable({
         )}
         
         {columns.includes('status') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '120px', width: '120px' }}>
+          <TableCell className="whitespace-nowrap">
             <span
               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                 listing.active
@@ -486,7 +481,7 @@ export default function ProspectCheckboxTable({
         )}
         
         {columns.includes('score') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '100px', width: '100px' }}>
+          <TableCell className="whitespace-nowrap">
             {listing.ai_investment_score !== null && listing.ai_investment_score !== undefined ? (
               <div className="flex items-center gap-1">
                 <Target className="h-4 w-4 text-blue-500" />
@@ -509,25 +504,25 @@ export default function ProspectCheckboxTable({
         )}
         
         {columns.includes('beds') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '100px', width: '100px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm">{listing.beds ?? '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('full_baths') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '110px', width: '110px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm">{formatBaths(listing.full_baths)}</span>
           </TableCell>
         )}
         
         {columns.includes('sqft') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '140px', width: '140px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm">{listing.sqft ? listing.sqft.toLocaleString() : '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('description') && (
-          <TableCell className="flex-shrink-0" style={{ minWidth: '200px', width: '200px' }}>
+          <TableCell>
             <div className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 max-w-xs">
               {getDescription(listing)}
             </div>
@@ -535,55 +530,55 @@ export default function ProspectCheckboxTable({
         )}
         
         {columns.includes('agent_name') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '150px', width: '150px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm">{listing.agent_name || '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('agent_email') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '180px', width: '180px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm text-gray-600 dark:text-gray-400">{listing.agent_email || '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('agent_phone') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '130px', width: '130px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm text-gray-600 dark:text-gray-400">{listing.agent_phone || '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('agent_phone_2') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '130px', width: '130px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm text-gray-600 dark:text-gray-400">{listing.agent_phone_2 || '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('listing_agent_phone_2') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '160px', width: '160px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm text-gray-600 dark:text-gray-400">{listing.listing_agent_phone_2 || '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('listing_agent_phone_5') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '160px', width: '160px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm text-gray-600 dark:text-gray-400">{listing.listing_agent_phone_5 || '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('year_built') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '100px', width: '100px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm">{listing.year_built ?? '-'}</span>
           </TableCell>
         )}
         
         {columns.includes('last_sale_price') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '130px', width: '130px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm">{formatPrice(listing.last_sale_price)}</span>
           </TableCell>
         )}
         
         {columns.includes('last_sale_date') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '130px', width: '130px' }}>
+          <TableCell className="whitespace-nowrap">
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {listing.last_sale_date ? new Date(listing.last_sale_date).toLocaleDateString() : '-'}
             </span>
@@ -591,7 +586,7 @@ export default function ProspectCheckboxTable({
         )}
         
         {columns.includes('actions') && (
-          <TableCell className="whitespace-nowrap flex-shrink-0" style={{ minWidth: '120px', width: '120px' }}>
+          <TableCell className="whitespace-nowrap">
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               {listing.agent_email && (
                 <button
@@ -676,14 +671,17 @@ export default function ProspectCheckboxTable({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-hidden flex-1 flex flex-col">
-        {/* Fixed Header */}
-        <div className="overflow-x-auto flex-shrink-0">
+    <div className="w-full" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-hidden bg-white" style={{ backgroundColor: '#FFFFFF' }}>
+        <div 
+          ref={tableScrollRef}
+          className="overflow-x-auto overflow-y-auto"
+          style={{ maxHeight: 'calc(100vh - 400px)' }}
+        >
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50 dark:bg-gray-800">
-                <TableHead className="w-12">
+              <TableRow>
+                <TableHead className="text-base font-semibold py-3">
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) => handleSelectAll(checked === true)}
@@ -691,108 +689,83 @@ export default function ProspectCheckboxTable({
                   />
                 </TableHead>
                 {columns.includes('address') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '280px', width: '280px' }}>Address</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Address</TableHead>
                 )}
                 {columns.includes('price') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '130px', width: '130px' }}>Price</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Price</TableHead>
                 )}
                 {columns.includes('status') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '120px', width: '120px' }}>Status</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Status</TableHead>
                 )}
                 {columns.includes('score') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '100px', width: '100px' }}>AI Score</TableHead>
+                  <TableHead className="text-base font-semibold py-3">AI Score</TableHead>
                 )}
                 {columns.includes('beds') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '100px', width: '100px' }}>Beds</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Beds</TableHead>
                 )}
                 {columns.includes('full_baths') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '110px', width: '110px' }}>Baths</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Baths</TableHead>
                 )}
                 {columns.includes('sqft') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '140px', width: '140px' }}>Sqft</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Sqft</TableHead>
                 )}
                 {columns.includes('description') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '200px', width: '200px' }}>Description</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Description</TableHead>
                 )}
                 {columns.includes('agent_name') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '150px', width: '150px' }}>Agent Name</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Agent Name</TableHead>
                 )}
                 {columns.includes('agent_email') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '180px', width: '180px' }}>Agent Email</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Agent Email</TableHead>
                 )}
                 {columns.includes('agent_phone') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '130px', width: '130px' }}>Agent Phone</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Agent Phone</TableHead>
                 )}
                 {columns.includes('agent_phone_2') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '130px', width: '130px' }}>Agent Phone 2</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Agent Phone 2</TableHead>
                 )}
                 {columns.includes('listing_agent_phone_2') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '160px', width: '160px' }}>Listing Agent Phone 2</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Listing Agent Phone 2</TableHead>
                 )}
                 {columns.includes('listing_agent_phone_5') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '160px', width: '160px' }}>Listing Agent Phone 5</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Listing Agent Phone 5</TableHead>
                 )}
                 {columns.includes('year_built') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '100px', width: '100px' }}>Year Built</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Year Built</TableHead>
                 )}
                 {columns.includes('last_sale_price') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '130px', width: '130px' }}>Last Sale Price</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Last Sale Price</TableHead>
                 )}
                 {columns.includes('last_sale_date') && (
-                  <TableHead className="text-base font-semibold py-3 whitespace-nowrap" style={{ minWidth: '130px', width: '130px' }}>Last Sale Date</TableHead>
+                  <TableHead className="text-base font-semibold py-3">Last Sale Date</TableHead>
                 )}
                 {columns.includes('actions') && (
-                  <TableHead className="text-base font-semibold py-3" style={{ minWidth: '120px', width: '120px' }}></TableHead>
+                  <TableHead className="text-base font-semibold py-3"></TableHead>
                 )}
               </TableRow>
             </TableHeader>
+            <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {listings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length + 1} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No listings found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                // Render virtualized rows directly in TableBody
+                // Note: Virtualization still works as we only render visible items
+                virtualItems.map((virtualRow) => {
+                  const listing = listings[virtualRow.index]
+                  if (!listing) return null
+                  return renderRow(listing, virtualRow.index)
+                })
+              )}
+            </TableBody>
           </Table>
         </div>
         
-        {/* Virtualized Body */}
-        <div 
-          ref={scrollContainerRef}
-          className="flex-1 overflow-auto"
-          style={{ minHeight: 0 }}
-        >
-          {listings.length === 0 ? (
-            <div className="flex items-center justify-center p-8 text-gray-500 dark:text-gray-400">
-              No listings found
-            </div>
-          ) : (
-            <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                width: '100%',
-                position: 'relative',
-              }}
-            >
-              {virtualItems.map((virtualRow) => {
-                const listing = listings[virtualRow.index]
-                if (!listing) return null
-                
-                return (
-                  <div
-                    key={listing.listing_id}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualRow.size}px`,
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
-                  >
-                    {renderRow(listing, virtualRow.index)}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-        
         {showPagination && (
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex-shrink-0">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white" style={{ backgroundColor: '#FFFFFF' }}>
             <ApolloPagination
               currentPage={currentPage}
               totalPages={totalPages}

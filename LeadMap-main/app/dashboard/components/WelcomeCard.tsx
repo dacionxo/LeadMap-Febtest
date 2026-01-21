@@ -50,7 +50,7 @@ export const WelcomeCard = () => {
   const { profile } = useApp()
 
   return (
-    <Card className="overflow-hidden shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] relative h-full rounded-xl" style={{ backgroundColor: '#CBD7FA' }}>
+    <Card className="overflow-hidden shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] relative h-full rounded-xl" style={{ backgroundColor: '#CFF5EE' }}>
       <div className="grid grid-cols-12 h-full">
         <div className="md:col-span-7 col-span-12 content-center">
           <div className="flex flex-col gap-8">

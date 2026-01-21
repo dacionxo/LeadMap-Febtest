@@ -66,8 +66,8 @@ export const COLORS = {
     muted: '#516075',
   },
   border: {
-    DEFAULT: '#d6e3ff',
-    divider: '#d6e3ff',
+    DEFAULT: '#e5e5e5',
+    divider: '#e5e5e5',
   },
   success: {
     DEFAULT: '#22c55e',

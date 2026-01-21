@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu'
 import { MoreVertical, Mail, Phone, Bookmark, BookmarkCheck, ExternalLink, DollarSign, Target, MapPin } from 'lucide-react'
-import ApolloPagination from './ApolloPagination'
+import TailwindAdminPagination from './TailwindAdminPagination'
 import SaveButton from './AddToCrmButton'
 
 // ============================================================================
@@ -184,7 +184,7 @@ export default function ProspectHoverTable({
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [internalCurrentPage, setInternalCurrentPage] = useState(1)
-  const [internalPageSize, setInternalPageSize] = useState(50)
+  const [internalPageSize, setInternalPageSize] = useState(10)
 
   const currentPage = pagination?.currentPage ?? internalCurrentPage
   const pageSize = pagination?.pageSize ?? internalPageSize
@@ -642,8 +642,8 @@ export default function ProspectHoverTable({
       </div>
       
       {showPagination && (
-        <div className="border-t border-ld p-4">
-          <ApolloPagination
+        <div className="pt-4 p-6">
+          <TailwindAdminPagination
             currentPage={currentPage}
             totalPages={totalPages}
             pageSize={pageSize}

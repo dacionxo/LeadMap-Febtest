@@ -48,6 +48,7 @@ import {
   Lightbulb
 } from 'lucide-react'
 import DashboardLayout from '../components/DashboardLayout'
+import { useSidebar } from '../components/SidebarContext'
 
 type ViewType = 'table' | 'map' | 'analytics' | 'insights'
 type SortField = 'price' | 'date' | 'score' | 'location' | 'status'
@@ -1262,8 +1263,8 @@ function ProspectEnrichInner() {
   return (
       <DashboardLayout>
       {/* TailwindAdmin Hover Table - 1:1 Match to /shadcn-tables/hover */}
-      <div className="w-full pt-0 pb-[30px] md:px-[30px] px-5 h-[calc(100vh-140px)] flex flex-col -mt-[30px]">
-        <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 flex-1 flex flex-col overflow-hidden">
+      <div className="fixed top-[80px] bottom-0 flex flex-col transition-all duration-300" style={{ left: isSidebarOpen ? '270px' : '75px', right: 0 }}>
+        <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 flex-1 flex flex-col overflow-hidden h-full w-full">
           <ProspectHoverTable
                           tableName={activeCategory === 'all' ? undefined : resolvedTableName}
                           listings={activeCategory === 'all' ? filteredListings : undefined}

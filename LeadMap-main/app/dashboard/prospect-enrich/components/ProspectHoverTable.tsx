@@ -436,8 +436,9 @@ export default function ProspectHoverTable({
     <div className="border rounded-lg border-ld overflow-hidden h-full flex flex-col">
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         <div className="flex-1 min-h-0 overflow-x-auto">
-          <Table className="min-w-full table-auto">
-          <TableHeader className="sticky top-0 z-10 bg-white/95 dark:bg-dark">
+          <div className="relative w-full overflow-auto">
+            <table className="prospect-hover-table min-w-full table-auto w-full caption-bottom text-sm">
+            <TableHeader className="sticky top-0 z-20 bg-white dark:bg-dark shadow-sm">
             <TableRow>
               {showSelectionColumn && (
                   <TableHead className="w-[56px] px-3 text-center">
@@ -723,7 +724,8 @@ export default function ProspectHoverTable({
               })
             )}
           </TableBody>
-          </Table>
+            </table>
+          </div>
         </div>
       </div>
       

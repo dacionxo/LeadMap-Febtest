@@ -579,13 +579,21 @@
 }
 
 /* Sticky table header for ProspectHoverTable */
-body > div.flex.h-screen.relative.overflow-x-hidden > main > div > div > div > div > div.flex-1.flex.flex-col.min-h-0.overflow-y-auto > div > div > table > thead > tr {
+.prospect-hover-table thead {
   position: sticky;
   top: 0;
-  z-index: 10;
-  background-color: rgba(255, 255, 255, 0.95);
+  z-index: 20;
+  background-color: #ffffff;
 }
 
-.dark body > div.flex.h-screen.relative.overflow-x-hidden > main > div > div > div > div > div.flex-1.flex.flex-col.min-h-0.overflow-y-auto > div > div > table > thead > tr {
-  background-color: rgba(28, 37, 54, 0.95);
+.prospect-hover-table thead tr {
+  background-color: #ffffff;
+}
+
+.dark .prospect-hover-table thead {
+  background-color: #1c2536;
+}
+
+.dark .prospect-hover-table thead tr {
+  background-color: #1c2536;
 }

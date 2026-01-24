@@ -75,7 +75,12 @@ function ProspectEnrichInner() {
   const isDark = resolvedTheme === 'dark'
   const { profile } = useApp()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const { isOpen: isSidebarOpen } = useSidebar()
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // View State
   const [activeView, setActiveView] = useState<ViewType>('analytics')

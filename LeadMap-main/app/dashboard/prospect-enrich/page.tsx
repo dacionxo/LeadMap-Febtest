@@ -1273,7 +1273,7 @@ function ProspectEnrichInner() {
   return (
       <DashboardLayout>
       {/* TailwindAdmin Hover Table - 1:1 Match to /shadcn-tables/hover */}
-      <div className="fixed top-[80px] bottom-0 flex flex-col transition-all duration-300" style={{ left: isSidebarOpen ? '270px' : '75px', right: 0 }}>
+      <div className="fixed top-[80px] bottom-0 flex flex-col transition-all duration-300" style={{ left: sidebarLeft, right: 0 }}>
         <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 flex-1 flex flex-col overflow-hidden h-full w-full">
           <ProspectHoverTable
                           tableName={activeCategory === 'all' ? undefined : resolvedTableName}
@@ -1336,7 +1336,7 @@ function ProspectEnrichInner() {
                         />
                       </div>
         </div>
-
+      )}
         {/* Lead Detail Modal */}
         {showLeadModal && selectedListingId && (
           <LeadDetailModal

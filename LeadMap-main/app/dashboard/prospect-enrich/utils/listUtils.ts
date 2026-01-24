@@ -251,7 +251,7 @@ export async function add_to_list(
         .insert([contactData])
 
       if (contactError) {
-        if (contactError.code === '23505') {
+        if ((contactError as any)?.code === '23505') {
           // Already saved, but update category
           await supabase
             .from('contacts')

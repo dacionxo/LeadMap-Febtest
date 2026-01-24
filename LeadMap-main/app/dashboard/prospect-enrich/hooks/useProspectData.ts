@@ -299,7 +299,7 @@ export function useProspectData(userId: string | undefined) {
         
         if (error) {
           // Handle missing table gracefully
-          if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+          if ((error as any)?.code === 'PGRST116' || error.message?.includes('does not exist')) {
             console.warn(`Table ${tableName} does not exist.`)
             data = []
           } else {

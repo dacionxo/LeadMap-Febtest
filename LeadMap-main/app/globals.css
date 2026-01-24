@@ -578,22 +578,35 @@
   }
 }
 
-/* Sticky table header for ProspectHoverTable */
+/* Sticky table header for ProspectHoverTable - High specificity to override any conflicting styles */
 .prospect-hover-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background-color: #ffffff;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
+  background-color: #ffffff !important;
 }
 
 .prospect-hover-table thead tr {
-  background-color: #ffffff;
+  background-color: #ffffff !important;
+  position: relative !important;
 }
 
 .dark .prospect-hover-table thead {
-  background-color: #1c2536;
+  background-color: #1c2536 !important;
 }
 
 .dark .prospect-hover-table thead tr {
-  background-color: #1c2536;
+  background-color: #1c2536 !important;
+}
+
+/* Ensure no parent transforms or opacity break stacking context */
+.prospect-hover-table {
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+.prospect-hover-table thead {
+  transform: none !important;
+  opacity: 1 !important;
+  isolation: isolate;
 }

@@ -389,6 +389,82 @@ export default function ProspectHoverTable({
     fetchListings(currentPage)
   }, [fetchListings, currentPage])
 
+  // #region agent log
+  useEffect(() => {
+    const inspectStickyHeader = () => {
+      const thead = document.querySelector('.prospect-hover-table thead') as HTMLElement
+      const theadTr = document.querySelector('.prospect-hover-table thead tr') as HTMLElement
+      
+      if (!thead || !theadTr) {
+        fetch('http://127.0.0.1:7243/ingest/6bcf8343-0ce9-4f25-aed7-5654fd6e2c79',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProspectHoverTable.tsx:392',message:'thead element not found',data:{theadExists:!!thead,theadTrExists:!!theadTr},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{})
+        return
+      }
+
+      const theadStyles = window.getComputedStyle(thead)
+      const theadTrStyles = window.getComputedStyle(theadTr)
+      const table = thead.closest('table')
+      const scrollContainer = thead.closest('.overflow-y-auto')
+      
+      // Hypothesis A: Nested overflow containers
+      const parentOverflows = []
+      let parent = thead.parentElement
+      while (parent && parent !== document.body) {
+        const styles = window.getComputedStyle(parent)
+        if (styles.overflow !== 'visible' || styles.overflowY !== 'visible' || styles.overflowX !== 'visible') {
+          parentOverflows.push({
+            element: parent.tagName + (parent.className ? '.' + parent.className.split(' ')[0] : ''),
+            overflow: styles.overflow,
+            overflowY: styles.overflowY,
+            overflowX: styles.overflowX
+          })
+        }
+        parent = parent.parentElement
+      }
+      fetch('http://127.0.0.1:7243/ingest/6bcf8343-0ce9-4f25-aed7-5654fd6e2c79',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProspectHoverTable.tsx:410',message:'Parent overflow containers',data:{parentOverflows,scrollContainerExists:!!scrollContainer},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{})
+
+      // Hypothesis B: CSS not applied
+      fetch('http://127.0.0.1:7243/ingest/6bcf8343-0ce9-4f25-aed7-5654fd6e2c79',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProspectHoverTable.tsx:415',message:'Computed styles for thead',data:{position:theadStyles.position,top:theadStyles.top,zIndex:theadStyles.zIndex,backgroundColor:theadStyles.backgroundColor,className:thead.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{})
+
+      // Hypothesis C: Wrong scroll container
+      const scrollContainerInfo = scrollContainer ? {
+        tagName: scrollContainer.tagName,
+        className: scrollContainer.className,
+        isParentOfThead: scrollContainer.contains(thead),
+        scrollHeight: scrollContainer.scrollHeight,
+        clientHeight: scrollContainer.clientHeight
+      } : null
+      fetch('http://127.0.0.1:7243/ingest/6bcf8343-0ce9-4f25-aed7-5654fd6e2c79',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProspectHoverTable.tsx:425',message:'Scroll container analysis',data:{scrollContainerInfo,tableExists:!!table},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{})
+
+      // Hypothesis D: Computed styles check
+      fetch('http://127.0.0.1:7243/ingest/6bcf8343-0ce9-4f25-aed7-5654fd6e2c79',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProspectHoverTable.tsx:430',message:'thead tr computed styles',data:{position:theadTrStyles.position,top:theadTrStyles.top,zIndex:theadTrStyles.zIndex,backgroundColor:theadTrStyles.backgroundColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{})
+
+      // Hypothesis E: Stacking context
+      const theadZIndex = parseInt(theadStyles.zIndex) || 0
+      const parentZIndexes = []
+      let checkParent = thead.parentElement
+      while (checkParent && parentZIndexes.length < 5) {
+        const parentStyles = window.getComputedStyle(checkParent)
+        const zIdx = parseInt(parentStyles.zIndex) || 0
+        if (zIdx !== 0 || parentStyles.position !== 'static') {
+          parentZIndexes.push({
+            element: checkParent.tagName + (checkParent.className ? '.' + checkParent.className.split(' ')[0] : ''),
+            zIndex: parentStyles.zIndex,
+            position: parentStyles.position,
+            transform: parentStyles.transform,
+            opacity: parentStyles.opacity
+          })
+        }
+        checkParent = checkParent.parentElement
+      }
+      fetch('http://127.0.0.1:7243/ingest/6bcf8343-0ce9-4f25-aed7-5654fd6e2c79',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProspectHoverTable.tsx:445',message:'Stacking context analysis',data:{theadZIndex,parentZIndexes},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{})
+    }
+
+    // Run inspection after a short delay to ensure DOM is ready
+    const timeoutId = setTimeout(inspectStickyHeader, 100)
+    return () => clearTimeout(timeoutId)
+  }, [listings.length, loading])
+  // #endregion agent log
+
   const totalPages = Math.ceil(totalCount / pageSize)
   const startItem = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1
   const endItem = totalCount === 0 ? 0 : Math.min(currentPage * pageSize, totalCount)
@@ -434,12 +510,21 @@ export default function ProspectHoverTable({
   // EXACT 1:1 MATCH TO TAILWINDADMIN'S HOVERTABLE STRUCTURE
   return (
     <div className="border rounded-lg border-ld overflow-hidden h-full flex flex-col">
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-        <div className="flex-1 min-h-0 overflow-x-auto">
-          <div className="relative w-full overflow-auto">
-            <table className="prospect-hover-table min-w-full table-auto w-full caption-bottom text-sm">
-            <TableHeader className="sticky top-0 z-20 bg-white dark:bg-dark shadow-sm">
-            <TableRow>
+      {/* Single scroll container - fixes nested overflow issue (Hypothesis A) */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto" style={{ position: 'relative' }}>
+        <table className="prospect-hover-table min-w-full table-auto w-full caption-bottom text-sm" style={{ position: 'relative' }}>
+            <TableHeader 
+              className="sticky top-0 z-20 bg-white dark:bg-dark shadow-sm"
+              style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 20,
+                backgroundColor: isDark ? '#1c2536' : '#ffffff'
+              }}
+            >
+            <TableRow style={{
+              backgroundColor: isDark ? '#1c2536' : '#ffffff'
+            }}>
               {showSelectionColumn && (
                   <TableHead className="w-[56px] px-3 text-center">
                     <button
@@ -725,8 +810,6 @@ export default function ProspectHoverTable({
             )}
           </TableBody>
             </table>
-          </div>
-        </div>
       </div>
       
       {showPagination && (

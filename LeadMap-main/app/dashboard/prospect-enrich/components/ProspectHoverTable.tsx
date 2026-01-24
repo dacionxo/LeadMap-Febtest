@@ -435,25 +435,9 @@ export default function ProspectHoverTable({
   return (
     <div className="border rounded-lg border-ld overflow-hidden h-full flex flex-col">
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-        <div className="sticky top-0 z-20 flex justify-between items-center border-b border-ld bg-white dark:bg-dark px-6 py-4">
-          <div>
-            <p className="text-sm font-semibold text-ld dark:text-white">{headerTitle}</p>
-            <p className="text-xs text-bodytext dark:text-white/70">
-              Showing {startItem.toLocaleString()} - {endItem.toLocaleString()} of {totalCount.toLocaleString()}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {showSelectionColumn && selectedIds.size > 0 && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                {selectedIds.size} selected
-              </span>
-            )}
-            <span className="text-xs uppercase tracking-[0.3em] text-bodytext dark:text-white/50">hover</span>
-          </div>
-        </div>
         <div className="flex-1 min-h-0 overflow-x-auto">
           <Table className="min-w-full table-auto">
-          <TableHeader className="sticky top-[64px] z-10 bg-white/95 dark:bg-dark">
+          <TableHeader className="sticky top-0 z-10 bg-white/95 dark:bg-dark">
             <TableRow>
               {showSelectionColumn && (
                   <TableHead className="w-[56px] px-3 text-center">

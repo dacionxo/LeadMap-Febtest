@@ -1,54 +1,23 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense, useMemo, useRef } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { useApp } from '@/app/providers'
-import { useTheme } from '@/components/ThemeProvider'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import EmailTemplateModal from '@/components/EmailTemplateModal'
-import SaveButton from './components/AddToCrmButton'
-import { add_to_list } from './utils/listUtils'
 import { normalizeListingIdentifier } from '@/app/dashboard/lists/utils/identifierUtils'
-import ProspectInsights from './components/ProspectInsights'
-import ApolloPagination from './components/ApolloPagination'
-import LeadDetailModal from './components/LeadDetailModal'
-import ImportLeadsModal from './components/ImportLeadsModal'
-import AddToListModal from './components/AddToListModal'
-import AddToCampaignModal from './components/AddToCampaignModal'
-import ProspectHoverTable from './components/ProspectHoverTable'
-import { useProspectData, Listing, FilterType, getPrimaryCategory } from './hooks/useProspectData'
+import { useApp } from '@/app/providers'
+import EmailTemplateModal from '@/components/EmailTemplateModal'
+import { useTheme } from '@/components/ThemeProvider'
 import { postEnrichLeads } from '@/lib/api'
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Sparkles, 
-  Building2, 
-  Clock, 
-  FileText, 
-  MapPin, 
-  Users,
-  X,
-  CheckSquare,
-  Square,
-  TrendingUp,
-  DollarSign,
-  Home,
-  Zap,
-  Target,
-  BarChart3,
-  ChevronDown,
-  SlidersHorizontal,
-  MoreVertical,
-  Mail,
-  Phone,
-  Send,
-  Table2,
-  Map as MapIcon,
-  Lightbulb
-} from 'lucide-react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DashboardLayout from '../components/DashboardLayout'
 import { useSidebar } from '../components/SidebarContext'
+import AddToCampaignModal from './components/AddToCampaignModal'
+import AddToListModal from './components/AddToListModal'
+import ImportLeadsModal from './components/ImportLeadsModal'
+import LeadDetailModal from './components/LeadDetailModal'
+import ProspectHoverTable from './components/ProspectHoverTable'
+import ProspectSearchHeader from './components/ProspectSearchHeader'
+import { FilterType, getPrimaryCategory, Listing, useProspectData } from './hooks/useProspectData'
+import { add_to_list } from './utils/listUtils'
 
 type ViewType = 'table' | 'map' | 'analytics' | 'insights'
 type SortField = 'price' | 'date' | 'score' | 'location' | 'status'
@@ -80,6 +49,35 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
     {/* TailwindAdmin Hover Table - 1:1 Match to /shadcn-tables/hover */}
     <div className="fixed top-[80px] bottom-0 flex flex-col transition-all duration-300" style={{ left: isSidebarOpen ? '270px' : '75px', right: 0 }}>
       <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 flex-1 flex flex-col overflow-hidden h-full w-full">
+        {/* Prospect Search Header */}
+        <ProspectSearchHeader
+          searchQuery={props.searchTerm || ''}
+          onSearchChange={props.setSearchTerm}
+          filtersVisible={props.filtersVisible}
+          onToggleFilters={() => props.setFiltersVisible(!props.filtersVisible)}
+          onImport={() => props.setShowImportModal(true)}
+          onResearchWithAI={() => {
+            // Research with AI - can be implemented later
+            console.log('Research with AI clicked')
+          }}
+          onCreateWorkflow={() => {
+            // Create workflow - can be implemented later
+            console.log('Create workflow clicked')
+          }}
+          onSaveSearch={() => {
+            // Save search - can be implemented later
+            console.log('Save search clicked')
+          }}
+          onAutoScore={() => {
+            // Auto score - can be implemented later
+            console.log('Auto score clicked')
+          }}
+          onSearchSettings={() => {
+            // Search settings - can be implemented later
+            console.log('Search settings clicked')
+          }}
+          isDark={props.isDark}
+        />
         <ProspectHoverTable
           tableName={props.activeCategory === 'all' ? undefined : props.resolvedTableName}
           listings={props.activeCategory === 'all' ? props.filteredListings : undefined}
@@ -1421,6 +1419,7 @@ function ProspectEnrichInner() {
         resolvedTableName={resolvedTableName}
         filteredListings={filteredListings}
         searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
         apolloFilters={apolloFilters}
         sortBy={sortBy}
         currentPage={currentPage}
@@ -1461,6 +1460,8 @@ function ProspectEnrichInner() {
         listings={listings}
         fetchCrmContacts={fetchCrmContacts}
         supabase={supabase}
+        filtersVisible={filtersVisible}
+        setFiltersVisible={setFiltersVisible}
       />
     </DashboardLayout>
   )

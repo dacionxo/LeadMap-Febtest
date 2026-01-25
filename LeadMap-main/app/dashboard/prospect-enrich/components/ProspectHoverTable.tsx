@@ -509,7 +509,7 @@ export default function ProspectHoverTable({
 
   // EXACT 1:1 MATCH TO TAILWINDADMIN'S HOVERTABLE STRUCTURE
   return (
-    <div className="border rounded-lg border-ld overflow-hidden h-full flex flex-col">
+    <div className="border rounded-lg border-ld overflow-hidden h-full flex flex-col bg-white dark:bg-dark">
       {/* Single scroll container - fixes nested overflow issue (Hypothesis A) */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto" style={{ position: 'relative' }}>
         <table className="prospect-hover-table min-w-full table-auto w-full caption-bottom text-sm" style={{ position: 'relative' }}>

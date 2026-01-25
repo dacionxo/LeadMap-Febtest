@@ -16,6 +16,7 @@ import ImportLeadsModal from './components/ImportLeadsModal'
 import LeadDetailModal from './components/LeadDetailModal'
 import ProspectHoverTable from './components/ProspectHoverTable'
 import ProspectSearchHeader from './components/ProspectSearchHeader'
+import ProspectFilterSidebar from './components/ProspectFilterSidebar'
 import { FilterType, getPrimaryCategory, Listing, useProspectData } from './hooks/useProspectData'
 import { add_to_list } from './utils/listUtils'
 
@@ -78,7 +79,25 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
           }}
           isDark={props.isDark}
         />
-        <ProspectHoverTable
+        {/* Main Content Area with Filter Sidebar and Table */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar - Filter Sidebar */}
+          {props.filtersVisible && (
+            <ProspectFilterSidebar
+              filters={props.apolloFilters}
+              onFiltersChange={props.setApolloFilters}
+              totalCount={props.totalCount || 0}
+              netNewCount={props.netNewCount || 0}
+              savedCount={props.savedCount || 0}
+              isCollapsed={!props.filtersVisible}
+              onToggleCollapse={() => props.setFiltersVisible(!props.filtersVisible)}
+              listings={props.allListings || []}
+              isDark={props.isDark}
+            />
+          )}
+          {/* Right Side - Table */}
+          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <ProspectHoverTable
           tableName={props.activeCategory === 'all' ? undefined : props.resolvedTableName}
           listings={props.activeCategory === 'all' ? props.filteredListings : undefined}
           filters={{
@@ -136,7 +155,9 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
           isDark={props.isDark}
           showSummary={false}
           showPagination={true}
-        />
+            />
+          </div>
+        </div>
       </div>
     </div>
     {/* Lead Detail Modal */}
@@ -1421,6 +1442,7 @@ function ProspectEnrichInner() {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         apolloFilters={apolloFilters}
+        setApolloFilters={setApolloFilters}
         sortBy={sortBy}
         currentPage={currentPage}
         itemsPerPage={itemsPerPage}
@@ -1462,6 +1484,10 @@ function ProspectEnrichInner() {
         supabase={supabase}
         filtersVisible={filtersVisible}
         setFiltersVisible={setFiltersVisible}
+        totalCount={totalCount}
+        netNewCount={netNewCount}
+        savedCount={savedCount}
+        allListings={allListings}
       />
     </DashboardLayout>
   )

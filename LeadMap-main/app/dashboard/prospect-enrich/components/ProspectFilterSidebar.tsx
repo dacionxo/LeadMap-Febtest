@@ -125,13 +125,6 @@ const FILTER_GROUPS: FilterGroup[] = [
     category: 'person'
   },
   {
-    id: 'enriched',
-    title: 'Enriched',
-    type: 'checkbox',
-    category: 'property',
-    pinned: true
-  },
-  {
     id: 'high_value',
     title: 'High Value ($500K+)',
     type: 'checkbox',
@@ -157,7 +150,7 @@ export default function ProspectFilterSidebar({
   isDark = false
 }: ProspectFilterSidebarProps) {
   const [filterType, setFilterType] = useState<'person' | 'company' | 'property' | 'all'>('all')
-  const [pinnedFilters, setPinnedFilters] = useState<Set<string>>(new Set(['price_range', 'location', 'ai_score', 'enriched']))
+  const [pinnedFilters, setPinnedFilters] = useState<Set<string>>(new Set(['price_range', 'location', 'ai_score']))
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['status', 'price_range', 'location']))
   const [filterSearch, setFilterSearch] = useState('')
   const [showMoreFilters, setShowMoreFilters] = useState(false)
@@ -378,7 +371,7 @@ export default function ProspectFilterSidebar({
   if (isCollapsed) {
     return (
       <div className={cn(
-        "w-12 flex flex-col items-center p-2 gap-2",
+        "w-11 flex flex-col items-center p-2 gap-2",
         "bg-white dark:bg-dark border-r border-ld",
         "shadow-sm"
       )}>
@@ -410,36 +403,10 @@ export default function ProspectFilterSidebar({
 
   return (
     <div className={cn(
-      "w-80 flex flex-col h-full overflow-hidden",
+      "w-72 flex flex-col h-full overflow-hidden",
       "bg-white dark:bg-dark border-r border-ld",
       "shadow-sm"
     )}>
-      {/* Header */}
-      <div className={cn(
-        "px-4 py-3 border-b border-ld",
-        "flex items-center justify-between",
-        "bg-white dark:bg-dark"
-      )}>
-        <h3 className={cn(
-          "text-lg font-semibold",
-          "text-dark dark:text-white"
-        )}>
-          Search Filters
-        </h3>
-        <button
-          onClick={onToggleCollapse}
-          className={cn(
-            "p-1.5 rounded-md",
-            "hover:bg-lightprimary dark:hover:bg-lightprimary",
-            "transition-colors duration-200"
-          )}
-          title="Hide Filters"
-          aria-label="Hide Filters"
-        >
-          <X className="h-4 w-4 text-bodytext dark:text-white/70" />
-        </button>
-      </div>
-
       {/* Summary Stats */}
       <div className={cn(
         "px-4 py-3 border-b border-ld",
@@ -488,32 +455,6 @@ export default function ProspectFilterSidebar({
             Saved
           </div>
         </div>
-      </div>
-
-      {/* Filter Search */}
-      <div className={cn(
-        "px-4 py-3 border-b border-ld",
-        "relative",
-        "bg-white dark:bg-dark"
-      )}>
-        <Search className={cn(
-          "absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4",
-          "text-bodytext dark:text-white/50",
-          "pointer-events-none"
-        )} />
-        <input
-          type="text"
-          value={filterSearch}
-          onChange={(e) => setFilterSearch(e.target.value)}
-          placeholder="Search filters..."
-          className={cn(
-            "w-full pl-9 pr-3 py-2 rounded-md",
-            "border border-ld bg-white dark:bg-dark",
-            "text-sm text-ld",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
-            "transition-all duration-200"
-          )}
-        />
       </div>
 
       {/* Filter Type Selector */}

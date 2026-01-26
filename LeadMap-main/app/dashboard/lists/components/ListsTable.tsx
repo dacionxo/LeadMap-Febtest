@@ -21,13 +21,16 @@ interface List {
   user_id?: string
 }
 
+type DisplayView = 'default' | 'compact' | 'detailed' | 'map'
+
 interface ListsTableProps {
   lists: List[]
   onRefresh: () => void
   type?: 'people' | 'properties'
+  displayView?: DisplayView
 }
 
-export default function ListsTable({ lists, onRefresh, type }: ListsTableProps) {
+export default function ListsTable({ lists, onRefresh, type, displayView = 'default' }: ListsTableProps) {
   const router = useRouter()
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)

@@ -345,13 +345,12 @@ export default function ContactsPage() {
                 }}>
                   Loading lists...
                 </div>
-            ) : supabase ? (
+            ) : (
               <ListsTable 
                 lists={filteredLists} 
                 onRefresh={fetchLists}
-                supabase={supabase}
               />
-            ) : null}
+            )}
             </ApolloListContainer>
           </div>
 

@@ -3,13 +3,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '../components/DashboardLayout'
-import { Plus, Search, Users, Building2, Filter, Settings, Download, MoreVertical, Info, Trash2, Edit, X, Upload, ChevronDown, Loader2 } from 'lucide-react'
+import { Plus, Search, Users, Building2, Filter, Settings, Download, MoreVertical, Info, Trash2, Edit, X, Upload, ChevronDown, Loader2, LayoutGrid, Map } from 'lucide-react'
 import ImportListModal from './components/ImportListModal'
 import CreateListModal from './components/CreateListModal'
 import ListsTable from './components/ListsTable'
 import { Button } from '@/app/components/ui/button'
 import { Input } from '@/app/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu'
 import { cn } from '@/app/lib/utils'
 
 interface List {
@@ -22,6 +23,9 @@ interface List {
   item_count?: number
 }
 
+type ViewType = 'total' | 'net_new' | 'saved'
+type DisplayView = 'default' | 'compact' | 'detailed' | 'map'
+
 export default function ListsPage() {
   const router = useRouter()
   const [lists, setLists] = useState<List[]>([])
@@ -33,6 +37,8 @@ export default function ListsPage() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [showViewOptions, setShowViewOptions] = useState(false)
   const [groupBy, setGroupBy] = useState<'none' | 'type' | 'created_at' | 'updated_at'>('type')
+  const [viewType, setViewType] = useState<ViewType>('total')
+  const [displayView, setDisplayView] = useState<DisplayView>('default')
 
   useEffect(() => {
     fetchLists()
@@ -78,14 +84,50 @@ export default function ListsPage() {
     fetchLists()
   }, [fetchLists])
 
-  // Separate lists by type
-  const peopleLists = useMemo(() => {
-    return lists.filter(list => list.type === 'people')
+  // Calculate counts for filter buttons
+  const totalCount = useMemo(() => lists.length, [lists])
+  
+  const netNewCount = useMemo(() => {
+    // Net new = lists created in last 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000)
+    return lists.filter(list => {
+      if (!list.created_at) return false
+      return new Date(list.created_at).getTime() >= thirtyDaysAgo
+    }).length
+  }, [lists])
+  
+  const savedCount = useMemo(() => {
+    // Saved = lists that have items (item_count > 0)
+    return lists.filter(list => (list.item_count || 0) > 0).length
   }, [lists])
 
+  // Filter lists based on viewType
+  const filteredByViewType = useMemo(() => {
+    switch (viewType) {
+      case 'net_new': {
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000)
+        return lists.filter(list => {
+          if (!list.created_at) return false
+          return new Date(list.created_at).getTime() >= thirtyDaysAgo
+        })
+      }
+      case 'saved': {
+        return lists.filter(list => (list.item_count || 0) > 0)
+      }
+      case 'total':
+      default:
+        return lists
+    }
+  }, [lists, viewType])
+
+  // Separate lists by type
+  const peopleLists = useMemo(() => {
+    return filteredByViewType.filter(list => list.type === 'people')
+  }, [filteredByViewType])
+
   const propertiesLists = useMemo(() => {
-    return lists.filter(list => list.type === 'properties')
-  }, [lists])
+    return filteredByViewType.filter(list => list.type === 'properties')
+  }, [filteredByViewType])
 
   // Filter and sort
   const filteredPeopleLists = useMemo(() => {
@@ -223,6 +265,48 @@ export default function ListsPage() {
               </div>
             </div>
 
+            {/* Filter Buttons: Total, Net New, Saved */}
+            {lists.length > 0 && (
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setViewType('total')}
+                  className={cn(
+                    "flex-1 flex flex-col items-center justify-center px-4 py-3 rounded-lg border transition-all duration-200",
+                    viewType === 'total'
+                      ? "bg-primary border-primary text-white shadow-md"
+                      : "bg-white dark:bg-boxdark border-stroke dark:border-strokedark text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
+                  )}
+                >
+                  <div className="text-2xl font-bold">{totalCount.toLocaleString()}</div>
+                  <div className="text-xs mt-1 opacity-90">Total</div>
+                </button>
+                <button
+                  onClick={() => setViewType('net_new')}
+                  className={cn(
+                    "flex-1 flex flex-col items-center justify-center px-4 py-3 rounded-lg border transition-all duration-200",
+                    viewType === 'net_new'
+                      ? "bg-primary border-primary text-white shadow-md"
+                      : "bg-white dark:bg-boxdark border-stroke dark:border-strokedark text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
+                  )}
+                >
+                  <div className="text-2xl font-bold">{netNewCount.toLocaleString()}</div>
+                  <div className="text-xs mt-1 opacity-90">Net New</div>
+                </button>
+                <button
+                  onClick={() => setViewType('saved')}
+                  className={cn(
+                    "flex-1 flex flex-col items-center justify-center px-4 py-3 rounded-lg border transition-all duration-200",
+                    viewType === 'saved'
+                      ? "bg-primary border-primary text-white shadow-md"
+                      : "bg-white dark:bg-boxdark border-stroke dark:border-strokedark text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
+                  )}
+                >
+                  <div className="text-2xl font-bold">{savedCount.toLocaleString()}</div>
+                  <div className="text-xs mt-1 opacity-90">Saved</div>
+                </button>
+              </div>
+            )}
+
             {/* Search and Filters */}
             {lists.length > 0 && (
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -236,6 +320,43 @@ export default function ListsPage() {
                     className="pl-10"
                   />
                 </div>
+
+                {/* View Selector Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 min-w-[160px] justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <LayoutGrid className="h-4 w-4" />
+                        {displayView === 'default' && 'Default View'}
+                        {displayView === 'compact' && 'Compact View'}
+                        {displayView === 'detailed' && 'Detailed View'}
+                        {displayView === 'map' && 'Map View'}
+                      </div>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setDisplayView('default')}>
+                      <LayoutGrid className="h-4 w-4 mr-2" />
+                      Default View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDisplayView('compact')}>
+                      <LayoutGrid className="h-4 w-4 mr-2" />
+                      Compact View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDisplayView('detailed')}>
+                      <LayoutGrid className="h-4 w-4 mr-2" />
+                      Detailed View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDisplayView('map')}>
+                      <Map className="h-4 w-4 mr-2" />
+                      Map View
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
                   <SelectTrigger className="w-[180px]">
@@ -351,6 +472,19 @@ export default function ListsPage() {
                 </a>
               </div>
             </div>
+          ) : displayView === 'map' ? (
+            /* Map View */
+            <div className="py-20 text-center">
+              <div className="w-32 h-32 mb-6 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center text-5xl mx-auto">
+                <Map className="h-16 w-16 text-white" />
+              </div>
+              <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">
+                Map View
+              </h2>
+              <p className="text-bodydark dark:text-bodydark2 mb-8 max-w-md mx-auto">
+                Map view is coming soon. This will display your lists on an interactive map.
+              </p>
+            </div>
           ) : (
             <div className="space-y-8">
               {/* People Section */}
@@ -365,6 +499,7 @@ export default function ListsPage() {
                     lists={filteredPeopleLists}
                     onRefresh={fetchLists}
                     type="people"
+                    displayView={displayView}
                   />
                 </div>
               )}
@@ -381,6 +516,7 @@ export default function ListsPage() {
                     lists={filteredPropertiesLists}
                     onRefresh={fetchLists}
                     type="properties"
+                    displayView={displayView}
                   />
                 </div>
               )}

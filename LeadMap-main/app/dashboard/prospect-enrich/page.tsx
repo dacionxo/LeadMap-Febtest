@@ -1375,15 +1375,20 @@ function ProspectEnrichInner() {
   const totalCount = allListings.length
   
   const netNewCount = useMemo(() => {
-    // Net new = listings created in last 30 days, excluding saved listings and listings in lists
-    // Always calculated from allListings, regardless of current viewType
+    // Net new = listings created or updated in last 30 days, excluding saved listings and listings in lists
+    // Must match the exact logic used in baseListings for 'net_new' viewType
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000)
-    return allListings.filter(l => {
-      // Must have created_at date
-      if (!l.created_at) return false
+    return listings.filter(l => {
+      // Check both created_at and updated_at for "new to user" listings
+      const createdTime = l.created_at ? new Date(l.created_at).getTime() : 0
+      const updatedTime = l.updated_at ? new Date(l.updated_at).getTime() : 0
+      const mostRecentTime = Math.max(createdTime, updatedTime)
       
-      // Must be created in last 30 days
-      if (new Date(l.created_at).getTime() < thirtyDaysAgo) return false
+      // Must have at least one timestamp
+      if (mostRecentTime === 0) return false
+      
+      // Must be created or updated in last 30 days
+      if (mostRecentTime < thirtyDaysAgo) return false
       
       // Exclude saved listings (in CRM contacts)
       const sourceId = l.listing_id || l.property_url
@@ -1394,7 +1399,7 @@ function ProspectEnrichInner() {
       
       return true
     }).length
-  }, [allListings, crmContactIds, listItemIds])
+  }, [listings, crmContactIds, listItemIds])
   
   // Saved count is now category-specific - savedListings is fetched from current category's table
   // Always shows the complete count of saved listings in this category, regardless of viewType

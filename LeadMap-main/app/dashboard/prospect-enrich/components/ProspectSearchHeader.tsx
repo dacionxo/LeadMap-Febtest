@@ -13,7 +13,8 @@ import {
   Save,
   ArrowUpDown,
   Settings,
-  LayoutGrid
+  LayoutGrid,
+  Map
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -22,6 +23,8 @@ import {
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu'
 import { cn } from '@/app/lib/utils'
+
+type DisplayView = 'default' | 'compact' | 'detailed' | 'map'
 
 interface ProspectSearchHeaderProps {
   searchQuery: string
@@ -35,6 +38,8 @@ interface ProspectSearchHeaderProps {
   onAutoScore?: () => void
   onSearchSettings?: () => void
   isDark?: boolean
+  displayView?: DisplayView
+  onDisplayViewChange?: (view: DisplayView) => void
 }
 
 export default function ProspectSearchHeader({
@@ -48,9 +53,23 @@ export default function ProspectSearchHeader({
   onSaveSearch,
   onAutoScore,
   onSearchSettings,
-  isDark = false
+  isDark = false,
+  displayView = 'default',
+  onDisplayViewChange
 }: ProspectSearchHeaderProps) {
-  const [currentView, setCurrentView] = useState('Default view')
+  const getViewLabel = (view: DisplayView) => {
+    switch (view) {
+      case 'default': return 'Default View'
+      case 'compact': return 'Compact View'
+      case 'detailed': return 'Detailed View'
+      case 'map': return 'Map View'
+      default: return 'Default View'
+    }
+  }
+  
+  const handleViewChange = (view: DisplayView) => {
+    onDisplayViewChange?.(view)
+  }
 
   const handleClearSearch = () => {
     onSearchChange('')
@@ -136,19 +155,26 @@ export default function ProspectSearchHeader({
                 )}
               >
                 <LayoutGrid className="h-4 w-4" />
-                {currentView}
+                {getViewLabel(displayView)}
                 <ChevronDown className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => setCurrentView('Default view')}>
-                Default view
+              <DropdownMenuItem onClick={() => handleViewChange('default')}>
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Default View
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setCurrentView('Compact view')}>
-                Compact view
+              <DropdownMenuItem onClick={() => handleViewChange('compact')}>
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Compact View
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setCurrentView('Detailed view')}>
-                Detailed view
+              <DropdownMenuItem onClick={() => handleViewChange('detailed')}>
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Detailed View
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewChange('map')}>
+                <Map className="h-4 w-4 mr-2" />
+                Map View
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

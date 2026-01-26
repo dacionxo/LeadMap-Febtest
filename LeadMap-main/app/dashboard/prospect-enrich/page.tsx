@@ -8,6 +8,7 @@ import { postEnrichLeads } from '@/lib/api'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Map } from 'lucide-react'
 import DashboardLayout from '../components/DashboardLayout'
 import { useSidebar } from '../components/SidebarContext'
 import AddToCampaignModal from './components/AddToCampaignModal'
@@ -78,6 +79,8 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
             console.log('Search settings clicked')
           }}
           isDark={props.isDark}
+          displayView={props.displayView}
+          onDisplayViewChange={props.setDisplayView}
         />
         {/* Main Content Area with Filter Sidebar and Table */}
         <div className="flex-1 flex overflow-hidden">
@@ -93,11 +96,29 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
               onToggleCollapse={() => props.setFiltersVisible(!props.filtersVisible)}
               listings={props.allListings || []}
               isDark={props.isDark}
+              viewType={props.viewType}
+              onViewTypeChange={props.setViewType}
             />
           )}
-          {/* Right Side - Table */}
+          {/* Right Side - Table or Map */}
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-            <ProspectHoverTable
+            {props.displayView === 'map' ? (
+              /* Map View */
+              <div className="flex-1 flex items-center justify-center bg-white dark:bg-dark">
+                <div className="text-center p-12">
+                  <div className="w-32 h-32 mb-6 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center text-5xl mx-auto">
+                    <Map className="h-16 w-16 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">
+                    Map View
+                  </h2>
+                  <p className="text-bodydark dark:text-bodydark2 mb-8 max-w-md mx-auto">
+                    Map view is coming soon. This will display your prospects on an interactive map.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ProspectHoverTable
           tableName={props.activeCategory === 'all' ? undefined : props.resolvedTableName}
           listings={props.activeCategory === 'all' ? props.filteredListings : undefined}
           filters={{
@@ -156,6 +177,7 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
           showSummary={false}
           showPagination={true}
             />
+            )}
           </div>
         </div>
       </div>
@@ -260,6 +282,7 @@ function ProspectEnrichInner() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showMarketSegments, setShowMarketSegments] = useState(false)
   const [viewType, setViewType] = useState<'total' | 'net_new' | 'saved'>('total')
+  const [displayView, setDisplayView] = useState<'default' | 'compact' | 'detailed' | 'map'>('default')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(30)
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
@@ -1488,6 +1511,10 @@ function ProspectEnrichInner() {
         netNewCount={netNewCount}
         savedCount={savedCount}
         allListings={allListings}
+        viewType={viewType}
+        setViewType={setViewType}
+        displayView={displayView}
+        setDisplayView={setDisplayView}
       />
     </DashboardLayout>
   )

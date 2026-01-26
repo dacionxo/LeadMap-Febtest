@@ -22,6 +22,8 @@ interface FilterGroup {
   pinned?: boolean
 }
 
+type ViewType = 'total' | 'net_new' | 'saved'
+
 interface ProspectFilterSidebarProps {
   filters: Record<string, any>
   onFiltersChange: (filters: Record<string, any>) => void
@@ -32,6 +34,8 @@ interface ProspectFilterSidebarProps {
   onToggleCollapse: () => void
   listings?: any[]
   isDark?: boolean
+  viewType?: ViewType
+  onViewTypeChange?: (viewType: ViewType) => void
 }
 
 const FILTER_GROUPS: FilterGroup[] = [
@@ -147,7 +151,9 @@ export default function ProspectFilterSidebar({
   isCollapsed,
   onToggleCollapse,
   listings = [],
-  isDark = false
+  isDark = false,
+  viewType = 'total',
+  onViewTypeChange
 }: ProspectFilterSidebarProps) {
   const [filterType, setFilterType] = useState<'person' | 'company' | 'property' | 'all'>('all')
   const [pinnedFilters, setPinnedFilters] = useState<Set<string>>(new Set(['price_range', 'location', 'ai_score']))
@@ -407,54 +413,78 @@ export default function ProspectFilterSidebar({
       "bg-white dark:bg-dark border-r border-ld",
       "shadow-sm"
     )}>
-      {/* Summary Stats */}
+      {/* Summary Stats - Now Clickable Filter Buttons */}
       <div className={cn(
         "px-4 py-3 border-b border-ld",
-        "flex gap-4",
+        "flex gap-2",
         "bg-white dark:bg-dark"
       )}>
-        <div className="flex-1 text-center">
+        <button
+          onClick={() => onViewTypeChange?.('total')}
+          className={cn(
+            "flex-1 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border transition-all duration-200",
+            viewType === 'total'
+              ? "bg-primary border-primary text-white shadow-md"
+              : "bg-white dark:bg-boxdark border-stroke dark:border-strokedark text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
+          )}
+        >
           <div className={cn(
             "text-xl font-bold",
-            "text-dark dark:text-white"
+            viewType === 'total' ? "text-white" : "text-dark dark:text-white"
           )}>
             {totalCount.toLocaleString()}
           </div>
           <div className={cn(
-            "text-xs",
-            "text-bodytext dark:text-white/70"
+            "text-xs mt-1",
+            viewType === 'total' ? "text-white/90" : "text-bodytext dark:text-white/70"
           )}>
             Total
           </div>
-        </div>
-        <div className="flex-1 text-center">
+        </button>
+        <button
+          onClick={() => onViewTypeChange?.('net_new')}
+          className={cn(
+            "flex-1 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border transition-all duration-200",
+            viewType === 'net_new'
+              ? "bg-primary border-primary text-white shadow-md"
+              : "bg-white dark:bg-boxdark border-stroke dark:border-strokedark text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
+          )}
+        >
           <div className={cn(
             "text-xl font-bold",
-            "text-dark dark:text-white"
+            viewType === 'net_new' ? "text-white" : "text-dark dark:text-white"
           )}>
             {netNewCount.toLocaleString()}
           </div>
           <div className={cn(
-            "text-xs",
-            "text-bodytext dark:text-white/70"
+            "text-xs mt-1",
+            viewType === 'net_new' ? "text-white/90" : "text-bodytext dark:text-white/70"
           )}>
             Net New
           </div>
-        </div>
-        <div className="flex-1 text-center">
+        </button>
+        <button
+          onClick={() => onViewTypeChange?.('saved')}
+          className={cn(
+            "flex-1 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border transition-all duration-200",
+            viewType === 'saved'
+              ? "bg-primary border-primary text-white shadow-md"
+              : "bg-white dark:bg-boxdark border-stroke dark:border-strokedark text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
+          )}
+        >
           <div className={cn(
             "text-xl font-bold",
-            "text-dark dark:text-white"
+            viewType === 'saved' ? "text-white" : "text-dark dark:text-white"
           )}>
             {savedCount.toLocaleString()}
           </div>
           <div className={cn(
-            "text-xs",
-            "text-bodytext dark:text-white/70"
+            "text-xs mt-1",
+            viewType === 'saved' ? "text-white/90" : "text-bodytext dark:text-white/70"
           )}>
             Saved
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Filter Type Selector */}

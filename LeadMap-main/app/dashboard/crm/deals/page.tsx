@@ -13,7 +13,7 @@ function DealsPageContent() {
       {/* Option C: -mt-[10px] offsets layout top padding so this block sits under the Navbar. Only /dashboard/crm/deals. */}
         {/* Fixed: flush under navbar (top-[50px]), attached left and right (left after sidebar, right: 0). Matches prospect-enrich pattern. */}
         <div
-          className="fixed top-[50px] bottom-0 flex flex-col bg-slate-50 dark:bg-dark transition-all duration-300"
+          className="fixed top-[50px] bottom-0 flex flex-col bg-slate-50 dark:bg-dark transition-all duration-300 mt-5"
           style={{ left: isSidebarOpen ? '274px' : '79px', right: 0 }}
         >
           {/* Header — 1:1: Deals (left) | Add New Deal + Search (right) */}

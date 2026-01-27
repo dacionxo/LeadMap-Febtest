@@ -25,7 +25,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
       const parentEl = mainEl.parentElement;
       const parentComputed = parentEl ? window.getComputedStyle(parentEl) : null;
       const parentOverflow = parentComputed?.overflow || 'N/A';
-      fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardLayout.tsx:18',message:'Main container overflow check',data:{mainOverflow:overflow,mainOverflowY:overflowY,parentOverflow},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/27ffd39f-e797-4d31-a671-175bf76a4f27', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardLayout.tsx:18', message: 'Main container overflow check', data: { mainOverflow: overflow, mainOverflowY: overflowY, parentOverflow }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A,B' }) }).catch(() => { });
     }
     // #endregion
   }, [])
@@ -37,14 +37,13 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
       </Suspense>
       <main
         ref={mainRef as any}
-        className={`flex-1 overflow-y-auto relative z-10 dark:bg-dark h-full transition-all duration-300 ${
-          isOpen ? 'ml-[270px]' : 'ml-[75px]'
-        }`}
+        className={`flex-1 overflow-y-auto relative z-10 dark:bg-dark h-full transition-all duration-300 ${isOpen ? 'ml-[270px]' : 'ml-[75px]'
+          }`}
         style={{ backgroundColor: '#F6F7FB' }}
       >
         <Header scrollContainerRef={mainRef} />
         {/* Main Content */}
-        <div className="container relative z-10 pt-0 pb-[30px]">
+        <div className="container relative z-10 py-[30px]">
           {mounted && children}
         </div>
       </main>

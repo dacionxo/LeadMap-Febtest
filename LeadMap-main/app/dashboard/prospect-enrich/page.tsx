@@ -1584,6 +1584,13 @@ function ProspectEnrichInner() {
   
   return (
     <DashboardLayout>
+      {/* Option C (page-level): -mt-[30px] cancels DashboardLayout's pt from py-[30px]
+          so the prospect-enrich block sits flush under the Navbar. Applies to the
+          entire content below, including the "Find Deals" header
+          (ProspectSearchHeader: Research with AI, Import, Default View, Hide Filters,
+          Search places, Create workflow, Save as new search, People Auto-Score,
+          Search settings) and the ProspectHoverTable/MapView. Only /dashboard/prospect-enrich;
+          DashboardLayout is unchanged (py-[30px]) for /dashboard and all other routes. */}
       <div className="-mt-[30px]">
         <ProspectContentInner
         activeCategory={activeCategory}

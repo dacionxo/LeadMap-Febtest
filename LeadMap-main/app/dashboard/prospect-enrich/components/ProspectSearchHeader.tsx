@@ -1,5 +1,13 @@
 'use client'
 
+/**
+ * ProspectSearchHeader — "Find Deals" block: Research with AI, Import, Default View,
+ * Hide Filters, Search places, Create workflow, Save as new search, People Auto-Score,
+ * Search settings. Rendered as the first child of the prospect-enrich content; Option C
+ * (-mt-[30px]) on the parent in /dashboard/prospect-enrich/page.tsx brings this block
+ * (and the table below) flush under the Navbar.
+ */
+
 import { useState } from 'react'
 import {
   Search,

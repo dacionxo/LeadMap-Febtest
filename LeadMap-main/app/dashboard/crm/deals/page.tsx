@@ -7,37 +7,17 @@ import {
   Plus, 
   Search, 
   Filter, 
-  LayoutGrid, 
-  Layers3, 
-  Save, 
-  Calendar, 
-  Settings, 
-  X, 
+  ChevronDown,
   Trophy, 
-  DollarSign, 
-  Table2,
-  Kanban,
-  Building2,
-  User,
-  Gauge,
-  FileText,
-  MapPin,
-  Users,
-  Briefcase,
-  Eye,
-  Lightbulb,
-  FileSpreadsheet,
-  Zap,
-  ChevronRight
+  DollarSign,
 } from 'lucide-react'
 import DealsOnboardingModal from './components/DealsOnboardingModal'
-import DealsKanban from './components/DealsKanban'
-import DealsTable from './components/DealsTable'
+import DealsListTasksStyle from './components/DealsListTasksStyle'
 import DealFormModal from './components/DealFormModal'
 import DealDetailView from './components/DealDetailView'
 import DealsFilterSidebar from './components/DealsFilterSidebar'
 import ViewOptionsModal from './components/ViewOptionsModal'
-import ViewsDropdown, { getViewName } from './components/ViewsDropdown'
+import { getViewName } from './components/ViewsDropdown'
 import SaveViewSidebar from './components/SaveViewSidebar'
 import ImportDealsModal from './components/ImportDealsModal'
 import DealsAnalytics from './components/DealsAnalytics'
@@ -94,7 +74,7 @@ interface Contact {
 }
 
 export default function DealsPage() {
-  const { user } = useApp()
+  const { user, profile } = useApp()
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview')
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table')
@@ -110,9 +90,9 @@ export default function DealsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPipeline, setSelectedPipeline] = useState<string>('')
   const [selectedStage, setSelectedStage] = useState<string>('')
-  const [sortBy, setSortBy] = useState('created_at')
+  const [sortBy, setSortBy] = useState('expected_close_date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [showFilters, setShowFilters] = useState(true)
+  const [showFilters, setShowFilters] = useState(false)
   const [apolloFilters, setApolloFilters] = useState<Record<string, any>>({})
   const [showViewOptions, setShowViewOptions] = useState(false)
   const [showSaveViewSidebar, setShowSaveViewSidebar] = useState(false)
@@ -385,21 +365,6 @@ export default function DealsPage() {
     }
   }
 
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortBy(field)
-      setSortOrder('desc')
-    }
-  }
-
-  const getDefaultStages = () => {
-    const defaultPipeline = pipelines.find((p) => p.is_default)
-    // Return stages matching the Kanban design: Lead, Sales Qualified, Meeting Booked, Negotiation, Contract Sent, Closed Won
-    return defaultPipeline?.stages || ['Lead', 'Sales Qualified', 'Meeting Booked', 'Negotiation', 'Contract Sent', 'Closed Won']
-  }
-
   const handleBeginSetup = async () => {
     try {
       const response = await fetch('/api/crm/deals/complete-onboarding', {
@@ -435,31 +400,32 @@ export default function DealsPage() {
         null
       ) : (
         <div className="flex flex-col h-[calc(100vh-2rem)]">
-          {/* Header */}
-          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+          {/* Header — 1:1 Tasks-style: Title | Add New Deal + Search + Avatar */}
+          <div className="bg-white dark:bg-dark border-b border-ld px-6 py-4">
             <div className="flex items-center justify-between mb-4">
-              {/* Left: Title */}
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Deals</h1>
+              <h1 className="text-2xl font-bold text-bodytext dark:text-white">Deals</h1>
 
-              {/* Right: Action Buttons */}
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setShowImportModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Import CSV
-                </button>
-                <button
-                  onClick={() => {
-                    setInitialStage(undefined)
-                    setEditingDeal(null)
-                    setShowDealForm(true)
-                  }}
-                  className="px-4 py-2 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2"
+                  onClick={() => { setInitialStage(undefined); setEditingDeal(null); setShowDealForm(true) }}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors shadow-sm bg-[#763ebd] hover:bg-[#6a3599]"
                 >
                   <Plus className="w-4 h-4" />
-                  Create deal
+                  Add New Deal
                 </button>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ld dark:text-white/50" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search deals"
+                    className="w-48 sm:w-56 pl-10 pr-4 py-2 text-sm border border-ld bg-white dark:bg-dark rounded-lg text-bodytext dark:text-white placeholder:text-ld dark:placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                  {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
               </div>
             </div>
 
@@ -518,209 +484,91 @@ export default function DealsPage() {
 
             {/* Main Content */}
             <div className={`flex flex-col overflow-hidden ${showDealForm ? 'flex-[2]' : 'flex-1'}`}>
-              {/* Control Bar */}
-              <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between">
-                {/* Left: Pipeline Selector, Deal View Selector, Show Filters, Search */}
+              {/* Control Bar — 1:1 Tasks-style: Total | Sort by: Due Date | Filter */}
+              <div className="bg-white dark:bg-dark border-b border-ld px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+                <span className="text-sm font-semibold text-bodytext dark:text-white">
+                  Total: {deals.length} deal{deals.length !== 1 ? 's' : ''}
+                </span>
                 <div className="flex items-center gap-3">
-                  {/* Pipeline Selector */}
-                  <div className="relative">
-                    <select
-                      value={selectedPipeline || ''}
-                      onChange={(e) => setSelectedPipeline(e.target.value || '')}
-                      className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">All Pipelines</option>
-                      {pipelines.map((pipeline) => (
-                        <option key={pipeline.id} value={pipeline.id}>
-                          {pipeline.name}
-                        </option>
-                      ))}
-                    </select>
-                    <Building2 className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-ld dark:text-white/60">Sort by:</span>
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        title="Sort by"
+                        aria-label="Sort by"
+                        className="appearance-none pl-3 pr-9 py-2 text-sm font-medium border border-ld bg-white dark:bg-dark rounded-lg text-bodytext dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                      >
+                        <option value="expected_close_date">Due Date</option>
+                        <option value="created_at">Created date</option>
+                        <option value="title">Name</option>
+                        <option value="value">Value</option>
+                        <option value="stage">Stage</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ld dark:text-white/50 pointer-events-none" />
+                    </div>
                   </div>
-
-                  {/* Deal View Selector */}
-                  <ViewsDropdown
-                    selectedViewId={selectedViewId}
-                    onSelectView={(viewId) => {
-                      setSelectedViewId(viewId)
-                      
-                      // Find the selected view to get its layout
-                      const allViews = customViews.length > 0 
-                        ? [...customViews]
-                        : []
-                      const selectedView = allViews.find(v => v.id === viewId) ||
-                        (viewId === 'board-view' ? { type: 'board' } : { type: 'table' })
-                      
-                      // If board view is selected, switch to kanban mode
-                      if (viewId === 'board-view' || selectedView.type === 'board') {
-                        setViewMode('kanban')
-                      } else {
-                        setViewMode('table')
-                      }
-                      
-                      // Apply view filters if any
-                      if (selectedView && selectedView.filters) {
-                        // TODO: Apply view filters
-                        console.log('Applying view filters:', selectedView.filters)
-                      }
-                    }}
-                    onCreateNewView={() => setShowSaveViewSidebar(true)}
-                    views={customViews}
-                    loading={viewsLoading}
-                  />
-
-                  {/* Show Filters Button */}
-                  {!showFilters && (
-                    <button
-                      onClick={() => setShowFilters(true)}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
-                    >
-                      <Filter className="w-4 h-4" />
-                      Show Filters
-                      {Object.keys(apolloFilters).length > 0 && (
-                        <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                          {Object.keys(apolloFilters).length}
-                        </span>
-                      )}
-                    </button>
-                  )}
-
-                  {/* Search Bar */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search deals"
-                      className="pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48"
-                    />
-                  </div>
-                </div>
-                
-                {/* Right: View Controls */}
-                <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                   <button
-                    onClick={() => setViewMode('kanban')}
-                    className={`p-2 rounded ${viewMode === 'kanban' ? 'bg-white dark:bg-gray-600 shadow' : ''}`}
-                    title="Kanban View"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-ld bg-white dark:bg-dark rounded-lg text-bodytext dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
-                    <Kanban className="w-4 h-4" />
+                    <Filter className="w-4 h-4" />
+                    Filter
+                    {appliedFiltersCount > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold bg-primary/15 text-primary rounded">
+                        {appliedFiltersCount}
+                      </span>
+                    )}
                   </button>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-2 rounded ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow' : ''}`}
-                    title="Table View"
-                  >
-                    <Table2 className="w-4 h-4" />
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowSaveViewSidebar(true)}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  Save as new view
-                </button>
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none pl-8 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="created_at">Created date</option>
-                    <option value="title">Name</option>
-                    <option value="value">Value</option>
-                    <option value="stage">Stage</option>
-                    <option value="expected_close_date">Close date</option>
-                  </select>
-                  <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
-                <button 
-                  onClick={() => setShowViewOptions(true)}
-                  className="p-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                  title="View options"
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
                 </div>
               </div>
 
-              {/* Content Area */}
-              <div className={`flex-1 overflow-auto ${viewMode === 'kanban' ? 'p-4' : 'p-6'}`}>
+              {/* Content Area — Tasks-style list + Load More */}
+              <div className="flex-1 overflow-auto p-6 bg-gray-50/50 dark:bg-dark/50">
                 {loading ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm text-gray-500">Loading...</span>
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-ld">Loading...</span>
                     </div>
                   </div>
                 ) : deals.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full">
                     <div className="relative mb-10">
                       <div className="relative inline-block">
-                        <Trophy className="w-36 h-36" style={{ color: '#FCD34D', fill: '#FCD34D' }} strokeWidth={1.5} />
+                        <Trophy className="w-36 h-36 text-primary/40" style={{ fill: 'currentColor' }} strokeWidth={1.5} />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <DollarSign className="w-14 h-14 text-black" strokeWidth={3} fill="black" />
+                          <DollarSign className="w-14 h-14 text-primary" strokeWidth={3} fill="currentColor" />
                         </div>
                       </div>
                     </div>
-                    <h1 className="text-3xl font-semibold text-gray-900 dark:text-white mb-4 text-center">
-                      Let's start winning more deals
+                    <h1 className="text-2xl font-semibold text-bodytext dark:text-white mb-4 text-center">
+                      Let&apos;s start winning more deals
                     </h1>
-                    <p className="text-base text-gray-600 dark:text-gray-400 mb-10 text-center max-w-lg">
+                    <p className="text-sm text-ld dark:text-white/60 mb-10 text-center max-w-md">
                       Create your first deal to start tracking activities, contacts, and conversations in one spot.
                     </p>
                     <button
-                      onClick={() => setShowDealForm(true)}
-                      className="px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg transition-colors"
+                      onClick={() => { setInitialStage(undefined); setEditingDeal(null); setShowDealForm(true) }}
+                      className="px-6 py-2.5 text-sm font-semibold text-white rounded-lg bg-[#763ebd] hover:bg-[#6a3599] transition-colors"
                     >
-                      Create deal
+                      Add New Deal
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {viewMode === 'kanban' ? (
-                      <DealsKanban
-                        deals={deals}
-                        stages={getDefaultStages()}
-                        onDealClick={(deal) => {
-                          fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
-                            .then((res) => res.json())
-                            .then((data) => setSelectedDeal(data.data))
-                            .catch(console.error)
-                        }}
-                        onDealUpdate={handleUpdateDeal}
-                        onDealDelete={handleDeleteDeal}
-                        pipelines={pipelines}
-                        onAddDeal={(stage) => {
-                          setInitialStage(stage)
-                          setEditingDeal(null)
-                          setShowDealForm(true)
-                        }}
-                      />
-                    ) : (
-                      <DealsTable
-                        deals={deals}
-                        onDealClick={(deal) => {
-                          fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
-                            .then((res) => res.json())
-                            .then((data) => setSelectedDeal(data.data))
-                            .catch(console.error)
-                        }}
-                        onDealUpdate={handleUpdateDeal}
-                        onDealDelete={handleDeleteDeal}
-                        sortBy={sortBy}
-                        sortOrder={sortOrder}
-                        onSort={handleSort}
-                        pipelines={pipelines}
-                      />
-                    )}
-                  </div>
+                  <DealsListTasksStyle
+                    deals={deals}
+                    onDealClick={(deal) => {
+                      fetch(`/api/crm/deals/${deal.id}`, { credentials: 'include' })
+                        .then((res) => res.json())
+                        .then((data) => setSelectedDeal(data.data))
+                        .catch(console.error)
+                    }}
+                    onEditClick={(deal) => { setEditingDeal(deal); setShowDealForm(true) }}
+                  />
                 )}
-                </div>
+              </div>
               </div>
 
               {/* Right Sidebar - Deal Form */}

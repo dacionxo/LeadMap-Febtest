@@ -4,31 +4,66 @@ import { useEffect, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useSidebar } from '../../components/SidebarContext'
 import { Plus, Search, ChevronDown, Filter } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/app/components/ui/table'
+
+type DealRow = {
+  id: string
+  title: string
+  value?: number | null
+  stage: string
+  expected_close_date?: string | null
+}
 
 /** Must be inside DashboardLayout (useSidebar). */
 function DealsPageContent() {
   const { isOpen: isSidebarOpen } = useSidebar()
   const [totalDeals, setTotalDeals] = useState<number | null>(null)
+  const [deals, setDeals] = useState<DealRow[]>([])
 
   // Dynamically track user's saved deals via /api/crm/deals
   useEffect(() => {
     let cancelled = false
-    async function fetchTotal() {
+    async function fetchDeals() {
       try {
-        const res = await fetch('/api/crm/deals?page=1&pageSize=1', { credentials: 'include' })
+        const res = await fetch('/api/crm/deals?page=1&pageSize=50&sortBy=created_at&sortOrder=desc', { credentials: 'include' })
         if (cancelled) return
         const json = await res.json()
-        if (res.ok && json.pagination) setTotalDeals(json.pagination.total ?? 0)
-        else setTotalDeals(0)
+        if (res.ok) {
+          setTotalDeals(json.pagination?.total ?? 0)
+          setDeals(Array.isArray(json.data) ? json.data : [])
+        } else {
+          setTotalDeals(0)
+          setDeals([])
+        }
       } catch {
-        if (!cancelled) setTotalDeals(0)
+        if (!cancelled) {
+          setTotalDeals(0)
+          setDeals([])
+        }
       }
     }
-    fetchTotal()
+    fetchDeals()
     return () => { cancelled = true }
   }, [])
 
   const displayTotal = totalDeals !== null ? totalDeals : '—'
+
+  const formatCurrency = (v: number | null | undefined) => {
+    if (v == null) return '—'
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
+  }
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return '—'
+    const x = new Date(d)
+    return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
 
   return (
     <div className="-mt-[10px]">
@@ -38,8 +73,8 @@ function DealsPageContent() {
           className="fixed top-[50px] bottom-0 flex flex-col bg-slate-50 dark:bg-dark transition-all duration-300 mt-5"
           style={{ left: isSidebarOpen ? '274px' : '79px', right: 0 }}
         >
-          {/* Header — white bg; Deals +50px right, Add New Deal + Search +50px right */}
-          <header className="shrink-0 bg-white dark:bg-dark pl-[74px] pr-[74px] py-5">
+          {/* Header — white bg, top border; Deals +50px right, Add New Deal + Search +50px right */}
+          <header className="shrink-0 bg-white dark:bg-dark border-t border-slate-200 dark:border-slate-700 pl-[74px] pr-[74px] py-5">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Deals</h1>
               <div className="flex items-center gap-3">
@@ -88,7 +123,41 @@ function DealsPageContent() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 p-6" />
+          {/* Table — TailwindAdmin shadcn-tables/basic 1:1; no external border (border-0) */}
+          <div className="min-h-0 flex-1 p-6 overflow-auto">
+            <div className="border-0 bg-white dark:bg-dark card no-inset no-ring dark:shadow-dark-md shadow-md p-0">
+              <div className="pt-4 p-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Deal</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead>Stage</TableHead>
+                      <TableHead>Close date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deals.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-ld dark:text-white/50 py-8">
+                          No deals yet. Create one to get started.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      deals.map((d) => (
+                        <TableRow key={d.id}>
+                          <TableCell className="text-bodytext dark:text-white/90">{d.title || 'Untitled deal'}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/80">{formatCurrency(d.value)}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/80">{d.stage || '—'}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/80">{formatDate(d.expected_close_date)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
         </div>
     </div>
   )

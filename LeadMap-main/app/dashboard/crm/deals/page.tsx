@@ -9,8 +9,8 @@ function DealsPageContent() {
   const { isOpen: isSidebarOpen } = useSidebar()
 
   return (
-    <div className="-mt-[30px]">
-      {/* Option C: cancels DashboardLayout container's py-[30px] top so this block sits flush under the Navbar. Only /dashboard/crm/deals. */}
+    <div className="-mt-[20px]">
+      {/* Option C: -mt-[20px] offsets layout top padding so this block sits under the Navbar. Only /dashboard/crm/deals. */}
         {/* Fixed: flush under navbar (top-[50px]), attached left and right (left after sidebar, right: 0). Matches prospect-enrich pattern. */}
         <div
           className="fixed top-[50px] bottom-0 flex flex-col bg-slate-50 dark:bg-dark transition-all duration-300"

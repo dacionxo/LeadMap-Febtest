@@ -86,21 +86,21 @@ export default function ProspectSearchHeader({
   return (
     <div className={cn(
       "bg-white dark:bg-dark border-b border-ld",
-      "flex flex-col gap-3.5 px-6 py-3.5",
+      "flex flex-col gap-3.5 px-8 py-3.5",
       "m-0"
     )}>
       {/* Top Row: Title and Primary Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         {/* Title */}
         <h2 className={cn(
-          "text-2xl font-bold",
+          "text-2xl font-bold flex-shrink-0",
           "text-dark dark:text-white"
         )}>
           Find Deals
         </h2>
 
-        {/* Right Side Actions */}
-        <div className="flex items-center gap-3">
+        {/* Right Side Actions - flex-shrink-0 keeps Research with AI / Import from being clipped */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           {/* Research with AI Button */}
           <button
             onClick={onResearchWithAI}

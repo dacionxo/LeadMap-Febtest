@@ -145,8 +145,8 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
     {/* TailwindAdmin Hover Table - 1:1 Match to /shadcn-tables/hover */}
     {/* Flush under Navbar: top-[50px] so this fixed block sits directly under the Header.
         (top-[80px] had included the container’s 30px pt; we only offset by header height here.) */}
-    <div className="fixed top-[50px] bottom-0 flex flex-col transition-all duration-300" style={{ left: isSidebarOpen ? '270px' : '75px', right: 0 }}>
-      <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 m-0 flex-1 flex flex-col overflow-hidden h-full w-full">
+    <div className="fixed top-[50px] bottom-0 flex flex-col transition-all duration-300" style={{ left: isSidebarOpen ? '274px' : '79px', right: 0 }}>
+      <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 m-0 flex-1 flex flex-col overflow-x-visible overflow-y-hidden h-full w-full">
         {/* Prospect Search Header */}
         <ProspectSearchHeader
           searchQuery={props.searchTerm || ''}

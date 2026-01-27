@@ -88,7 +88,7 @@ export default function ProspectSearchHeader({
           "text-2xl font-bold",
           "text-dark dark:text-white"
         )}>
-          Find people
+          Find Deals
         </h2>
 
         {/* Right Side Actions */}

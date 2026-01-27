@@ -18,12 +18,105 @@ import LeadDetailModal from './components/LeadDetailModal'
 import ProspectHoverTable from './components/ProspectHoverTable'
 import ProspectSearchHeader from './components/ProspectSearchHeader'
 import ProspectFilterSidebar from './components/ProspectFilterSidebar'
+import MapView from '@/components/MapView'
 import { FilterType, getPrimaryCategory, Listing, useProspectData } from './hooks/useProspectData'
 import { add_to_list } from './utils/listUtils'
 
 type ViewType = 'table' | 'map' | 'analytics' | 'insights'
 type SortField = 'price' | 'date' | 'score' | 'location' | 'status'
 type SortOrder = 'asc' | 'desc'
+
+// MapView lead type (structural match to MapView's Lead interface)
+type MapLead = {
+  id: string
+  address: string
+  city: string
+  state: string
+  zip: string
+  price: number
+  price_drop_percent: number
+  days_on_market: number
+  url: string
+  latitude?: number
+  longitude?: number
+  property_type?: string
+  beds?: number
+  sqft?: number
+  year_built?: number
+  description?: string
+  agent_name?: string
+  agent_email?: string
+  primary_photo?: string
+  expired?: boolean
+  geo_source?: string | null
+  owner_email?: string
+  enrichment_confidence?: number | null
+}
+
+const listingToMapLead = (listing: Listing): MapLead => {
+  const hasValue = (val: any): boolean => val != null && String(val).trim().length > 0
+
+  // Address
+  let address = (listing as any).address || listing.street || ''
+  if (!address || address.trim() === '') {
+    const addressParts = [listing.street, (listing as any).unit]
+      .filter((val) => hasValue(val))
+      .map((val) => String(val).trim())
+    if (addressParts.length > 0) {
+      address = addressParts.join(' ')
+    }
+  }
+
+  const city = listing.city || ''
+  const state = listing.state || ''
+  const zip = (listing as any).zip || listing.zip_code || ''
+
+  // Price drop percent
+  let priceDropPercent = 0
+  if (listing.list_price_min && listing.list_price && listing.list_price_min > listing.list_price) {
+    priceDropPercent = ((listing.list_price_min - listing.list_price) / listing.list_price_min) * 100
+  }
+
+  // Days on market
+  let daysOnMarket = 0
+  if ((listing as any).time_listed) {
+    daysOnMarket = parseInt((listing as any).time_listed as any) || 0
+  } else if (listing.created_at) {
+    const createdDate = new Date(listing.created_at)
+    const now = new Date()
+    daysOnMarket = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  return {
+    id: listing.listing_id || listing.property_url || '',
+    address:
+      address ||
+      ([city, state, zip].filter((val) => hasValue(val)).join(', ')
+        ? `Property in ${[city, state, zip].filter((val) => hasValue(val)).join(', ')}`
+        : 'Address not available'),
+    city,
+    state,
+    zip,
+    price: listing.list_price || 0,
+    price_drop_percent: priceDropPercent,
+    days_on_market: daysOnMarket,
+    url: (listing as any).url || listing.property_url || '',
+    latitude: (listing as any).latitude || (listing.lat ? Number(listing.lat) : undefined),
+    longitude: (listing as any).longitude || (listing.lng ? Number(listing.lng) : undefined),
+    property_type: (listing as any).property_type,
+    beds: listing.beds || undefined,
+    sqft: listing.sqft || undefined,
+    year_built: listing.year_built || undefined,
+    description: listing.text || (listing as any).description,
+    agent_name: listing.agent_name || undefined,
+    agent_email: listing.agent_email || undefined,
+    expired: (listing as any).expired || false,
+    geo_source: (listing as any).geo_source || (listing as any).listing_source_name || null,
+    owner_email: (listing as any).owner_email,
+    enrichment_confidence: (listing as any).enrichment_confidence || null,
+    primary_photo: (listing as any).primary_photo,
+  }
+}
 
 interface FilterOption {
   key: FilterType
@@ -103,19 +196,17 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
           {/* Right Side - Table or Map */}
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             {props.displayView === 'map' ? (
-              /* Map View */
-              <div className="flex-1 flex items-center justify-center bg-white dark:bg-dark">
-                <div className="text-center p-12">
-                  <div className="w-32 h-32 mb-6 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center text-5xl mx-auto">
-                    <MapIcon className="h-16 w-16 text-white" />
-                  </div>
-                  <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">
-                    Map View
-                  </h2>
-                  <p className="text-bodydark dark:text-bodydark2 mb-8 max-w-md mx-auto">
-                    Map view is coming soon. This will display your prospects on an interactive map.
-                  </p>
-                </div>
+              <div className="flex-1 flex flex-col bg-white dark:bg-dark">
+                <MapView
+                  isActive={true}
+                  listings={(props.allListings || []).map(listingToMapLead)}
+                  loading={false}
+                  onStreetViewListingClick={(leadId) => {
+                    // Open lead detail modal for the clicked marker
+                    props.setSelectedListingId(leadId)
+                    props.setShowLeadModal(true)
+                  }}
+                />
               </div>
             ) : (
               <ProspectHoverTable

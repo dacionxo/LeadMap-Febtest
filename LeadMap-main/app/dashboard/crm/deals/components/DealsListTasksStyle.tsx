@@ -5,29 +5,30 @@
  * TailwindAdmin styling: border-ld, text-ld, text-bodytext, card, bg-white/dark.
  * Columns: status (teal check / red ! / empty), Due Date, Deal, Edit.
  * Load More at bottom. React + TailwindCSS.
+ * Uses generic T so onEditClick/onDealClick receive the full deal (e.g. created_at) from the parent.
  */
 
 import { useState } from 'react'
 import { CheckSquare, AlertCircle, Square, Pencil } from 'lucide-react'
 
-interface Deal {
+interface DealBase {
   id: string
   title: string
   stage: string
   expected_close_date?: string | null
 }
 
-interface DealsListTasksStyleProps {
-  deals: Deal[]
-  onDealClick: (deal: Deal) => void
-  onEditClick?: (deal: Deal) => void
+interface DealsListTasksStyleProps<T extends DealBase> {
+  deals: T[]
+  onDealClick: (deal: T) => void
+  onEditClick?: (deal: T) => void
   initialVisible?: number
   loadMoreStep?: number
 }
 
 const PAGE_SIZE = 10
 
-function getStatus(deal: Deal): 'completed' | 'overdue' | 'pending' {
+function getStatus(deal: DealBase): 'completed' | 'overdue' | 'pending' {
   const closed = /closed_won|closed_lost/i.test(deal.stage)
   if (closed) return 'completed'
   const d = deal.expected_close_date ? new Date(deal.expected_close_date) : null
@@ -42,13 +43,13 @@ function formatDueDate(dateString: string | null | undefined): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export default function DealsListTasksStyle({
+export default function DealsListTasksStyle<T extends DealBase>({
   deals,
   onDealClick,
   onEditClick,
   initialVisible = PAGE_SIZE,
   loadMoreStep = PAGE_SIZE,
-}: DealsListTasksStyleProps) {
+}: DealsListTasksStyleProps<T>) {
   const [visibleCount, setVisibleCount] = useState(initialVisible)
   const slice = deals.slice(0, visibleCount)
   const hasMore = visibleCount < deals.length

@@ -202,6 +202,9 @@
     --spacing-xl: 32px;
     --disabled-component-opacity: 0.38;
     --motion-productive-short: 70ms;
+
+    /* Navbar/Header height for prospect-enrich and other fixed/sticky positioning */
+    --header-height: 80px;
   }
 
   .dark {

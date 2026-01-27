@@ -143,7 +143,7 @@ function ProspectContentWithSidebar({ isSidebarOpen, ...props }: any) {
   return (
     <>
     {/* TailwindAdmin Hover Table - 1:1 Match to /shadcn-tables/hover */}
-    <div className="fixed top-[80px] bottom-0 flex flex-col transition-all duration-300" style={{ left: isSidebarOpen ? '270px' : '75px', right: 0, marginTop: 0 }}>
+    <div className="fixed top-[var(--header-height)] bottom-0 flex flex-col transition-all duration-300" style={{ left: isSidebarOpen ? '270px' : '75px', right: 0, marginTop: 0 }}>
       <div className="border-0 bg-white dark:bg-dark card no-inset no-ring undefined dark:shadow-dark-md shadow-md p-0 m-0 flex-1 flex flex-col overflow-hidden h-full w-full">
         {/* Prospect Search Header */}
         <ProspectSearchHeader

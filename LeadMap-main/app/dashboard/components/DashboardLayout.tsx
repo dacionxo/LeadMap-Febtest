@@ -44,7 +44,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
       >
         <Header scrollContainerRef={mainRef} />
         {/* Main Content */}
-        <div className="container relative z-10 py-[30px]">
+        <div className="container relative z-10 pt-0 pb-[30px]">
           {mounted && children}
         </div>
       </main>

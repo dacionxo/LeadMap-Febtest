@@ -28,22 +28,22 @@ function DealsPageContent() {
   const [totalDeals, setTotalDeals] = useState<number | null>(null)
   const [deals, setDeals] = useState<DealRow[]>([])
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
-  const [todoDone, setTodoDone] = useState<Set<string>>(new Set())
+  const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set())
   const btnClass = 'inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-dark border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm'
 
-  const toggleTodo = (id: string) => {
-    setTodoDone((s) => {
+  const toggleSelection = (id: string) => {
+    setSelectedDeals((s) => {
       const n = new Set(s)
       if (n.has(id)) n.delete(id)
       else n.add(id)
       return n
     })
   }
-  const toggleAllTodos = (checked: boolean) => {
-    if (checked) setTodoDone(new Set(deals.map((d) => d.id)))
-    else setTodoDone(new Set())
+  const toggleAllSelection = (checked: boolean) => {
+    if (checked) setSelectedDeals(new Set(deals.map((d) => d.id)))
+    else setSelectedDeals(new Set())
   }
-  const allTodosDone = deals.length > 0 && todoDone.size === deals.length
+  const allSelected = deals.length > 0 && selectedDeals.size === deals.length
 
   // Dynamically track user's saved deals via /api/crm/deals
   useEffect(() => {
@@ -94,7 +94,7 @@ function DealsPageContent() {
           {/* Horizontal divider under the navbar */}
           <div className="h-px w-full shrink-0 bg-slate-200 dark:bg-slate-700" aria-hidden="true" role="separator" />
           {/* Header — white bg, top border; Deals +50px right, Add New Deal + Search +50px right */}
-          <header className="shrink-0 bg-white dark:bg-dark border-t border-slate-200 dark:border-slate-700 pl-[74px] pr-[74px] py-5">
+          <header className="shrink-0 bg-white dark:bg-dark border-t border-slate-200 dark:border-slate-700 pl-[74px] pr-[74px] py-[18px]">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Deals</h1>
               <div className="flex items-center gap-3">
@@ -133,14 +133,6 @@ function DealsPageContent() {
                 All deals
                 <ChevronDown className="h-4 w-4" />
               </button>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden />
-                <input
-                  type="search"
-                  placeholder="Search deals"
-                  className="w-36 pl-9 pr-3 py-2 rounded-full bg-white dark:bg-dark border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                />
-              </div>
               <div className="flex items-center rounded-full border border-slate-200 dark:border-slate-600 overflow-hidden">
                 <button
                   type="button"
@@ -178,16 +170,16 @@ function DealsPageContent() {
           </div>
 
           {/* Table — TailwindAdmin shadcn-tables/basic 1:1; no external border (border-0) */}
-          <div className="min-h-0 flex-1 p-6 overflow-auto">
+          <div className="min-h-0 flex-1 p-4 overflow-auto">
             <div className="border-0 bg-white dark:bg-dark card no-inset no-ring dark:shadow-dark-md shadow-md p-0">
-              <div className="pt-4 p-6">
+              <div className="pt-4 px-4 pb-4">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">
                         <Checkbox
-                          checked={allTodosDone}
-                          onCheckedChange={(c) => toggleAllTodos(c === true)}
+                          checked={allSelected}
+                          onCheckedChange={(c) => toggleAllSelection(c === true)}
                           aria-label="Select all"
                         />
                       </TableHead>
@@ -206,15 +198,15 @@ function DealsPageContent() {
                       </TableRow>
                     ) : (
                       deals.map((d) => (
-                        <TableRow key={d.id} className={todoDone.has(d.id) ? 'opacity-60' : ''}>
+                        <TableRow key={d.id}>
                           <TableCell className="w-10">
                             <Checkbox
-                              checked={todoDone.has(d.id)}
-                              onCheckedChange={() => toggleTodo(d.id)}
-                              aria-label={`Mark "${d.title || 'Untitled deal'}" done`}
+                              checked={selectedDeals.has(d.id)}
+                              onCheckedChange={() => toggleSelection(d.id)}
+                              aria-label={`Select "${d.title || 'Untitled deal'}"`}
                             />
                           </TableCell>
-                          <TableCell className={`text-bodytext dark:text-white/90 ${todoDone.has(d.id) ? 'line-through' : ''}`}>{d.title || 'Untitled deal'}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/90">{d.title || 'Untitled deal'}</TableCell>
                           <TableCell className="text-bodytext dark:text-white/80">{formatCurrency(d.value)}</TableCell>
                           <TableCell className="text-bodytext dark:text-white/80">{d.stage || '—'}</TableCell>
                           <TableCell className="text-bodytext dark:text-white/80">{formatDate(d.expected_close_date)}</TableCell>
@@ -227,7 +219,7 @@ function DealsPageContent() {
             </div>
           </div>
         </div>
-    </div>
+3    </div>
   )
 }
 

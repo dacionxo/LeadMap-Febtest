@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useSidebar } from '../../components/SidebarContext'
-import { Plus, Search, ChevronDown, Filter, Layers, LayoutGrid, List, Save, Briefcase } from 'lucide-react'
+import { Plus, Search, ChevronDown, Filter, Layers, LayoutGrid, List, Save, Briefcase, MoreVertical } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import {
 } from '@/app/components/ui/table'
 import { Checkbox } from '@/app/components/ui/checkbox'
 import { Badge } from '@/app/components/ui/badge'
+import EditDealModal from './components/EditDealModal'
 
 type DealRow = {
   id: string
@@ -42,6 +43,8 @@ function DealsPageContent() {
   const [deals, setDeals] = useState<DealRow[]>([])
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set())
+  const [editingDeal, setEditingDeal] = useState<DealRow | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const btnClass = 'inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-dark border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm'
 
   const toggleSelection = (id: string) => {
@@ -109,26 +112,20 @@ function DealsPageContent() {
     return stageMap[stage.toLowerCase()] || stage
   }
 
-  const getStageBadgeVariant = (stage: string): 'lightWarning' | 'lightSuccess' | 'lightSecondary' | 'lightPrimary' | 'lightInfo' | 'lightError' => {
-    const normalized = stage.toLowerCase()
-    // Different color for each stage
-    if (normalized === 'new') return 'lightPrimary' // Blue for new leads
-    if (normalized === 'contacted') return 'lightInfo' // Light blue for contacted
-    if (normalized === 'qualified') return 'lightWarning' // Yellow/amber for qualified
-    if (normalized === 'proposal') return 'lightError' // Red/pink for proposal
-    if (normalized === 'negotiation') return 'lightPrimary' // Blue for negotiation
-    if (normalized === 'closed_won') return 'lightSuccess' // Green for closed won
-    if (normalized === 'closed_lost') return 'lightSecondary' // Gray for closed lost
-    return 'lightWarning' // Default fallback
-  }
-
+  // TailwindAdmin badge colors - 1:1 match with exact color system
   const getStageBadgeClassName = (stage: string): string => {
     const normalized = stage.toLowerCase()
-    // Use custom classes for stages that need unique colors
-    if (normalized === 'negotiation') {
-      return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 border-0'
+    // Each stage gets a unique TailwindAdmin color matching the reference
+    const badgeStyles: Record<string, string> = {
+      'new': 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-0', // Blue for new leads
+      'contacted': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-400 border-0', // Cyan for contacted
+      'qualified': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400 border-0', // Yellow for qualified
+      'proposal': 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 border-0', // Orange for proposal
+      'negotiation': 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border-0', // Purple for negotiation
+      'closed_won': 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0', // Green for closed won
+      'closed_lost': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-0', // Gray for closed lost
     }
-    return '' // Use variant for others
+    return badgeStyles[normalized] || badgeStyles['new'] // Default to blue
   }
 
   const getOwnerDisplayName = (deal: DealRow): string => {
@@ -229,10 +226,10 @@ function DealsPageContent() {
             </div>
           </div>
 
-          {/* Table — TailwindAdmin shadcn-tables/basic 1:1; no external border (border-0), horizontally scrollable */}
+          {/* Table — TailwindAdmin shadcn-tables/checkbox 1:1; container rebuilt to match reference */}
           <div className="min-h-0 flex-1 p-4 overflow-auto">
             <div className="border-0 bg-white dark:bg-dark card no-inset no-ring dark:shadow-dark-md shadow-md p-0">
-              <div className="pt-4 px-4 pb-4">
+              <div className="pt-4 p-6">
                 <div className="overflow-x-auto">
                   <Table>
                   <TableHeader>
@@ -251,12 +248,13 @@ function DealsPageContent() {
                       <TableHead className="whitespace-nowrap">Pipeline</TableHead>
                       <TableHead className="whitespace-nowrap">Owner</TableHead>
                       <TableHead className="whitespace-nowrap">Close date</TableHead>
+                      <TableHead className="w-12 whitespace-nowrap"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {deals.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="p-0">
+                        <TableCell colSpan={9} className="p-0">
                           <div className="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 dark:bg-slate-900/50">
                             <Briefcase className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" />
                             <p className="text-slate-500 dark:text-slate-400 text-base">No deals found.</p>
@@ -279,8 +277,8 @@ function DealsPageContent() {
                           <TableCell className="whitespace-nowrap">
                             {d.stage ? (
                               <Badge 
-                                variant={getStageBadgeVariant(d.stage)} 
-                                className={`text-xs ${getStageBadgeClassName(d.stage)}`}
+                                variant="default"
+                                className={`text-xs rounded-full ${getStageBadgeClassName(d.stage)}`}
                               >
                                 {getStageDisplayName(d.stage)}
                               </Badge>
@@ -299,6 +297,19 @@ function DealsPageContent() {
                           </TableCell>
                           <TableCell className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{getOwnerDisplayName(d)}</TableCell>
                           <TableCell className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatDate(d.expected_close_date)}</TableCell>
+                          <TableCell className="w-12 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingDeal(d)
+                                setIsEditModalOpen(true)
+                              }}
+                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                              aria-label="Edit deal"
+                            >
+                              <MoreVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            </button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -309,6 +320,48 @@ function DealsPageContent() {
             </div>
           </div>
         </div>
+
+      {/* Edit Deal Modal */}
+      {editingDeal && (
+        <EditDealModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false)
+            setEditingDeal(null)
+          }}
+          onSave={async (updatedDeal) => {
+            if (!editingDeal) return
+            try {
+              const res = await fetch(`/api/crm/deals/${editingDeal.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(updatedDeal),
+              })
+              if (res.ok) {
+                // Refresh deals list
+                const dealsRes = await fetch('/api/crm/deals?page=1&pageSize=50&sortBy=created_at&sortOrder=desc', { credentials: 'include' })
+                const dealsJson = await dealsRes.json()
+                if (dealsRes.ok) {
+                  setTotalDeals(dealsJson.pagination?.total ?? 0)
+                  setDeals(Array.isArray(dealsJson.data) ? dealsJson.data : [])
+                }
+                setIsEditModalOpen(false)
+                setEditingDeal(null)
+              } else {
+                const error = await res.json()
+                alert(error.error || 'Failed to update deal')
+              }
+            } catch (error) {
+              console.error('Error updating deal:', error)
+              alert('Failed to update deal')
+            }
+          }}
+          deal={editingDeal}
+          pipelines={[]}
+          users={[]}
+        />
+      )}
     </div>
   )
 }

@@ -15,6 +15,7 @@ import {
 import { Checkbox } from '@/app/components/ui/checkbox'
 import { Badge } from '@/app/components/ui/badge'
 import EditDealModal from './components/EditDealModal'
+import DealsSelectionActionBar from './components/DealsSelectionActionBar'
 
 type DealRow = {
   id: string
@@ -34,6 +35,9 @@ type DealRow = {
     name?: string
   } | null
   owner_id?: string | null
+  forecast_value?: number | null
+  last_interaction?: string | null
+  close_probability?: number | null
 }
 
 /** Must be inside DashboardLayout (useSidebar). */
@@ -248,6 +252,9 @@ function DealsPageContent() {
                       <TableHead className="whitespace-nowrap">Pipeline</TableHead>
                       <TableHead className="whitespace-nowrap">Owner</TableHead>
                       <TableHead className="whitespace-nowrap">Close date</TableHead>
+                      <TableHead className="whitespace-nowrap">Forecast Value</TableHead>
+                      <TableHead className="whitespace-nowrap">Last Interaction</TableHead>
+                      <TableHead className="whitespace-nowrap">Close Probability</TableHead>
                       <TableHead className="w-12 whitespace-nowrap"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -297,6 +304,11 @@ function DealsPageContent() {
                           </TableCell>
                           <TableCell className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{getOwnerDisplayName(d)}</TableCell>
                           <TableCell className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatDate(d.expected_close_date)}</TableCell>
+                          <TableCell className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatCurrency(d.forecast_value)}</TableCell>
+                          <TableCell className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatDate(d.last_interaction)}</TableCell>
+                          <TableCell className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                            {d.close_probability != null ? `${d.close_probability}%` : '—'}
+                          </TableCell>
                           <TableCell className="w-12 whitespace-nowrap">
                             <button
                               type="button"
@@ -362,6 +374,48 @@ function DealsPageContent() {
           users={[]}
         />
       )}
+
+      {/* Selection Action Bar */}
+      <DealsSelectionActionBar
+        selectedCount={selectedDeals.size}
+        onClose={() => setSelectedDeals(new Set())}
+        onAddToSequence={() => {
+          console.log('Add to sequence:', Array.from(selectedDeals))
+          // TODO: Implement add to sequence
+        }}
+        onDuplicate={() => {
+          console.log('Duplicate:', Array.from(selectedDeals))
+          // TODO: Implement duplicate
+        }}
+        onExport={() => {
+          console.log('Export:', Array.from(selectedDeals))
+          // TODO: Implement export
+        }}
+        onArchive={() => {
+          console.log('Archive:', Array.from(selectedDeals))
+          // TODO: Implement archive
+        }}
+        onDelete={() => {
+          console.log('Delete:', Array.from(selectedDeals))
+          // TODO: Implement delete
+        }}
+        onConvert={() => {
+          console.log('Convert:', Array.from(selectedDeals))
+          // TODO: Implement convert
+        }}
+        onMoveTo={() => {
+          console.log('Move to:', Array.from(selectedDeals))
+          // TODO: Implement move to
+        }}
+        onSidekick={() => {
+          console.log('Sidekick:', Array.from(selectedDeals))
+          // TODO: Implement sidekick
+        }}
+        onApps={() => {
+          console.log('Apps:', Array.from(selectedDeals))
+          // TODO: Implement apps
+        }}
+      />
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/app/components/ui/table'
 import { Checkbox } from '@/app/components/ui/checkbox'
+import { Badge } from '@/app/components/ui/badge'
 
 type DealRow = {
   id: string
@@ -20,6 +21,18 @@ type DealRow = {
   value?: number | null
   stage: string
   expected_close_date?: string | null
+  property_address?: string | null
+  pipeline?: {
+    id?: string
+    name?: string
+  } | null
+  pipeline_id?: string | null
+  owner?: {
+    id?: string
+    email?: string
+    name?: string
+  } | null
+  owner_id?: string | null
 }
 
 /** Must be inside DashboardLayout (useSidebar). */
@@ -81,6 +94,38 @@ function DealsPageContent() {
     if (!d) return '—'
     const x = new Date(d)
     return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const getStageDisplayName = (stage: string): string => {
+    const stageMap: Record<string, string> = {
+      'new': 'Lead',
+      'contacted': 'Contacted',
+      'qualified': 'Qualified',
+      'proposal': 'Proposal',
+      'negotiation': 'Negotiation',
+      'closed_won': 'Closed Won',
+      'closed_lost': 'Closed Lost',
+    }
+    return stageMap[stage.toLowerCase()] || stage
+  }
+
+  const getStageBadgeVariant = (stage: string): 'lightWarning' | 'lightSuccess' | 'lightSecondary' | 'lightPrimary' => {
+    const normalized = stage.toLowerCase()
+    if (normalized === 'closed_won') return 'lightSuccess'
+    if (normalized === 'closed_lost') return 'lightSecondary'
+    return 'lightWarning' // For new, contacted, qualified, proposal, negotiation
+  }
+
+  const getOwnerDisplayName = (deal: DealRow): string => {
+    if (deal.owner?.name) return deal.owner.name
+    if (deal.owner?.email) {
+      const parts = deal.owner.email.split('@')[0].split('.')
+      if (parts.length >= 2) {
+        return `${parts[0][0].toUpperCase()}${parts[1][0].toUpperCase()} ${parts[0]} ${parts[1]}`
+      }
+      return deal.owner.email
+    }
+    return '—'
   }
 
   return (
@@ -169,57 +214,81 @@ function DealsPageContent() {
             </div>
           </div>
 
-          {/* Table — TailwindAdmin shadcn-tables/basic 1:1; no external border (border-0) */}
+          {/* Table — TailwindAdmin shadcn-tables/basic 1:1; no external border (border-0), horizontally scrollable */}
           <div className="min-h-0 flex-1 p-4 overflow-auto">
             <div className="border-0 bg-white dark:bg-dark card no-inset no-ring dark:shadow-dark-md shadow-md p-0">
               <div className="pt-4 px-4 pb-4">
-                <Table>
+                <div className="overflow-x-auto">
+                  <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 py-[10.4px]">
                         <Checkbox
                           checked={allSelected}
                           onCheckedChange={(c) => toggleAllSelection(c === true)}
                           aria-label="Select all"
                         />
                       </TableHead>
-                      <TableHead>Deal</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Stage</TableHead>
-                      <TableHead>Close date</TableHead>
+                      <TableHead className="py-[10.4px] whitespace-nowrap">Deal</TableHead>
+                      <TableHead className="py-[10.4px] whitespace-nowrap">Property</TableHead>
+                      <TableHead className="py-[10.4px] whitespace-nowrap">Value</TableHead>
+                      <TableHead className="py-[10.4px] whitespace-nowrap">Stage</TableHead>
+                      <TableHead className="py-[10.4px] whitespace-nowrap">Pipeline</TableHead>
+                      <TableHead className="py-[10.4px] whitespace-nowrap">Owner</TableHead>
+                      <TableHead className="py-[10.4px] whitespace-nowrap">Close date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {deals.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-ld dark:text-white/50 py-8">
+                        <TableCell colSpan={8} className="text-center text-ld dark:text-white/50 py-8">
                           No deals yet. Create one to get started.
                         </TableCell>
                       </TableRow>
                     ) : (
                       deals.map((d) => (
                         <TableRow key={d.id}>
-                          <TableCell className="w-10">
+                          <TableCell className="w-10 py-[10.4px]">
                             <Checkbox
                               checked={selectedDeals.has(d.id)}
                               onCheckedChange={() => toggleSelection(d.id)}
                               aria-label={`Select "${d.title || 'Untitled deal'}"`}
                             />
                           </TableCell>
-                          <TableCell className="text-bodytext dark:text-white/90">{d.title || 'Untitled deal'}</TableCell>
-                          <TableCell className="text-bodytext dark:text-white/80">{formatCurrency(d.value)}</TableCell>
-                          <TableCell className="text-bodytext dark:text-white/80">{d.stage || '—'}</TableCell>
-                          <TableCell className="text-bodytext dark:text-white/80">{formatDate(d.expected_close_date)}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/90 py-[10.4px] whitespace-nowrap">{d.title || 'Untitled deal'}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/80 py-[10.4px] whitespace-nowrap">{d.property_address || '—'}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/80 py-[10.4px] whitespace-nowrap">{formatCurrency(d.value)}</TableCell>
+                          <TableCell className="py-[10.4px] whitespace-nowrap">
+                            {d.stage ? (
+                              <Badge variant={getStageBadgeVariant(d.stage)} className="text-xs">
+                                {getStageDisplayName(d.stage)}
+                              </Badge>
+                            ) : (
+                              <span className="text-bodytext dark:text-white/80">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-[10.4px] whitespace-nowrap">
+                            {d.pipeline?.name ? (
+                              <Badge variant="lightWarning" className="text-xs">
+                                {d.pipeline.name}
+                              </Badge>
+                            ) : (
+                              <span className="text-bodytext dark:text-white/80">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-bodytext dark:text-white/80 py-[10.4px] whitespace-nowrap">{getOwnerDisplayName(d)}</TableCell>
+                          <TableCell className="text-bodytext dark:text-white/80 py-[10.4px] whitespace-nowrap">{formatDate(d.expected_close_date)}</TableCell>
                         </TableRow>
                       ))
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </div>
             </div>
           </div>
         </div>
-3    </div>
+    </div>
   )
 }
 

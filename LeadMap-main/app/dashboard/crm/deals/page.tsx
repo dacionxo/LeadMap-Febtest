@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/app/components/ui/table'
+import { Checkbox } from '@/app/components/ui/checkbox'
 
 type DealRow = {
   id: string
@@ -27,7 +28,22 @@ function DealsPageContent() {
   const [totalDeals, setTotalDeals] = useState<number | null>(null)
   const [deals, setDeals] = useState<DealRow[]>([])
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [todoDone, setTodoDone] = useState<Set<string>>(new Set())
   const btnClass = 'inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-dark border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm'
+
+  const toggleTodo = (id: string) => {
+    setTodoDone((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  }
+  const toggleAllTodos = (checked: boolean) => {
+    if (checked) setTodoDone(new Set(deals.map((d) => d.id)))
+    else setTodoDone(new Set())
+  }
+  const allTodosDone = deals.length > 0 && todoDone.size === deals.length
 
   // Dynamically track user's saved deals via /api/crm/deals
   useEffect(() => {
@@ -101,12 +117,12 @@ function DealsPageContent() {
           </header>
           <div className="h-px w-full shrink-0 bg-slate-200 dark:bg-slate-700" aria-hidden="true" role="separator" />
 
-          {/* Bar: Total (left) | All Pipelines, All deals, Search, view toggles, Save (left of Sort) | Sort, Filter (right) */}
+          {/* Bar: Total (left only) | All Pipelines, All deals, Search, view toggles, Save, Sort, Filter (right, close together) */}
           <div className="shrink-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 bg-slate-50 dark:bg-slate-900/50 pl-[74px] pr-[74px] py-3.5">
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-base text-slate-800 dark:text-slate-200">
-                Total: <span className="font-bold">{displayTotal}</span> deals
-              </p>
+            <p className="text-base text-slate-800 dark:text-slate-200">
+              Total: <span className="font-bold">{displayTotal}</span> deals
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
               <button type="button" className={btnClass} aria-haspopup="listbox" aria-expanded="false">
                 <Layers className="h-4 w-4" />
                 All Pipelines
@@ -122,7 +138,7 @@ function DealsPageContent() {
                 <input
                   type="search"
                   placeholder="Search deals"
-                  className="w-40 pl-9 pr-3 py-2 rounded-full bg-white dark:bg-dark border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  className="w-36 pl-9 pr-3 py-2 rounded-full bg-white dark:bg-dark border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
               <div className="flex items-center rounded-full border border-slate-200 dark:border-slate-600 overflow-hidden">
@@ -147,16 +163,11 @@ function DealsPageContent() {
                 <Save className="h-4 w-4" />
                 Save as new view
               </button>
-            </div>
-            <div className="flex items-center gap-3">
               <button type="button" className={btnClass}>
                 Sort by: Date Created
                 <ChevronDown className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className={btnClass}
-              >
+              <button type="button" className={btnClass}>
                 Filter
                 <span className="relative inline-flex">
                   <Filter className="h-4 w-4" />
@@ -173,6 +184,13 @@ function DealsPageContent() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={allTodosDone}
+                          onCheckedChange={(c) => toggleAllTodos(c === true)}
+                          aria-label="Select all"
+                        />
+                      </TableHead>
                       <TableHead>Deal</TableHead>
                       <TableHead>Value</TableHead>
                       <TableHead>Stage</TableHead>
@@ -182,14 +200,21 @@ function DealsPageContent() {
                   <TableBody>
                     {deals.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-ld dark:text-white/50 py-8">
+                        <TableCell colSpan={5} className="text-center text-ld dark:text-white/50 py-8">
                           No deals yet. Create one to get started.
                         </TableCell>
                       </TableRow>
                     ) : (
                       deals.map((d) => (
-                        <TableRow key={d.id}>
-                          <TableCell className="text-bodytext dark:text-white/90">{d.title || 'Untitled deal'}</TableCell>
+                        <TableRow key={d.id} className={todoDone.has(d.id) ? 'opacity-60' : ''}>
+                          <TableCell className="w-10">
+                            <Checkbox
+                              checked={todoDone.has(d.id)}
+                              onCheckedChange={() => toggleTodo(d.id)}
+                              aria-label={`Mark "${d.title || 'Untitled deal'}" done`}
+                            />
+                          </TableCell>
+                          <TableCell className={`text-bodytext dark:text-white/90 ${todoDone.has(d.id) ? 'line-through' : ''}`}>{d.title || 'Untitled deal'}</TableCell>
                           <TableCell className="text-bodytext dark:text-white/80">{formatCurrency(d.value)}</TableCell>
                           <TableCell className="text-bodytext dark:text-white/80">{d.stage || '—'}</TableCell>
                           <TableCell className="text-bodytext dark:text-white/80">{formatDate(d.expected_close_date)}</TableCell>

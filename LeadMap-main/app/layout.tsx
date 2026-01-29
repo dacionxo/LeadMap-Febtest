@@ -37,9 +37,9 @@ export const metadata: Metadata = {
   title: 'NextDeal - Real Estate Lead Generation',
   description: 'Find undervalued property leads with our subscription-based platform for real estate agents and brokers.',
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 }
 

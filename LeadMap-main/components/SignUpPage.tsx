@@ -275,14 +275,15 @@ export default function SignUpPage() {
                           Name
                         </Label>
                       </div>
-                      <Input
-                        id="name"
-                        type="text"
-                        className="form-control"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                      />
+                      <div className="form-control">
+                        <Input
+                          id="name"
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                        />
+                      </div>
                     </div>
                     <div className="mb-4">
                       <div className="mb-2 block">
@@ -290,14 +291,15 @@ export default function SignUpPage() {
                           Email Address
                         </Label>
                       </div>
-                      <Input
-                        id="emadd"
-                        type="email"
-                        className="form-control"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
+                      <div className="form-control">
+                        <Input
+                          id="emadd"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
                     </div>
                     <div className="mb-6">
                       <div className="mb-2 block">
@@ -305,15 +307,16 @@ export default function SignUpPage() {
                           Password
                         </Label>
                       </div>
-                      <Input
-                        id="userpwd"
-                        type="password"
-                        className="form-control"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        minLength={6}
-                      />
+                      <div className="form-control">
+                        <Input
+                          id="userpwd"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                        />
+                      </div>
                     </div>
                     {error && (
                       <div className="mb-4 p-3 bg-lighterror dark:bg-erroremphasis/20 border border-error/30 rounded-md">

@@ -13,26 +13,26 @@ export const Testimonials = () => {
     {
       key: 'leader1',
       img: '/images/profile/user-1.jpg',
-      name: 'Alex Martinez',
-      desc: 'The dashboard template from adminmart has helped me provide a clean and sleek look to my dashboard and made it look exactly the way I wanted it to, mainly without having.',
+      name: 'Tanza James',
+      desc: 'Every agent is more productive with LeadMap. We closed 75% more deals while cutting prospecting time in half.',
     },
     {
       key: 'leader2',
       img: '/images/profile/user-2.jpg',
-      name: 'Minshan Cui',
-      desc: 'The quality of design is excellent, customizability and flexibility much better than the other products available in the market.I strongly recommend the AdminMart to other.',
+      name: 'Alex Martinez',
+      desc: 'The platform is clean and intuitive. We found higher-quality leads and our pipeline has never been stronger.',
     },
     {
       key: 'leader3',
       img: '/images/profile/user-3.jpg',
-      name: 'Eminson Mendoza',
-      desc: 'This template is great, UI-rich and up-to-date. Although it is pretty much complete, I suggest to improve a bit of documentation. Thanks & Highly recomended!',
+      name: 'Sarah Chen',
+      desc: 'LeadMap\'s AI and data enrichment saved us hours every week. ROI showed up within the first month.',
     },
     {
       key: 'leader4',
       img: '/images/profile/user-1.jpg',
-      name: 'Alex Martinez',
-      desc: 'The dashboard template from adminmart has helped me provide a clean and sleek look to my dashboard and made it look exactly the way I wanted it to, mainly without having.',
+      name: 'Tanza James',
+      desc: 'Every agent is more productive with LeadMap. We closed 75% more deals while cutting prospecting time in half.',
     },
   ]
   const swiperRef = useRef<SwiperClass | null>(null)
@@ -47,20 +47,10 @@ export const Testimonials = () => {
             <div className="flex w-full  text-center sm:text-left">
               <div className="lg:w-9/12 w-full">
                 <h4 className="text-2xl sm:text-3xl md:text-40 leading-tight text-link font-bold dark:text-white mb-4 pe-10">
-                  What our clients think{' '}
-                  <Image
-                    src="/favicon.svg"
-                    alt="logo"
-                    width={24}
-                    height={24}
-                    className="inline-block mx-2"
-                  />{' '}
-                  about us?
+                  What real estate professionals say about LeadMap
                 </h4>
                 <p className="text-base text-lightmuted dark:text-darklink leading-relaxed">
-                  Our users&apos; feedback is a testament to our commitment to
-                  quality and user satisfaction. Read what they have to say about
-                  their journey with us.
+                  Join over 1,000 agents and teams who use LeadMap to find leads, enrich data, and close more deals.
                 </p>
               </div>
             </div>
@@ -68,7 +58,7 @@ export const Testimonials = () => {
           <div className="lg:col-span-6 col-span-12">
             <div className="rounded-2xl border border-border dark:border-darkborder p-8 sm:p-12">
               <h5 className="text-2xl font-semibold text-link dark:text-white mb-8">
-                Features availability
+                Customer stories
               </h5>
               <div>
                 <Swiper

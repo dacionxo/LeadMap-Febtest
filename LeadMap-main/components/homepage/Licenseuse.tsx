@@ -55,7 +55,7 @@ export const Licenseuse = () => {
         <div className="flex w-full justify-center mb-12">
           <div className="lg:w-6/12 w-full">
             <div className="text-2xl sm:text-3xl md:text-40 font-bold leading-tight text-center text-link dark:text-white">
-              111,476+ Trusted developers & many tech giants as well
+              Flexible plans for solo agents and growing teams
             </div>
           </div>
         </div>

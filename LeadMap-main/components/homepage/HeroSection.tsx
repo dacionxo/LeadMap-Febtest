@@ -26,12 +26,14 @@ export const HeroSection = () => {
           <div className="flex w-full justify-center">
             <div className="md:w-8/12 w-full pt-8">
               <h1 className="lg:text-56 text-4xl leading-tight text-center font-bold text-link dark:text-white">
-                Most powerful &{' '}
-                <span className="text-primary">Developer friendly</span> Admin
-                dashboard
+                The AI lead platform for{' '}
+                <span className="text-primary">faster, smarter closings</span>
               </h1>
             </div>
           </div>
+          <p className="w-full pt-4 text-center text-base md:text-lg text-bodytext dark:text-darklink max-w-2xl mx-auto">
+            Access verified, high-intent leads curated for your market — all in one clean, intuitive platform built for modern real-estate professionals.
+          </p>
           <div className="w-full pt-5">
             <div className="flex flex-wrap gap-6 items-center justify-center mx-auto mb-3">
               <div className="flex">
@@ -58,7 +60,7 @@ export const HeroSection = () => {
                 />
               </div>
               <div className="text-lg text-bodytext dark:text-darklink font-medium text-center">
-                52,589+ developers & agencies using our templates
+                Join over 1,000 real estate professionals using LeadMap
               </div>
             </div>
             <div className="w-full relative p-3 img-wrapper">

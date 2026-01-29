@@ -107,10 +107,10 @@ export const TeamWorks = () => {
                 {workType === 'Team Scheduling'
                   ? 'Defend your focus'
                   : workType === 'Payments'
-                    ? 'Nextjs Templates'
+                    ? 'Campaigns & outreach'
                     : workType === 'Embedding'
-                      ? 'Tailwind Templates'
-                      : 'LeadMap Templates'}
+                      ? 'Maps & CRM'
+                      : 'LeadMap workflows'}
               </h2>
               <Accordion type="single" collapsible className="w-full">
                 {accordionContent}

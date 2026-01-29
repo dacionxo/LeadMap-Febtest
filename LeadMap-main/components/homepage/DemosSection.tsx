@@ -7,11 +7,11 @@ export const DemosSection = () => {
         <div className="flex justify-center w-full mb-12">
           <div className="lg:w-6/12 w-full">
             <p className="text-base text-lightmuted dark:text-darklink text-center">
-              Introducing LeadMap&apos;s Light & Dark Skins,{' '}
+              Everything you need, from finding leads to winning deals.{' '}
               <span className="font-semibold text-lightmuted dark:text-darklink">
-                Exceptional Dashboards
+                Powered by LeadMap
               </span>
-              , and Dynamic Pages - Stay Updated on What&apos;s New!
+              — one of the largest, most accurate real estate data networks.
             </p>
           </div>
         </div>
@@ -26,18 +26,18 @@ export const DemosSection = () => {
                 className="mx-auto"
               />
               <h2 className="py-4 text-center font-bold text-link dark:text-white text-lg">
-                Light & Dark Color Schemes
+                Lead Discovery
               </h2>
               <p className="text-lightmuted dark:text-darklink text-base font-normal text-center">
-                Choose your preferred visual style effortlessly.
+                Find high-quality property leads faster with AI-powered insights and comprehensive market data.
               </p>
             </div>
             <div className=" pt-12 px-6 justify-center rounded-2xl bg-lightsuccess dark:bg-lightsuccess">
               <h2 className="pb-4 text-center font-bold text-link dark:text-white text-lg px-3">
-                12+ Ready to Use Application Designs
+                Data Enrichment
               </h2>
               <p className="text-lightmuted mb-5 dark:text-darklink text-base font-normal text-center">
-                Instantly deployable designs for your applications.
+                Cleanse and complete your records with always-fresh property and owner data that powers smarter targeting.
               </p>
               <Image
                 src="/images/frontend-pages/background/app-widget.png"
@@ -84,10 +84,10 @@ export const DemosSection = () => {
                 className="mx-auto"
               />
               <h2 className="py-4 text-center font-bold text-link dark:text-white text-lg">
-                Code Improvements
+                Deal Execution
               </h2>
               <p className="text-lightmuted dark:text-darklink text-base font-normal text-center">
-                Benefit from continuous improvements and optimizations.
+                Keep deals moving with AI-powered prep, meeting insights, and automated follow-up workflows.
               </p>
             </div>
             <div className=" py-12 px-6 justify-center rounded-2xl bg-lighterror dark:bg-lighterror">
@@ -99,10 +99,10 @@ export const DemosSection = () => {
                 className="mx-auto"
               />
               <h2 className="py-4 text-center font-bold text-link dark:text-white text-lg">
-                50+ UI Components
+                Interactive Maps & CRM
               </h2>
               <p className="text-lightmuted dark:text-darklink text-base font-normal text-center">
-                A rich collection for seamless user experiences.
+                Maps, campaigns, and pipelines in one platform for modern agents.
               </p>
             </div>
           </div>

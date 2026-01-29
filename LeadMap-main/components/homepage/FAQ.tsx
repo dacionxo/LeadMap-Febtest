@@ -12,39 +12,51 @@ export const FAQ = () => {
   const Questions = [
     {
       key: 'question1',
-      question: 'What is included with my purchase?',
+      question: 'Does LeadMap provide comprehensive property and ownership data?',
       answer:
-        'Tailor the dashboard to your exact needs. Customize layouts, color schemes, and widgets effortlessly for a personalized user experience.',
+        'Yes, LeadMap offers one of the largest and most accurate real estate databases, with verified property records, owner information, and comprehensive market data to help you find and qualify leads faster.',
     },
     {
       key: 'question2',
-      question: 'Are there any recurring fees?',
+      question: 'Can LeadMap enable precise lead targeting via advanced filtering?',
       answer:
-        'Unlock the true potential of your data with our advanced analytics tools. Gain valuable insights and make data-driven decisions with ease.',
+        'Absolutely. LeadMap provides powerful filtering options including property type, location, price range, ownership details, and market indicators to help you target exactly the leads you need.',
     },
     {
       key: 'question3',
-      question: 'Can I use the template on multiple projects?',
+      question: 'Does LeadMap automate outreach sequences and follow-ups?',
       answer:
-        'Visualize complex data sets beautifully with our interactive graphs and charts. Quickly grasp trends and patterns for smarter analysis.',
+        'Yes, LeadMap includes automated workflow tools that can schedule follow-ups, send outreach sequences, and help you stay on top of every opportunity without manual effort.',
     },
     {
       key: 'question4',
-      question: 'Can I customize the admin dashboard template to match my brand?',
+      question: 'Does LeadMap integrate smoothly with CRMs and existing real estate tools?',
       answer:
-        'Visualize complex data sets beautifully with our interactive graphs and charts. Quickly grasp trends and patterns for smarter analysis.',
+        'LeadMap offers seamless integrations with popular CRMs and real estate platforms, allowing you to sync your leads and data across your entire workflow.',
     },
     {
       key: 'question5',
-      question: 'Are there any restrictions on using the template?',
+      question: 'Does LeadMap offer analytics and reporting on lead generation performance?',
       answer:
-        'Visualize complex data sets beautifully with our interactive graphs and charts. Quickly grasp trends and patterns for smarter analysis.',
+        'Yes, LeadMap provides comprehensive analytics and reporting features to track your lead generation, conversion rates, and overall performance metrics.',
     },
     {
       key: 'question6',
-      question: 'How can I get support after purchase?',
+      question: 'Is LeadMap good value for its cost, especially for growing real estate teams?',
       answer:
-        'Visualize complex data sets beautifully with our interactive graphs and charts. Quickly grasp trends and patterns for smarter analysis.',
+        'LeadMap offers flexible pricing plans designed to scale with your business. Many teams see ROI within weeks through increased deal volume and reduced prospecting time.',
+    },
+    {
+      key: 'question7',
+      question: 'Can LeadMap help reduce time spent on manual prospecting?',
+      answer:
+        "Absolutely. LeadMap's AI-powered tools automate many manual prospecting tasks, helping agents save hours each week while finding higher-quality leads.",
+    },
+    {
+      key: 'question8',
+      question: 'Does LeadMap improve the quality of sales pipelines?',
+      answer:
+        'Yes, LeadMap helps you focus on high-intent, qualified leads by providing rich property and owner data, allowing you to build more valuable and actionable pipelines.',
     },
   ]
   return (

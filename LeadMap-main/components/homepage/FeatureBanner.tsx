@@ -10,19 +10,18 @@ export const FeatureBanner = () => {
           <div className="flex w-full">
             <div className="lg:w-6/12 w-full lg:p-24 py-12 px-4 lg:pe-10 pe-0">
               <h3 className="text-2xl sm:text-3xl md:text-40 font-bold leading-tight text-link dark:text-white">
-                Develop with feature-rich NextJs Dashboard
+                AI-powered real estate intelligence for the modern agent
               </h3>
               <div className="my-6 flex items-center gap-4">
                 <Button asChild variant="default">
-                  <Link href="/login">Login</Link>
+                  <Link href="/signup">Sign up for free</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/signup">Register</Link>
+                  <Link href="/demo">Get a demo</Link>
                 </Button>
               </div>
               <p className="text-base font-medium text-link dark:text-white">
-                <span className="font-semibold">One-time purchase</span> - no
-                recurring fees.
+                Prospect anywhere. Find leads, enrich data, and close more deals with LeadMap.
               </p>
             </div>
           </div>

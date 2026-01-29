@@ -4,25 +4,25 @@ import { Icon } from '@iconify/react/dist/iconify.js'
 
 export const Features = () => {
   const ThemeFeature1 = [
-    { key: 'feature1', icon: 'tabler:wand', title: '6 Theme Colors' },
-    { key: 'feature2', icon: 'tabler:shield-lock', title: 'NextAuth' },
-    { key: 'feature3', icon: 'tabler:brand-firebase', title: 'Firebase' },
-    { key: 'feature4', icon: 'tabler:archive', title: '90+ Page Templates' },
-    { key: 'feature5', icon: 'tabler:adjustments', title: '45+ UI Components' },
-    { key: 'feature6', icon: 'tabler:brand-tailwind', title: 'Tailwind' },
-    { key: 'feature7', icon: 'tabler:diamond', title: '3400+ Font Icons' },
+    { key: 'feature1', icon: 'tabler:search', title: 'Lead Discovery' },
+    { key: 'feature2', icon: 'tabler:database', title: 'Data Enrichment' },
+    { key: 'feature3', icon: 'tabler:brain', title: 'Market Intelligence' },
+    { key: 'feature4', icon: 'tabler:target', title: 'Deal Execution' },
+    { key: 'feature5', icon: 'tabler:map-pin', title: 'Interactive Maps' },
+    { key: 'feature6', icon: 'tabler:robot', title: 'AI Assistant' },
+    { key: 'feature7', icon: 'tabler:adjustments', title: 'Advanced Filters' },
   ]
   const ThemeFeature2 = [
-    { key: 'feature1', icon: 'tabler:database', title: 'Axios' },
-    { key: 'feature2', icon: 'tabler:tags', title: 'i18 React' },
-    { key: 'feature4', icon: 'tabler:arrows-shuffle', title: 'Easy to Customize' },
+    { key: 'feature1', icon: 'tabler:brand-google', title: 'CRM Integrations' },
+    { key: 'feature2', icon: 'tabler:chart-bar', title: 'Analytics & Reporting' },
+    { key: 'feature4', icon: 'tabler:refresh', title: 'Automated Workflows' },
   ]
   const ThemeFeature3 = [
-    { key: 'feature1', icon: 'tabler:chart-pie', title: 'Lots of Chart Options' },
-    { key: 'feature2', icon: 'tabler:layers-intersect', title: 'Lots of Table Examples' },
-    { key: 'feature3', icon: 'tabler:refresh', title: 'Regular Updates' },
-    { key: 'feature4', icon: 'tabler:book', title: 'Detailed Documentation' },
-    { key: 'feature5', icon: 'tabler:calendar', title: 'Calendar Design' },
+    { key: 'feature1', icon: 'tabler:chart-pie', title: 'Lead Performance' },
+    { key: 'feature2', icon: 'tabler:layers-intersect', title: 'Pipeline Management' },
+    { key: 'feature3', icon: 'tabler:mail', title: 'Outreach & Follow-ups' },
+    { key: 'feature4', icon: 'tabler:book', title: 'Onboarding & Support' },
+    { key: 'feature5', icon: 'tabler:calendar', title: 'Calendar & Scheduling' },
     { key: 'feature6', icon: 'tabler:user-screen', title: 'Dedicated Support' },
   ]
   return (
@@ -31,7 +31,7 @@ export const Features = () => {
         <div className="flex justify-center w-full mb-16">
           <div className="lg:w-6/12 w-full">
             <h2 className="md:text-40 text-32 font-bold text-link dark:text-white leading-tight text-center">
-              Enjoy unparalleled features & exceptional flexibility.
+              Everything you need, from finding leads to winning deals.
             </h2>
           </div>
         </div>

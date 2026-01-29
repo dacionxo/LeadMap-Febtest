@@ -35,7 +35,7 @@ export const PowerfulTemplates = () => {
           <div className="grid grid-cols-12 mb-14">
             <div className="lg:col-span-6 col-span-12">
               <h2 className="px-6 sm:px-16 font-bold text-link dark:text-white leading-tight text-2xl sm:text-3xl md:text-40">
-                Discover Powerful Dozens of Purpose-Fit Templates
+                Maps, campaigns, and pipelines in one platform
               </h2>
             </div>
           </div>
@@ -102,32 +102,26 @@ export const PowerfulTemplates = () => {
               <div className="grid grid-cols-12 gap-6 text-center">
                 <div className="lg:col-span-4 col-span-12">
                   <h3 className="text-lg text-link dark:text-white font-bold mb-4">
-                    High Customizability
+                    Interactive Maps
                   </h3>
                   <p className="text-sm text-lightmuted dark:text-darklink leading-loose px-4">
-                    Tailor the dashboard to your exact needs. Customize layouts,
-                    color schemes, and widgets effortlessly for a personalized
-                    user experience.
+                    Find and visualize leads on the map. Filter by property type, location, and market indicators for precise targeting.
                   </p>
                 </div>
                 <div className="lg:col-span-4 col-span-12">
                   <h3 className="text-lg text-link dark:text-white font-bold mb-4">
-                    Powerful Data Analytics
+                    AI Assistant & Enrichment
                   </h3>
                   <p className="text-sm text-lightmuted dark:text-darklink leading-loose px-4">
-                    Unlock the true potential of your data with our advanced
-                    analytics tools. Gain valuable insights and make data-driven
-                    decisions with ease.
+                    Enrich property and owner data automatically. Use AI to qualify leads and prioritize your pipeline.
                   </p>
                 </div>
                 <div className="lg:col-span-4 col-span-12">
                   <h3 className="text-lg text-link dark:text-white font-bold mb-4">
-                    Interactive Graphs & Charts
+                    Campaigns & Follow-ups
                   </h3>
                   <p className="text-sm text-lightmuted dark:text-darklink leading-loose px-4">
-                    Visualize complex data sets beautifully with our interactive
-                    graphs and charts. Quickly grasp trends and patterns for
-                    smarter analysis.
+                    Run outreach campaigns and automated follow-ups. Keep every deal moving with workflows that scale.
                   </p>
                 </div>
               </div>

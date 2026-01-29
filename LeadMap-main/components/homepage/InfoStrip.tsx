@@ -23,7 +23,7 @@ export const InfoStrip = () => {
             />
           </div>
           <p className="text-base text-white font-normal text-center">
-            Save valuable time and effort spent searching for a solution.
+            Save valuable time and effort — find high-intent leads and close more deals.
           </p>
           <Link
             href="/contact"

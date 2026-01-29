@@ -24,7 +24,6 @@ export default async function Home() {
   return (
     <HomeLayout>
       <HeroSection />
-      <BenefitsSection />
       <DemosSection />
       <TeamWorks />
       <Leadership />

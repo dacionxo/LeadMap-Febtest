@@ -19,7 +19,7 @@ export const AnnouncementBar = () => {
         New
       </Button>
       <p className="text-fs_13 text-white font-medium">
-        LeadMap – CRM, Maps & Campaigns
+        NextDeal – CRM, Maps & Campaigns
       </p>
       <Image
         src="/images/frontend-pages/background/left-ellipse.png"

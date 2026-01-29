@@ -1,5 +1,4 @@
 import HomeLayout from '@/components/homepage/HomeLayout'
-import { BenefitsSection } from '@/components/homepage/BenefitsSection'
 import { DemosSection } from '@/components/homepage/DemosSection'
 import { FAQ } from '@/components/homepage/FAQ'
 import { FeatureBanner } from '@/components/homepage/FeatureBanner'
@@ -14,8 +13,8 @@ import { Testimonials } from '@/components/homepage/Testimonials'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'LeadMap – CRM, Maps & Campaigns',
-  description: 'Most powerful & developer friendly admin dashboard for leads, maps, and campaigns.',
+  title: 'NextDeal – CRM, Maps & Campaigns',
+  description: 'The AI lead platform for faster, smarter closings. Maps, campaigns, and pipelines for modern real-estate professionals.',
 }
 
 // Force dynamic rendering to prevent static generation issues with cookies

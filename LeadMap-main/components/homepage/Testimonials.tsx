@@ -14,7 +14,7 @@ export const Testimonials = () => {
       key: 'leader1',
       img: '/images/profile/user-1.jpg',
       name: 'Tanza James',
-      desc: 'Every agent is more productive with LeadMap. We closed 75% more deals while cutting prospecting time in half.',
+      desc: 'Every agent is more productive with NextDeal. We closed 75% more deals while cutting prospecting time in half.',
     },
     {
       key: 'leader2',
@@ -26,13 +26,13 @@ export const Testimonials = () => {
       key: 'leader3',
       img: '/images/profile/user-3.jpg',
       name: 'Sarah Chen',
-      desc: 'LeadMap\'s AI and data enrichment saved us hours every week. ROI showed up within the first month.',
+      desc: 'NextDeal\'s AI and data enrichment saved us hours every week. ROI showed up within the first month.',
     },
     {
       key: 'leader4',
       img: '/images/profile/user-1.jpg',
       name: 'Tanza James',
-      desc: 'Every agent is more productive with LeadMap. We closed 75% more deals while cutting prospecting time in half.',
+      desc: 'Every agent is more productive with NextDeal. We closed 75% more deals while cutting prospecting time in half.',
     },
   ]
   const swiperRef = useRef<SwiperClass | null>(null)
@@ -47,10 +47,10 @@ export const Testimonials = () => {
             <div className="flex w-full  text-center sm:text-left">
               <div className="lg:w-9/12 w-full">
                 <h4 className="text-2xl sm:text-3xl md:text-40 leading-tight text-link font-bold dark:text-white mb-4 pe-10">
-                  What real estate professionals say about LeadMap
+                  What real estate professionals say about NextDeal
                 </h4>
                 <p className="text-base text-lightmuted dark:text-darklink leading-relaxed">
-                  Join over 1,000 agents and teams who use LeadMap to find leads, enrich data, and close more deals.
+                  Join over 1,000 agents and teams who use NextDeal to find leads, enrich data, and close more deals.
                 </p>
               </div>
             </div>

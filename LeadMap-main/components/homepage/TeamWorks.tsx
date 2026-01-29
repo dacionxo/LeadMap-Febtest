@@ -110,7 +110,7 @@ export const TeamWorks = () => {
                     ? 'Campaigns & outreach'
                     : workType === 'Embedding'
                       ? 'Maps & CRM'
-                      : 'LeadMap workflows'}
+                      : 'NextDeal workflows'}
               </h2>
               <Accordion type="single" collapsible className="w-full">
                 {accordionContent}

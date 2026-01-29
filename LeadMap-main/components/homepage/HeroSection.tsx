@@ -60,7 +60,7 @@ export const HeroSection = () => {
                 />
               </div>
               <div className="text-lg text-bodytext dark:text-darklink font-medium text-center">
-                Join over 1,000 real estate professionals using LeadMap
+                Join over 1,000 real estate professionals using NextDeal
               </div>
             </div>
             <div className="w-full relative p-3 img-wrapper">

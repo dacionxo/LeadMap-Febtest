@@ -21,7 +21,7 @@ export const FeatureBanner = () => {
                 </Button>
               </div>
               <p className="text-base font-medium text-link dark:text-white">
-                Prospect anywhere. Find leads, enrich data, and close more deals with LeadMap.
+                Prospect anywhere. Find leads, enrich data, and close more deals with NextDeal.
               </p>
             </div>
           </div>

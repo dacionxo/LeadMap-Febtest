@@ -102,7 +102,7 @@ export const CustomFooter = () => {
           <div className="flex items-center gap-4">
             <Image src="/favicon.svg" alt="logo" width={24} height={24} />
             <p className="text-base text-lightmuted dark:text-darklink">
-              All rights reserved by LeadMap.
+              All rights reserved by NextDeal.
             </p>
           </div>
           <p className="text-base text-lightmuted dark:text-darklink flex items-center gap-1">

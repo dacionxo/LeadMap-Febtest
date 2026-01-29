@@ -9,7 +9,7 @@ export const DemosSection = () => {
             <p className="text-base text-lightmuted dark:text-darklink text-center">
               Everything you need, from finding leads to winning deals.{' '}
               <span className="font-semibold text-lightmuted dark:text-darklink">
-                Powered by LeadMap
+                Powered by NextDeal
               </span>
               — one of the largest, most accurate real estate data networks.
             </p>

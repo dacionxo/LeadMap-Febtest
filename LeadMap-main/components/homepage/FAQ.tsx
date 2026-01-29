@@ -12,51 +12,51 @@ export const FAQ = () => {
   const Questions = [
     {
       key: 'question1',
-      question: 'Does LeadMap provide comprehensive property and ownership data?',
+      question: 'Does NextDeal provide comprehensive property and ownership data?',
       answer:
-        'Yes, LeadMap offers one of the largest and most accurate real estate databases, with verified property records, owner information, and comprehensive market data to help you find and qualify leads faster.',
+        'Yes, NextDeal offers one of the largest and most accurate real estate databases, with verified property records, owner information, and comprehensive market data to help you find and qualify leads faster.',
     },
     {
       key: 'question2',
-      question: 'Can LeadMap enable precise lead targeting via advanced filtering?',
+      question: 'Can NextDeal enable precise lead targeting via advanced filtering?',
       answer:
-        'Absolutely. LeadMap provides powerful filtering options including property type, location, price range, ownership details, and market indicators to help you target exactly the leads you need.',
+        'Absolutely. NextDeal provides powerful filtering options including property type, location, price range, ownership details, and market indicators to help you target exactly the leads you need.',
     },
     {
       key: 'question3',
-      question: 'Does LeadMap automate outreach sequences and follow-ups?',
+      question: 'Does NextDeal automate outreach sequences and follow-ups?',
       answer:
-        'Yes, LeadMap includes automated workflow tools that can schedule follow-ups, send outreach sequences, and help you stay on top of every opportunity without manual effort.',
+        'Yes, NextDeal includes automated workflow tools that can schedule follow-ups, send outreach sequences, and help you stay on top of every opportunity without manual effort.',
     },
     {
       key: 'question4',
-      question: 'Does LeadMap integrate smoothly with CRMs and existing real estate tools?',
+      question: 'Does NextDeal integrate smoothly with CRMs and existing real estate tools?',
       answer:
-        'LeadMap offers seamless integrations with popular CRMs and real estate platforms, allowing you to sync your leads and data across your entire workflow.',
+        'NextDeal offers seamless integrations with popular CRMs and real estate platforms, allowing you to sync your leads and data across your entire workflow.',
     },
     {
       key: 'question5',
-      question: 'Does LeadMap offer analytics and reporting on lead generation performance?',
+      question: 'Does NextDeal offer analytics and reporting on lead generation performance?',
       answer:
-        'Yes, LeadMap provides comprehensive analytics and reporting features to track your lead generation, conversion rates, and overall performance metrics.',
+        'Yes, NextDeal provides comprehensive analytics and reporting features to track your lead generation, conversion rates, and overall performance metrics.',
     },
     {
       key: 'question6',
-      question: 'Is LeadMap good value for its cost, especially for growing real estate teams?',
+      question: 'Is NextDeal good value for its cost, especially for growing real estate teams?',
       answer:
-        'LeadMap offers flexible pricing plans designed to scale with your business. Many teams see ROI within weeks through increased deal volume and reduced prospecting time.',
+        'NextDeal offers flexible pricing plans designed to scale with your business. Many teams see ROI within weeks through increased deal volume and reduced prospecting time.',
     },
     {
       key: 'question7',
-      question: 'Can LeadMap help reduce time spent on manual prospecting?',
+      question: 'Can NextDeal help reduce time spent on manual prospecting?',
       answer:
-        "Absolutely. LeadMap's AI-powered tools automate many manual prospecting tasks, helping agents save hours each week while finding higher-quality leads.",
+        "Absolutely. NextDeal's AI-powered tools automate many manual prospecting tasks, helping agents save hours each week while finding higher-quality leads.",
     },
     {
       key: 'question8',
-      question: 'Does LeadMap improve the quality of sales pipelines?',
+      question: 'Does NextDeal improve the quality of sales pipelines?',
       answer:
-        'Yes, LeadMap helps you focus on high-intent, qualified leads by providing rich property and owner data, allowing you to build more valuable and actionable pipelines.',
+        'Yes, NextDeal helps you focus on high-intent, qualified leads by providing rich property and owner data, allowing you to build more valuable and actionable pipelines.',
     },
   ]
   return (

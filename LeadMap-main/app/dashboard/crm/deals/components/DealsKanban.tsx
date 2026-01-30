@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Plus, MessageCircle, CheckCircle2 } from 'lucide-react'
 
 interface Deal {
   id: string
@@ -32,23 +33,28 @@ interface DealsKanbanProps {
   onAddDeal?: (stage?: string) => void
 }
 
-const COLUMN_BGS = ['#F8F8F8', '#FFE5EE', '#F0FFF0', '#E0FFFF'] as const
 const BOARD_BG = '#F5F5F5'
 const CARD_BG = '#FFFFFF'
-const CARD_SHADOW = 'rgba(0, 0, 0, 0.08)'
-const TEXT_MAJOR = '#000000'
-const TEXT_MINOR = '#A9A9A9'
-const SEPARATOR = '#E5E5E5'
+const CARD_SHADOW = '0 1px 3px rgba(0,0,0,0.08)'
+const DESC_PLACEHOLDER = 'Lorem ipsum dolor sit amet, libre unst consectetur adispicing elit.'
 
-const PILLS: Record<string, { label: string; bg: string }> = {
-  new: { label: 'NEW', bg: '#32CD32' },
-  contacted: { label: 'WORKING ON IT', bg: '#ADD8E6' },
-  qualified: { label: 'SENT TO CLIENT FOR REVIEW', bg: '#4B0082' },
-  proposal: { label: 'SENT TO CLIENT FOR REVIEW', bg: '#4B0082' },
-  negotiation: { label: 'WAITING FOR INPUT', bg: '#FFA500' },
-  closed_won: { label: 'CLOSED WON', bg: '#32CD32' },
-  closed_lost: { label: 'NEED HELP', bg: '#FF0000' },
-}
+const COLUMNS: { id: string; label: string; bg: string; stageKeys: string[] }[] = [
+  { id: 'in_progress', label: 'In Progress', bg: '#8B5CF6', stageKeys: ['new', 'contacted', 'qualified', 'proposal'] },
+  { id: 'reviewed', label: 'Reviewed', bg: '#F97316', stageKeys: ['negotiation'] },
+  { id: 'completed', label: 'Completed', bg: '#22C55E', stageKeys: ['closed_won', 'closed_lost'] },
+]
+
+const LABELS: { label: string; bg: string; text: string }[] = [
+  { label: 'Important', bg: '#EDE9FE', text: '#6D28D9' },
+  { label: 'Meh', bg: '#F3F4F6', text: '#4B5563' },
+  { label: 'OK', bg: '#D1FAE5', text: '#059669' },
+  { label: 'Not that important', bg: '#FEE2E2', text: '#DC2626' },
+  { label: 'High Priority', bg: '#D1FAE5', text: '#059669' },
+  { label: 'Low Priority', bg: '#D1FAE5', text: '#059669' },
+  { label: "I don't know", bg: '#FEF3C7', text: '#D97706' },
+  { label: 'Maybe important', bg: '#F3F4F6', text: '#4B5563' },
+  { label: 'I guess', bg: '#F3F4F6', text: '#4B5563' },
+]
 
 function normalizeStage(s: string): string {
   const t = s.toLowerCase().trim()
@@ -61,36 +67,47 @@ function normalizeStage(s: string): string {
     'closed won': 'closed_won', closed_won: 'closed_won',
     'closed lost': 'closed_lost', closed_lost: 'closed_lost',
   }
-  return m[t] ?? t
+  return m[t] ?? t.replace(/\s+/g, '_')
 }
 
 function columnForStage(stage: string): number {
   const n = normalizeStage(stage)
-  if (n === 'new' || n === 'contacted') return 0
-  if (n === 'qualified' || n === 'proposal') return 1
-  if (n === 'negotiation') return 2
-  return 3
+  if (COLUMNS[0].stageKeys.includes(n)) return 0
+  if (COLUMNS[1].stageKeys.includes(n)) return 1
+  return 2
 }
 
-function isActive(deal: Deal): boolean {
-  const ts = deal.last_interaction || deal.updated_at || deal.expected_close_date || deal.created_at
-  if (!ts) return true
-  const d = new Date(ts)
-  const now = new Date()
-  const days = (now.getTime() - d.getTime()) / (24 * 60 * 60 * 1000)
-  return days <= 14
+function stageForColumn(col: number): string {
+  return COLUMNS[col].stageKeys[0]
 }
 
-function formatLastUpdated(deal: Deal): string {
-  const ts = deal.last_interaction || deal.updated_at || deal.expected_close_date || deal.created_at
-  if (!ts) return '—'
-  const d = new Date(ts)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-}
-
-function getPill(deal: Deal): { label: string; bg: string } {
+function getLabelForDeal(deal: Deal): { label: string; bg: string; text: string } {
   const n = normalizeStage(deal.stage)
-  return PILLS[n] ?? { label: n.replace(/_/g, ' ').toUpperCase(), bg: '#808080' }
+  const prob = deal.probability ?? 0
+  if (n === 'closed_won') return LABELS[4]
+  if (n === 'closed_lost') return LABELS[3]
+  if (prob >= 80) return LABELS[4]
+  if (prob >= 60) return LABELS[0]
+  if (prob >= 40) return LABELS[2]
+  if (prob >= 20) return LABELS[7]
+  if (prob >= 10) return LABELS[5]
+  return LABELS[1]
+}
+
+function ownerInitials(deal: Deal): string {
+  const o = deal.owner
+  if (o?.name) {
+    const parts = o.name.trim().split(/\s+/)
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    return (parts[0].slice(0, 2) || '??').toUpperCase()
+  }
+  if (o?.email) {
+    const pre = o.email.split('@')[0]
+    const parts = pre.split(/[._-]/)
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    return (pre.slice(0, 2) || '??').toUpperCase()
+  }
+  return '??'
 }
 
 export default function DealsKanban({
@@ -103,11 +120,10 @@ export default function DealsKanban({
 }: DealsKanbanProps) {
   const [draggedDeal, setDraggedDeal] = useState<Deal | null>(null)
 
-  const columns: { active: Deal[]; backlog: Deal[] }[] = [{ active: [], backlog: [] }, { active: [], backlog: [] }, { active: [], backlog: [] }, { active: [], backlog: [] }]
+  const buckets: Deal[][] = [[], [], []]
   for (const d of deals) {
     const col = columnForStage(d.stage)
-    if (isActive(d)) columns[col].active.push(d)
-    else columns[col].backlog.push(d)
+    buckets[col].push(d)
   }
 
   const handleDragStart = (deal: Deal) => setDraggedDeal(deal)
@@ -116,13 +132,6 @@ export default function DealsKanban({
     e.dataTransfer.dropEffect = 'move'
   }
   const handleDragEnd = () => setDraggedDeal(null)
-
-  const stageForColumn = (col: number): string => {
-    if (col === 0) return 'new'
-    if (col === 1) return 'qualified'
-    if (col === 2) return 'negotiation'
-    return 'closed_won'
-  }
 
   const handleDrop = async (col: number) => {
     if (!draggedDeal) return
@@ -135,38 +144,53 @@ export default function DealsKanban({
   }
 
   function Card({ deal }: { deal: Deal }) {
-    const pill = getPill(deal)
-    const desc = deal.description || deal.notes || deal.property_address || 'task description goes here'
+    const tag = getLabelForDeal(deal)
+    const desc = deal.description || deal.notes || deal.property_address || DESC_PLACEHOLDER
+    const comments = 0
+    const activity = Math.round(deal.probability ?? 0)
+
     return (
       <div
         draggable
         onDragStart={() => handleDragStart(deal)}
         onDragEnd={handleDragEnd}
         onClick={() => onDealClick(deal)}
-        className="rounded-lg overflow-hidden cursor-grab active:cursor-grabbing"
-        style={{
-          backgroundColor: CARD_BG,
-          boxShadow: `0 1px 3px ${CARD_SHADOW}`,
-        }}
+        className="rounded-xl overflow-hidden cursor-grab active:cursor-grabbing bg-white flex flex-col"
+        style={{ boxShadow: CARD_SHADOW }}
       >
         <div className="p-3 flex flex-col gap-2">
           <span
-            className="inline-flex items-center justify-center w-fit px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide text-white"
-            style={{ backgroundColor: pill.bg }}
+            className="inline-flex w-fit px-2 py-0.5 rounded-md text-xs font-medium"
+            style={{ backgroundColor: tag.bg, color: tag.text }}
           >
-            {pill.label}
+            {tag.label}
           </span>
-          <p className="font-bold text-sm truncate" style={{ color: TEXT_MAJOR }}>
-            {deal.title || 'Short task name'}
+          <p className="font-bold text-sm text-gray-900 leading-tight">
+            {deal.title || 'Untitled deal'}
           </p>
-          <p className="text-xs line-clamp-2" style={{ color: TEXT_MINOR }}>
+          <p className="text-xs text-gray-500 line-clamp-2 leading-snug">
             {desc}
           </p>
         </div>
-        <div className="h-px shrink-0" style={{ backgroundColor: SEPARATOR }} />
-        <div className="px-3 py-2 flex items-center justify-between text-xs" style={{ color: TEXT_MINOR }}>
-          <span>Last Updated</span>
-          <span>{formatLastUpdated(deal)}</span>
+        <div className="mt-auto px-3 pb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center -space-x-2">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white bg-indigo-500 border-2 border-white"
+              title={deal.owner?.name || deal.owner?.email || 'Owner'}
+            >
+              {ownerInitials(deal)}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-gray-500">
+            <span className="flex items-center gap-1 text-xs">
+              <MessageCircle className="w-3.5 h-3.5" />
+              {comments}
+            </span>
+            <span className="flex items-center gap-1 text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {activity}
+            </span>
+          </div>
         </div>
       </div>
     )
@@ -174,41 +198,53 @@ export default function DealsKanban({
 
   return (
     <div
-      className="flex gap-0 overflow-x-auto min-h-0 flex-1"
+      className="flex gap-4 overflow-x-auto overflow-y-hidden min-h-0 flex-1 p-4"
       style={{ backgroundColor: BOARD_BG }}
     >
-      {columns.map((col, i) => (
-        <div
-          key={i}
-          className="flex-shrink-0 w-[280px] flex flex-col overflow-y-auto"
-          style={{ backgroundColor: COLUMN_BGS[i] }}
-          onDragOver={handleDragOver}
-          onDrop={() => handleDrop(i)}
-        >
-          <div className="px-3 py-3 flex flex-col gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: TEXT_MAJOR }}>
-                ACTIVE
-              </p>
-              <div className="flex flex-col gap-2">
-                {col.active.map((d) => (
-                  <Card key={d.id} deal={d} />
-                ))}
+      {COLUMNS.map((col, i) => {
+        const list = buckets[i]
+        return (
+          <div
+            key={col.id}
+            className="flex-shrink-0 w-[300px] h-full flex flex-col min-h-0"
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(i)}
+          >
+            <div
+              className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 mb-3"
+              style={{ backgroundColor: col.bg }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="flex-shrink-0 rounded-lg px-2 py-0.5 text-xs font-semibold text-white bg-white/20"
+                  aria-hidden
+                >
+                  {list.length}
+                </span>
+                <span className="font-semibold text-sm text-white truncate">
+                  {col.label}
+                </span>
               </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAddDeal?.(stageForColumn(i))
+                }}
+                className="flex-shrink-0 w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
+                aria-label={`Add deal to ${col.label}`}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: TEXT_MAJOR }}>
-                BACKLOG
-              </p>
-              <div className="flex flex-col gap-2">
-                {col.backlog.map((d) => (
-                  <Card key={d.id} deal={d} />
-                ))}
-              </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 min-h-0">
+              {list.map((d) => (
+                <Card key={d.id} deal={d} />
+              ))}
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

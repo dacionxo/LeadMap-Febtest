@@ -200,7 +200,7 @@ function CalendarPageContent() {
         style={{ left: isSidebarOpen ? '274px' : '79px', right: 0 }}
       >
         <div className="h-px w-full shrink-0 bg-slate-200 dark:bg-slate-700" aria-hidden="true" role="separator" />
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-6 pt-6">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-[84px] pt-[84px] pb-[30px]">
           {showOnboarding === null ? (
             <div className="flex items-center justify-center flex-1">
               <div className="flex flex-col items-center gap-2">

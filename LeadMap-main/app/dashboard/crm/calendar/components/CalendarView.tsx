@@ -527,8 +527,8 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
   )
 
   return (
-    <div className="flex flex-col h-full w-full min-h-0 m-0 py-[30px] bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-      {/* Calendar Container — fills remaining height (30px inset top and bottom) */}
+    <div className="flex flex-col h-full w-full min-h-0 m-0 pt-[60px] pb-[90px] bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Calendar Container — 60px top inset, 90px bottom inset (another 30px on each side) */}
       <div className="flex-1 min-h-0 overflow-auto m-0 bg-white dark:bg-gray-900">
         <Card className="h-full min-h-[400px] m-0 p-0">
           <Calendar

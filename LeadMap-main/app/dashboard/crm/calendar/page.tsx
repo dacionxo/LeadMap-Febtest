@@ -201,25 +201,27 @@ function CalendarPageContent() {
       >
         <div className="h-px w-full shrink-0 bg-slate-200 dark:bg-slate-700" aria-hidden="true" role="separator" />
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-[84px] pt-[84px] pb-[30px]">
-          {showOnboarding === null ? (
-            <div className="flex items-center justify-center flex-1">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-500">Loading calendar...</span>
+          <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
+            {showOnboarding === null ? (
+              <div className="flex items-center justify-center flex-1">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-gray-500">Loading calendar...</span>
+                </div>
               </div>
-            </div>
-          ) : showOnboarding ? (
-            <CalendarOnboardingView
-              onDateSelect={handleOnboardingDateSelect}
-              onConnectCalendar={handleConnectCalendar}
-            />
-          ) : (
-            <CalendarView
-              onEventClick={handleEventClick}
-              onDateSelect={handleDateSelect}
-              calendarType={calendarType}
-            />
-          )}
+            ) : showOnboarding ? (
+              <CalendarOnboardingView
+                onDateSelect={handleOnboardingDateSelect}
+                onConnectCalendar={handleConnectCalendar}
+              />
+            ) : (
+              <CalendarView
+                onEventClick={handleEventClick}
+                onDateSelect={handleDateSelect}
+                calendarType={calendarType}
+              />
+            )}
+          </div>
         </div>
       </div>
 

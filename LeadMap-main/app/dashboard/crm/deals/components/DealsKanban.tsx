@@ -1,7 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, MessageCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, MessageCircle, CheckCircle2, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu'
 
 interface Deal {
   id: string
@@ -34,8 +40,6 @@ interface DealsKanbanProps {
 }
 
 const BOARD_BG = '#F5F5F5'
-const CARD_BG = '#FFFFFF'
-const CARD_SHADOW = '0 1px 3px rgba(0,0,0,0.08)'
 const DESC_PLACEHOLDER = 'Lorem ipsum dolor sit amet, libre unst consectetur adispicing elit.'
 
 const STAGE_KEYS = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost'] as const
@@ -177,20 +181,54 @@ export default function DealsKanban({
         onDragStart={() => handleDragStart(deal)}
         onDragEnd={handleDragEnd}
         onClick={() => onDealClick(deal)}
-        className="rounded-xl overflow-hidden cursor-grab active:cursor-grabbing bg-white flex flex-col"
-        style={{ boxShadow: CARD_SHADOW }}
+        className="rounded-lg overflow-hidden cursor-grab active:cursor-grabbing bg-white dark:bg-dark flex flex-col border border-slate-200 dark:border-slate-600 shadow-sm"
       >
-        <div className="p-3 flex flex-col gap-2">
+        <div className="p-3 flex flex-col gap-2 relative">
+          <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  aria-label="Deal actions"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="border border-slate-200 dark:border-slate-600">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDealClick(deal)
+                  }}
+                >
+                  <Pencil className="w-4 h-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-600 dark:text-red-400 focus:text-red-700 dark:focus:text-red-300"
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    if (!window.confirm(`Delete "${deal.title || 'Untitled deal'}"?`)) return
+                    await onDealDelete(deal.id)
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <span
             className="inline-flex w-fit px-2 py-0.5 rounded-md text-xs font-medium"
             style={{ backgroundColor: tag.bg, color: tag.text }}
           >
             {tag.label}
           </span>
-          <p className="font-bold text-sm text-gray-900 leading-tight">
+          <p className="font-bold text-sm text-gray-900 dark:text-white leading-tight pr-8">
             {deal.title || 'Untitled deal'}
           </p>
-          <p className="text-xs text-gray-500 line-clamp-2 leading-snug">
+          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-snug">
             {desc}
           </p>
         </div>
@@ -203,7 +241,7 @@ export default function DealsKanban({
               {ownerInitials(deal)}
             </div>
           </div>
-          <div className="flex items-center gap-3 text-gray-500">
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
             <span className="flex items-center gap-1 text-xs">
               <MessageCircle className="w-3.5 h-3.5" />
               {comments}
@@ -233,7 +271,7 @@ export default function DealsKanban({
             onDrop={() => handleDrop(i)}
           >
             <div
-              className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 mb-3"
+              className="rounded-lg px-3 py-2.5 flex items-center justify-between gap-2 mb-3 border border-slate-200 dark:border-slate-600"
               style={{ backgroundColor: col.bg }}
             >
               <div className="flex items-center gap-2 min-w-0">

@@ -370,6 +370,10 @@ function DealsPageContent() {
                 setIsEditModalOpen(true)
               }}
               onDealUpdate={async (dealId, updates) => {
+                const prev = deals
+                if (updates.stage != null) {
+                  setDeals((d) => d.map((x) => (x.id === dealId ? { ...x, stage: updates.stage! } : x)))
+                }
                 try {
                   const res = await fetch(`/api/crm/deals/${dealId}`, {
                     method: 'PUT',
@@ -389,10 +393,38 @@ function DealsPageContent() {
                   }
                 } catch (e) {
                   console.error('Error updating deal:', e)
+                  setDeals(prev)
                   throw e
                 }
               }}
-              onDealDelete={async () => {}}
+              onDealDelete={async (dealId) => {
+                const prev = deals
+                setDeals((d) => d.filter((x) => x.id !== dealId))
+                setTotalDeals((t) => (t != null ? Math.max(0, t - 1) : 0))
+                try {
+                  const res = await fetch(`/api/crm/deals/${dealId}`, { method: 'DELETE', credentials: 'include' })
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}))
+                    throw new Error(err.error || 'Failed to delete deal')
+                  }
+                  const listRes = await fetch('/api/crm/deals?page=1&pageSize=50&sortBy=created_at&sortOrder=desc', { credentials: 'include' })
+                  const listJson = await listRes.json()
+                  if (listRes.ok) {
+                    setTotalDeals(listJson.pagination?.total ?? 0)
+                    setDeals(Array.isArray(listJson.data) ? listJson.data : [])
+                  }
+                } catch (e) {
+                  console.error('Error deleting deal:', e)
+                  setDeals(prev)
+                  const listRes = await fetch('/api/crm/deals?page=1&pageSize=50&sortBy=created_at&sortOrder=desc', { credentials: 'include' })
+                  const listJson = await listRes.json()
+                  if (listRes.ok) {
+                    setTotalDeals(listJson.pagination?.total ?? 0)
+                    setDeals(Array.isArray(listJson.data) ? listJson.data : [])
+                  }
+                  throw e
+                }
+              }}
               pipelines={pipelines}
               onAddDeal={() => {
                 setEditingDeal(null)

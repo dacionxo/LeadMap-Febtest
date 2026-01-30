@@ -518,16 +518,17 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
   )
 
   return (
-    <div className="flex flex-col h-full w-full min-h-0 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-      {/* Calendar Container — fills remaining height */}
-      <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-gray-900">
-        <Card className="h-full min-h-[400px]">
-          <Calendar
+    <div className="flex flex-col h-full w-full min-h-0 m-0 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Calendar Container — 90% size, centered */}
+      <div className="flex-1 min-h-0 overflow-auto m-0 bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="w-[90%] h-[90%] min-h-[360px] min-w-0">
+          <Card className="h-full min-h-[360px] m-0 p-0">
+            <Calendar
             localizer={localizer}
             events={events}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: '100%', minHeight: '400px' }}
+            style={{ height: '100%', minHeight: '360px' }}
             view={view}
             onView={setView}
             date={currentDate}
@@ -551,8 +552,9 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
               eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
                 `${moment(start).format('h:mm A')} - ${moment(end).format('h:mm A')}`,
             } as any}
-          />
-        </Card>
+            />
+          </Card>
+        </div>
       </div>
 
       <CalendarHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />

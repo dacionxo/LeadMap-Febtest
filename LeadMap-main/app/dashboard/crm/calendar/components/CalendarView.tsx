@@ -1,7 +1,7 @@
 'use client'
 
 import { Card } from '@/app/components/ui/card'
-import { ChevronLeft, ChevronRight, HelpCircle, RefreshCw, Search, Settings, X } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import moment from 'moment'
 import { useCallback, useEffect, useState } from 'react'
 import { Calendar, momentLocalizer, SlotInfo, View } from 'react-big-calendar'
@@ -519,130 +519,6 @@ export default function CalendarView({ onEventClick, onDateSelect, calendarType 
 
   return (
     <div className="flex flex-col h-full w-full min-h-0 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-      {/* Toolbar: Search, Help, Settings (left) | Today, nav, title | view selector, refresh, sync */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-        <div className="flex items-center gap-2">
-          {/* Search */}
-          <div className="relative">
-            {searchQuery ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search events..."
-                  className="calendar-search-input w-48 px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Clear search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  const input = document.querySelector('.calendar-search-input') as HTMLInputElement
-                  input?.focus()
-                }}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                title="Search calendar events (Press /)"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowHelp(true)}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-            title="Help (Press ?)"
-          >
-            <HelpCircle className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => typeof window !== 'undefined' && window.dispatchEvent(new CustomEvent('openCalendarSettings'))}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-            title="Settings"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={goToToday}
-            className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-          >
-            Today
-          </button>
-          <div className="flex items-center gap-0.5">
-            <button
-              type="button"
-              onClick={() => navigateDate('prev')}
-              className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-              title="Previous"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateDate('next')}
-              className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-              title="Next"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-          <span className="text-sm font-semibold text-gray-900 dark:text-white min-w-[140px]">
-            {getCurrentMonthYear()}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-            {(['month', 'week', 'day', 'agenda'] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => changeView(v)}
-                className={`px-2.5 py-1 text-xs font-medium rounded transition-all capitalize ${
-                  view === v
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={fetchEvents}
-            disabled={loading}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50"
-            title="Refresh events"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            type="button"
-            onClick={handleSync}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-            title="Sync calendars"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
       {/* Calendar Container — fills remaining height */}
       <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-gray-900">
         <Card className="h-full min-h-[400px]">

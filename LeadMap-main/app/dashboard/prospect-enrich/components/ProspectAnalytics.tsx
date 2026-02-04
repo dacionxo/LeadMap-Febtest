@@ -376,7 +376,7 @@ export default function ProspectAnalytics({ listings, loading }: ProspectAnalyti
       }}>
         <MetricCard
           icon={Target}
-          label="Total Prospects"
+          label="Saved Prospects"
           value={metrics.total.toLocaleString()}
           change={metrics.growthRate > 0 ? `+${metrics.growthRate.toFixed(0)}%` : `${metrics.growthRate.toFixed(0)}%`}
           trend={metrics.growthRate > 0 ? 'up' : 'down'}

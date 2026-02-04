@@ -156,30 +156,6 @@ export default function CustomizableDashboard() {
         l.status.toLowerCase().includes('off market'))
       ).length || 0
       
-      // Fetch probate leads with error handling
-      let probate = 0
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
-        const probateResponse = await fetch('/api/probate-leads', { 
-          cache: 'no-store',
-          signal: controller.signal
-        })
-        clearTimeout(timeoutId)
-        if (probateResponse.ok) {
-          const probateData = await probateResponse.json()
-          probate = probateData?.leads?.length || 0
-        }
-      } catch (err) {
-        console.warn('Error fetching probate leads:', err)
-      }
-
-      // Calculate enriched count
-      const enriched = allLeads?.filter(l => 
-        (l.ai_investment_score !== null && l.ai_investment_score !== undefined) ||
-        l.agent_email || l.agent_phone || l.agent_name
-      ).length || 0
-
       // Calculate total value with validation
       const totalValue = allLeads?.reduce((sum, l) => {
         const price = typeof l.list_price === 'number' ? l.list_price : parseFloat(l.list_price || '0') || 0
@@ -242,10 +218,8 @@ export default function CustomizableDashboard() {
       // Calculate trends
       const totalTrend = calculateTrend(total, previous.total || 0)
       const activeTrend = calculateTrend(active, previous.active || 0)
-      const enrichedTrend = calculateTrend(enriched, previous.enriched || 0)
       const avgValueTrend = calculateTrend(avgValue, previous.avgValue || 0)
       const expiredTrend = calculateTrend(expired, previous.expired || 0)
-      const probateTrend = calculateTrend(probate, previous.probate || 0)
       const activeDealsTrend = calculateTrend(activeDeals, previous.activeDeals || 0)
       const pipelineValueTrend = calculateTrend(pipelineValue, previous.pipelineValue || 0)
       const conversionRateTrend = calculateTrend(conversionRate, previous.conversionRate || 0)
@@ -254,10 +228,8 @@ export default function CustomizableDashboard() {
       previousDataRef.current = {
         total,
         active,
-        enriched,
         avgValue,
         expired,
-        probate,
         activeDeals,
         pipelineValue,
         conversionRate
@@ -267,10 +239,8 @@ export default function CustomizableDashboard() {
       setWidgetData({
         'total-prospects': { value: total, change: totalTrend.change, trend: totalTrend.trend },
         'active-listings': { value: active, change: activeTrend.change, trend: activeTrend.trend },
-        'enriched-leads': { value: enriched, change: enrichedTrend.change, trend: enrichedTrend.trend },
         'avg-property-value': { value: `$${(avgValue / 1000).toFixed(0)}K`, change: avgValueTrend.change, trend: avgValueTrend.trend },
         'expired-listings': { value: expired, change: expiredTrend.change, trend: expiredTrend.trend },
-        'probate-leads': { value: probate, change: probateTrend.change, trend: probateTrend.trend },
         'active-deals': { value: activeDeals, change: activeDealsTrend.change, trend: activeDealsTrend.trend },
         'pipeline-value': { value: `$${(pipelineValue / 1000).toFixed(0)}K`, change: pipelineValueTrend.change, trend: pipelineValueTrend.trend },
         'conversion-rate': { value: `${conversionRate}%`, change: conversionRateTrend.change, trend: conversionRateTrend.trend },
@@ -340,7 +310,6 @@ export default function CustomizableDashboard() {
         'lead-source-report': {
           sources: [
             { name: 'Expired Listings', count: expired, percentage: expired > 0 ? Math.round((expired / total) * 100) : 0 },
-            { name: 'Probate Leads', count: probate, percentage: probate > 0 ? Math.round((probate / total) * 100) : 0 },
             { name: 'Geo Leads', count: Math.round(total * 0.2), percentage: 20 },
             { name: 'Property Listings', count: active, percentage: active > 0 ? Math.round((active / total) * 100) : 0 },
             { name: 'Other', count: Math.round(total * 0.1), percentage: 10 }
@@ -384,17 +353,16 @@ export default function CustomizableDashboard() {
 
       if (!error && data?.dashboard_config) {
         const config = data.dashboard_config
-        setEnabledWidgets(config.enabledWidgets || [])
+        const saved = (config.enabledWidgets || []).filter((id: string) => !['enriched-leads', 'probate-leads'].includes(id))
+        setEnabledWidgets(saved)
         setWidgetPositions(config.positions || {})
       } else {
         // Default configuration - all widgets listed by user in order
         const defaultWidgets = [
           'total-prospects',
           'active-listings',
-          'enriched-leads',
           'avg-property-value',
           'expired-listings',
-          'probate-leads',
           'active-deals',
           'pipeline-value',
           'conversion-rate',
@@ -412,10 +380,8 @@ export default function CustomizableDashboard() {
       const defaultWidgets = [
         'total-prospects',
         'active-listings',
-        'enriched-leads',
         'avg-property-value',
         'expired-listings',
-        'probate-leads',
         'active-deals',
         'pipeline-value',
         'conversion-rate',
@@ -477,10 +443,8 @@ export default function CustomizableDashboard() {
     const widgetOrder = [
       'total-prospects',
       'active-listings',
-      'enriched-leads',
       'avg-property-value',
       'expired-listings',
-      'probate-leads',
       'active-deals',
       'pipeline-value',
       'conversion-rate',

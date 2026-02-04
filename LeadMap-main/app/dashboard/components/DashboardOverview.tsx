@@ -29,7 +29,7 @@ export default function DashboardOverview({
           <div className='md:col-span-6 col-span-12'>
             <div className='flex items-center gap-3 mt-2'>
               <h5 className='text-lg text-black'>
-                Dashboard Overview
+                Dashboard and Reporting
               </h5>
               {onRefresh && (
                 <button

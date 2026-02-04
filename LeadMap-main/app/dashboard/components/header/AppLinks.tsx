@@ -30,10 +30,10 @@ const appsLink: appsLinkType[] = [
     avatar: '/images/svgs/icon-dd-date.svg',
   },
   {
-    href: '/dashboard/prospect-enrich',
-    title: 'Prospect Enrichment',
-    subtext: 'Enrich leads',
-    avatar: '/images/svgs/icon-dd-mobile.svg',
+    href: '/dashboard/crm/deals',
+    title: 'Deals',
+    subtext: 'Pipeline & opportunities',
+    avatar: '/images/svgs/icon-dd-cart.svg',
   },
   {
     href: '/dashboard/unibox',
@@ -83,9 +83,9 @@ const AppLinks = () => {
                                 icon={
                                   links.href.includes('chat') || links.href.includes('conversation') ? 'solar:dialog-linear' :
                                   links.href.includes('calendar') ? 'solar:calendar-linear' :
+                                  links.href.includes('deals') ? 'solar:case-linear' :
                                   links.href.includes('email') || links.href.includes('unibox') ? 'solar:letter-linear' :
                                   links.href.includes('map') ? 'solar:map-point-linear' :
-                                  links.href.includes('prospect') || links.href.includes('enrich') ? 'solar:users-group-rounded-linear' :
                                   'solar:widget-2-linear'
                                 }
                                 className="h-5 w-5 text-primary"

@@ -27,7 +27,6 @@ import {
   Calendar,
   Clock,
   DollarSign,
-  FileText,
   Filter,
   GitBranch,
   GripVertical,
@@ -726,7 +725,7 @@ function TasksWidget({ widget, data }: { widget: DashboardWidget; data?: any }) 
   // Map API data to TailwindAdmin format or use defaults
   const tasksData = data || [
     { id: 1, title: 'Follow up with expired listing owner', due: 'Today', priority: 'high', date: '21 August 2025', description: 'Contact expired listing owner to discuss property', tasks: 2, comments: 0 },
-    { id: 2, title: 'Review probate leads', due: 'Tomorrow', priority: 'medium', date: '22 August 2025', description: 'Review and qualify new probate leads', tasks: 1, comments: 3 },
+    { id: 2, title: 'Review new leads', due: 'Tomorrow', priority: 'medium', date: '22 August 2025', description: 'Review and qualify new leads', tasks: 1, comments: 3 },
     { id: 3, title: 'Schedule property viewing', due: 'In 2 days', priority: 'low', date: '23 August 2025', description: 'Schedule viewing for interested prospects', tasks: 0, comments: 1 }
   ]
 
@@ -851,10 +850,9 @@ function ManualActionsWidget({ widget, data }: { widget: DashboardWidget; data?:
 function LeadSourceWidget({ widget, data }: { widget: DashboardWidget; data?: any }) {
   const sources = data?.sources || [
     { name: 'Expired Listings', count: 45, percentage: 35 },
-    { name: 'Probate Leads', count: 30, percentage: 23 },
     { name: 'Geo Leads', count: 25, percentage: 19 },
     { name: 'Property Listings', count: 20, percentage: 15 },
-    { name: 'Other', count: 10, percentage: 8 }
+    { name: 'Other', count: 31, percentage: 31 }
   ]
 
   return (
@@ -928,7 +926,7 @@ export const availableWidgets: DashboardWidget[] = [
   {
     id: 'total-prospects',
     type: 'metric',
-    title: 'Total Prospects',
+    title: 'Saved Prospects',
     icon: Users,
     component: ProspectMetricsWidget,
     defaultEnabled: true,
@@ -940,16 +938,6 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Active Listings',
     icon: Building2,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'prospects',
-    size: 'small'
-  },
-  {
-    id: 'enriched-leads',
-    type: 'metric',
-    title: 'Enriched Leads',
-    icon: Sparkles,
     component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'prospects',
@@ -970,16 +958,6 @@ export const availableWidgets: DashboardWidget[] = [
     type: 'metric',
     title: 'Expired Listings',
     icon: Clock,
-    component: ProspectMetricsWidget,
-    defaultEnabled: true,
-    category: 'prospects',
-    size: 'small'
-  },
-  {
-    id: 'probate-leads',
-    type: 'metric',
-    title: 'Probate Leads',
-    icon: FileText,
     component: ProspectMetricsWidget,
     defaultEnabled: true,
     category: 'prospects',

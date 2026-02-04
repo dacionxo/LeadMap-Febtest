@@ -168,6 +168,13 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                 </Link>
 
                 <Link
+                  href="/dashboard/email/campaigns"
+                  className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
+                >
+                  Campaigns
+                </Link>
+
+                <Link
                   href="/dashboard/unibox"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >

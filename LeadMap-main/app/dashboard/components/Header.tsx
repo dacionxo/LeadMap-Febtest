@@ -161,24 +161,17 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
 
                 {/* Quick Links - Matching Tailwindadmin */}
                 <Link
-                  href="/dashboard/conversations"
-                  className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
-                >
-                  Chat
-                </Link>
-
-                <Link
-                  href="/dashboard/calendar"
+                  href="/dashboard/crm/calendar"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >
                   Calendar
                 </Link>
 
                 <Link
-                  href="/dashboard/email"
+                  href="/dashboard/unibox"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >
-                  Email
+                  Unibox
                 </Link>
               </div>
             </div>
@@ -286,9 +279,9 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                       setShowProfileMenu(!showProfileMenu)
                       setShowNotifications(false)
                     }}
-                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group-hover/menu:text-primary"
+                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group-hover/menu:text-primary mt-[10px]"
                   >
-                    <div className="flex h-[35px] w-[35px] items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
+                    <div className="flex h-[38.5px] w-[38.5px] items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
                       {profile?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                   </button>
@@ -367,28 +360,7 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                           </div>
                         </button>
 
-                        <button
-                          onClick={() => {
-                            router.push('/dashboard')
-                            setShowProfileMenu(false)
-                          }}
-                          className="px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer hover:bg-lightprimary"
-                        >
-                          <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
-                            <Icon icon="solar:checklist-linear" className="h-6 w-6 text-primary" />
-                          </div>
-                          <div className="ps-4 flex justify-between w-full">
-                            <div className="w-3/4">
-                              <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                My Tasks
-                              </h5>
-                              <div className="text-xs text-darklink">
-                                To-do and Daily tasks
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      </div>
+                        </div>
 
                       {/* Logout Button */}
                       <div className="pt-2 px-7">

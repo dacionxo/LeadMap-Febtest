@@ -31,7 +31,7 @@ export default async function SignUp() {
       }
       
       if (session?.user) {
-        redirect('/dashboard')
+        redirect('/dashboard/map')
       }
     } catch (error: any) {
       // Handle rate limit errors gracefully - just show signup page

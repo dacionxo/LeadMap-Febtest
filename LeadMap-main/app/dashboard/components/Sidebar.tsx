@@ -51,22 +51,23 @@ const navSections: NavSection[] = [
     ]
   },
   {
-    title: 'MARKETING',
+    title: 'EMAIL MARKETING',
     items: [
-      { label: 'Social Planner', icon: 'solar:megaphone-linear', href: '/dashboard/marketing' },
-      { label: 'Postiz', icon: 'solar:share-linear', href: '/dashboard/postiz' },
+      { label: 'Unibox', icon: 'solar:letter-linear', href: '/dashboard/unibox' },
       { label: 'Email Campaigns', icon: 'solar:letter-linear', href: '/dashboard/email/campaigns' },
-      { label: 'Email Analytics', icon: 'solar:chart-2-linear', href: '/dashboard/marketing/analytics' },
-      { label: 'Conversations', icon: 'solar:dialog-linear', href: '/dashboard/conversations' }
+      { label: 'Email Analytics', icon: 'solar:chart-2-linear', href: '/dashboard/marketing/analytics' }
     ]
   },
   {
     title: 'TOOLS & AUTOMATION',
     items: [
-      { label: 'Workflows', icon: 'solar:lightning-linear', href: '/dashboard/tools' },
-      { label: 'Tasks', icon: 'solar:check-circle-linear', href: '/dashboard/tasks' },
-      { label: 'Analytics', icon: 'solar:chart-2-linear', href: '/dashboard/crm/analytics' },
-      { label: 'Symphony', icon: 'solar:chart-2-linear', href: '/dashboard/symphony' }
+      { label: 'Analytics', icon: 'solar:chart-2-linear', href: '/dashboard/crm/analytics' }
+    ]
+  },
+  {
+    title: 'ADMIN',
+    items: [
+      { label: 'Admin Settings Panel', icon: 'solar:settings-linear', href: '/admin' }
     ]
   }
 ]

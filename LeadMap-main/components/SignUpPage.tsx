@@ -131,7 +131,7 @@ export default function SignUpPage() {
           if (!response.ok) {
             throw new Error(result.error || 'Failed to create user profile')
           }
-          router.push('/dashboard')
+          router.push('/dashboard/map')
         }
       }
     } catch (err: unknown) {

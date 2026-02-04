@@ -11,6 +11,13 @@ import { Card } from '@/app/components/ui/card'
 moment.locale('en')
 const localizer = momentLocalizer(moment)
 
+const CALENDAR_VIEW_MAP: Record<string, View> = {
+  month: 'month',
+  week: 'week',
+  day: 'day',
+  agenda: 'agenda',
+}
+
 interface CalendarEvent {
   id: string
   title: string
@@ -63,18 +70,12 @@ export default function CalendarViewNew({ onEventClick, onDateSelect, calendarTy
     }
   }, [])
 
-  // Apply default view from settings
+  // Start on month view; only use a different view when the user has changed their default in settings
   useEffect(() => {
-    if (settings?.default_view) {
-      const viewMap: Record<string, View> = {
-        month: 'month',
-        week: 'week',
-        day: 'day',
-        agenda: 'agenda',
-      }
-      const mappedView = viewMap[settings.default_view] || 'month'
-      setView(mappedView)
-    }
+    const preferredView = settings?.default_view && CALENDAR_VIEW_MAP[settings.default_view]
+      ? CALENDAR_VIEW_MAP[settings.default_view]
+      : 'month'
+    setView(preferredView)
   }, [settings?.default_view])
 
   const fetchSettings = async () => {

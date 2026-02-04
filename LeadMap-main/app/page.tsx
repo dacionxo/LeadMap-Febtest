@@ -10,6 +10,9 @@ import { PowerfulTemplates } from '@/components/homepage/PowerfulTemplates'
 import { TeamWorks } from '@/components/homepage/TeamWorks'
 import { Testimonials } from '@/components/homepage/Testimonials'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 export const metadata: Metadata = {
   title: 'NextDeal – CRM, Maps & Campaigns',
@@ -20,6 +23,12 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
+  const cookieStore = await cookies()
+  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    redirect('/dashboard/map')
+  }
   return (
     <HomeLayout>
       <HeroSection />

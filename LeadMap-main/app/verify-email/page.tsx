@@ -30,7 +30,7 @@ function VerifyEmailContent() {
             setCountdown((prev) => {
               if (prev <= 1) {
                 clearInterval(timer)
-                router.push('/dashboard')
+                router.push('/dashboard/map')
                 return 0
               }
               return prev - 1
@@ -56,7 +56,7 @@ function VerifyEmailContent() {
   }, [router, searchParams, supabase])
 
   const handleGoToDashboard = () => {
-    router.push('/dashboard')
+    router.push('/dashboard/map')
   }
 
   if (loading) {

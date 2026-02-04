@@ -68,7 +68,7 @@ function LoginPageContent() {
           localStorage.removeItem('nextdeal_saved_email')
         }
       }
-      router.push('/dashboard')
+      router.push('/dashboard/map')
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err)
       if (errMsg?.includes('rate limit') || errMsg?.includes('Request rate limit')) {

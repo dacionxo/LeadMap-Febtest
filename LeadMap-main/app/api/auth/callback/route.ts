@@ -123,9 +123,9 @@ export async function GET(request: NextRequest) {
       // For OAuth users, they're already verified, so go to dashboard
       // For email verification, redirect to verification confirmation page
       if (data.user.email_confirmed_at) {
-        // OAuth users are automatically verified, go to dashboard
-        console.log('[OAuth Callback] User verified, redirecting to dashboard')
-        return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+        // OAuth users are automatically verified, go to dashboard map
+        console.log('[OAuth Callback] User verified, redirecting to dashboard map')
+        return NextResponse.redirect(`${requestUrl.origin}/dashboard/map`)
       } else {
         // Email verification needed
         console.log('[OAuth Callback] User needs email verification')

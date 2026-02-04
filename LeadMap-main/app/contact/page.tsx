@@ -79,7 +79,7 @@ export default function ContactPage() {
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => router.push('/')}>
                 <img 
-                  src="/nextdeal-logo.png"
+                  src="/images/logos/nextdeal-logo.png"
                   alt="NextDeal"
                   className="h-8 w-auto"
                   onError={(e) => {
@@ -573,7 +573,7 @@ export default function ContactPage() {
             <div className="flex flex-col gap-6 desktop-s:w-1/4">
               <div>
                 <img 
-                  src="/nextdeal-logo.png"
+                  src="/images/logos/nextdeal-logo.png"
                   alt="NextDeal"
                   className="h-8 w-32 object-contain mb-2"
                   onError={(e) => {

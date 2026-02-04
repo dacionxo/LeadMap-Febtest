@@ -12,12 +12,6 @@ interface appsLinkType {
 
 const appsLink: appsLinkType[] = [
   {
-    href: '/dashboard/conversations',
-    title: 'Chat Application',
-    subtext: 'New messages arrived',
-    avatar: '/images/svgs/icon-dd-chat.svg',
-  },
-  {
     href: '/dashboard',
     title: 'Dashboard',
     subtext: 'Main dashboard',
@@ -30,7 +24,7 @@ const appsLink: appsLinkType[] = [
     avatar: '/images/svgs/icon-dd-invoice.svg',
   },
   {
-    href: '/dashboard/calendar',
+    href: '/dashboard/crm/calendar',
     title: 'Calendar App',
     subtext: 'Get dates',
     avatar: '/images/svgs/icon-dd-date.svg',
@@ -42,8 +36,8 @@ const appsLink: appsLinkType[] = [
     avatar: '/images/svgs/icon-dd-mobile.svg',
   },
   {
-    href: '/dashboard/email',
-    title: 'Email App',
+    href: '/dashboard/unibox',
+    title: 'Unibox',
     subtext: 'Get new emails',
     avatar: '/images/svgs/icon-dd-message-box.svg',
   },
@@ -89,7 +83,7 @@ const AppLinks = () => {
                                 icon={
                                   links.href.includes('chat') || links.href.includes('conversation') ? 'solar:dialog-linear' :
                                   links.href.includes('calendar') ? 'solar:calendar-linear' :
-                                  links.href.includes('email') ? 'solar:letter-linear' :
+                                  links.href.includes('email') || links.href.includes('unibox') ? 'solar:letter-linear' :
                                   links.href.includes('map') ? 'solar:map-point-linear' :
                                   links.href.includes('prospect') || links.href.includes('enrich') ? 'solar:users-group-rounded-linear' :
                                   'solar:widget-2-linear'

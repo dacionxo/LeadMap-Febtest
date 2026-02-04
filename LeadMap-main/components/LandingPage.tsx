@@ -352,7 +352,7 @@ export default function LandingPage() {
               throw new Error(result.error || 'Failed to create user profile')
             }
 
-            router.push('/dashboard')
+            router.push('/dashboard/map')
           }
         }
       } else {
@@ -363,7 +363,7 @@ export default function LandingPage() {
 
         if (error) throw error
 
-        router.push('/dashboard')
+        router.push('/dashboard/map')
       }
     } catch (error: any) {
       // Handle specific error types
@@ -1744,7 +1744,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-4">
               <h4 className="text-sm font-heading font-semibold text-black uppercase tracking-wider">Product</h4>
               <nav className="flex flex-col gap-3">
-                <a href="/dashboard" className="text-sm font-light text-black hover:text-black transition-colors">Dashboard</a>
+                <a href="/dashboard/map" className="text-sm font-light text-black hover:text-black transition-colors">Dashboard</a>
                 <a href="/pricing" className="text-sm font-light text-black hover:text-black transition-colors">Pricing</a>
               </nav>
             </div>

@@ -138,6 +138,12 @@ export default function Sidebar() {
   const searchParams = useSearchParams();
   const { profile, signOut } = useApp();
   const { isOpen, toggle } = useSidebar();
+  const initials =
+    profile?.name
+      ?.split(" ")
+      .map((n) => n.charAt(0).toUpperCase())
+      .slice(0, 2)
+      .join("") || "U";
 
   // Collapsible sections: track which are expanded (default all true)
   const [expandedSections, setExpandedSections] = useState<
@@ -192,32 +198,28 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-[#e5e5e5] bg-white dark:bg-dark shadow-sm transition-[width] ease-in group ${
+      className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-[#e5e5e5] bg-white dark:bg-dark shadow-sm transition-[width] duration-200 ease-in group ${
         isOpen
           ? "w-[270px]"
           : "w-[75px] xl:hover:w-[270px] overflow-hidden xl:hover:overflow-visible"
       }`}
-      style={{ transitionDuration: ".2s" }}
     >
       {/* Brand / collapse */}
       <div
         className={`flex min-h-[70px] items-center brand-logo overflow-hidden ${isOpen ? "px-6" : "px-5 xl:group-hover:px-6"}`}
       >
         {isOpen ? (
-          <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex w-full items-center gap-3">
             <Link
               href="/dashboard"
-              className="group flex flex-1 items-center justify-center overflow-hidden rounded-md px-2 py-1.5 cursor-pointer transition-colors"
+              className="group flex items-center gap-3 cursor-pointer"
             >
-              <img
-                src="/images/logos/nextdeal-logo.png"
-                alt="NextDeal"
-                className="h-[37px] w-auto object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                }}
-              />
+              <div className="relative w-9 h-9 flex items-center justify-center bg-primary rounded-xl text-white shadow-md shadow-blue-200/70 dark:shadow-none">
+                <Icon icon="solar:home-2-linear" className="w-5 h-5" />
+              </div>
+              <span className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">
+                Next<span className="text-primary">Deal</span>
+              </span>
             </Link>
           </div>
         ) : (
@@ -226,57 +228,50 @@ export default function Sidebar() {
               href="/dashboard"
               className="group flex items-center justify-center rounded-md px-2 py-1.5 cursor-pointer transition-colors"
             >
-              <img
-                src="/images/logos/nextdeal-icon.png"
-                alt="NextDeal"
-                className="h-[41px] w-auto max-w-[48px] object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                }}
-              />
+              <div className="w-9 h-9 flex items-center justify-center bg-primary rounded-xl text-white shadow-md shadow-blue-200/70 dark:shadow-none">
+                <Icon icon="solar:home-2-linear" className="w-5 h-5" />
+              </div>
             </Link>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <SimpleBar className="h-[calc(100vh_-_180px)]">
+      <SimpleBar className="h-[calc(100vh_-_180px)] sidebar-scroll px-0">
         <nav
-          className={`sidebar-nav flex-1 py-0 ${isOpen ? "px-6" : "px-4 xl:group-hover:px-6"}`}
+          className={`sidebar-nav flex-1 pb-4 space-y-6 ${
+            isOpen ? "px-4" : "px-2 xl:group-hover:px-4"
+          }`}
         >
           {navSections.map((section, sectionIdx) => {
             const expanded = isSectionExpanded(sectionIdx);
             const hasTitle = !!section.title;
-            const sectionMarginTop = sectionIdx === 0 ? "0px" : "24px";
             return (
-              <div key={sectionIdx} className="mb-3">
+              <div key={sectionIdx} className="mb-1.5">
                 {hasTitle && (
                   <button
                     type="button"
                     onClick={() => hasTitle && toggleSection(sectionIdx)}
-                    className="caption px-0 mb-0 w-full text-left focus:outline-none focus:ring-0"
-                    style={{
-                      marginTop: sectionMarginTop,
-                      padding: "3px 0px",
-                      lineHeight: "26px",
-                    }}
-                    aria-expanded={expanded}
+                    className={`caption w-full text-left mb-1 focus:outline-none focus:ring-0 group ${
+                      sectionIdx === 0 ? "mt-0" : "mt-6"
+                    }`}
                   >
-                    <h5 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.22em] leading-[26px] text-gray-500 dark:text-darklink">
+                    <h5 className="leading-[26px] flex items-center justify-between gap-2">
                       {isOpen ? (
                         <>
+                          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                            {section.title}
+                          </span>
                           <Icon
                             icon={
                               expanded
                                 ? "solar:alt-arrow-up-linear"
                                 : "solar:alt-arrow-down-linear"
                             }
-                            className="flex-shrink-0 transition-transform text-gray-400 dark:text-darklink"
+                            className="flex-shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors"
                             height={14}
                             width={14}
                           />
-                          <span className="leading-21">{section.title}</span>
                         </>
                       ) : (
                         <>
@@ -299,7 +294,7 @@ export default function Sidebar() {
                   <div
                     className={
                       isOpen
-                        ? "space-y-1 pt-1"
+                        ? "space-y-1"
                         : "flex flex-col items-center gap-2 xl:group-hover:items-start xl:group-hover:gap-0.5 xl:group-hover:space-y-0.5"
                     }
                   >
@@ -319,12 +314,11 @@ export default function Sidebar() {
                           <button
                             key={item.href}
                             onClick={handleClick}
-                            className={`group/item flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start truncate cursor-pointer leading-normal transition-all duration-200 ease-in-out ${
+                            className={`group/item flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start truncate cursor-pointer leading-normal transition-all duration-200 ${
                               active
-                                ? "bg-primary text-white shadow-soft hover:bg-primary/95 font-semibold"
-                                : "text-link dark:text-darklink hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary dark:hover:text-primary bg-transparent font-medium"
+                                ? "bg-primary text-white shadow-[0_4px_6px_-1px_rgba(59,130,246,0.2),0_2px_4px_-1px_rgba(59,130,246,0.1)] font-semibold"
+                                : "text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white font-medium"
                             }`}
-                            aria-current={active ? "page" : undefined}
                           >
                             <Icon
                               icon={item.icon}
@@ -336,7 +330,7 @@ export default function Sidebar() {
                               {item.label}
                             </span>
                             {item.badge && (
-                              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                              <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                                 {item.badge}
                               </span>
                             )}
@@ -397,26 +391,40 @@ export default function Sidebar() {
       )}
 
       {/* User Section */}
-      <div className={`my-4 ${isOpen ? "mx-6" : "mx-0.5 xl:group-hover:mx-6"}`}>
+      <div className={`my-4 ${isOpen ? "mx-4" : "mx-1.5 xl:group-hover:mx-4"}`}>
         <div
-          className={`rounded-md bg-lightsecondary overflow-hidden transition-all duration-200 ease-in py-2 ${isOpen ? "px-4" : "px-2 xl:group-hover:px-4"}`}
+          className={`rounded-xl border border-[#e5e5e5] dark:border-[#333f55] bg-[#f8fafc]/60 dark:bg-[#0f172a]/60 overflow-hidden transition-all duration-200 ease-in ${
+            isOpen ? "px-3 py-3" : "px-2 py-2 xl:group-hover:px-3 xl:group-hover:py-3"
+          }`}
         >
-          <div
-            className={`flex items-center transition-all duration-200 ease-in ${isOpen ? "gap-4" : "justify-center xl:group-hover:justify-start xl:group-hover:gap-4"}`}
-          >
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white shadow-sm">
-              {profile?.name?.charAt(0).toUpperCase() || "U"}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-md ring-2 ring-white dark:ring-slate-800">
+              {initials}
             </div>
             <div
-              className={`min-w-0 flex-1 transition-all duration-200 ease-in ${isOpen ? "block" : "hidden xl:group-hover:block"}`}
+              className={`min-w-0 flex-1 transition-all duration-200 ease-in ${
+                isOpen ? "block" : "hidden xl:group-hover:block"
+              }`}
             >
-              <h3 className="truncate text-base font-semibold text-link dark:text-darklink">
+              <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white">
                 {profile?.name || "User"}
               </h3>
-              <p className="truncate text-xs font-normal text-[#737373] dark:text-darklink">
-                {profile?.email || "user@example.com"}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {profile?.email || "Admin"}
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="ml-auto text-slate-400 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <Icon icon="solar:logout-2-linear" className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>

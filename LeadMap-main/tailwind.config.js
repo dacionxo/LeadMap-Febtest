@@ -199,6 +199,7 @@ module.exports = {
         /* SaaS Welcome Card teal accent */
         "saas-teal": "#06B6D4",
         "saas-teal-hover": "#0891B2",
+        charcoal: "#334155",
       },
       fontSize: {
         "heading-1": ["60px", "72px"],

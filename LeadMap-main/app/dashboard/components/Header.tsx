@@ -246,26 +246,29 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
               <Search />
             </div>
 
-            {/* Desktop: Apps, Calendar, Campaigns, Unibox (centered) */}
-            <div className="xl:!flex !hidden items-center justify-center gap-0 flex-1 relative">
+            {/* Desktop: Apps, Calendar, Campaigns, Unibox (centered) - pill container */}
+            <div className="xl:!flex !hidden items-center justify-center gap-1.5 p-1.5 bg-slate-100/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm flex-1 max-w-fit mx-auto relative">
               <AppLinks />
               <Link
                 href="/dashboard/crm/calendar"
-                className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center transition-colors"
+                className="flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
               >
-                Calendar
+                <Icon icon="material-symbols:calendar-month" className="text-[20px] group-hover:text-primary transition-colors" />
+                <span className="text-sm font-medium">Calendar</span>
               </Link>
               <Link
                 href="/dashboard/email/campaigns"
-                className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center transition-colors"
+                className="flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
               >
-                Campaigns
+                <Icon icon="material-symbols:campaign" className="text-[20px] group-hover:text-primary transition-colors" />
+                <span className="text-sm font-medium">Campaigns</span>
               </Link>
               <Link
                 href="/dashboard/unibox"
-                className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center transition-colors"
+                className="flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
               >
-                Unibox
+                <Icon icon="material-symbols:mark-email-unread" className="text-[20px] group-hover:text-primary transition-colors" />
+                <span className="text-sm font-medium">Unibox</span>
               </Link>
             </div>
 
@@ -282,24 +285,24 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
               />
             </div>
 
-            {/* Right: Theme, Notifications, Profile (10px left via mr-2.5, increased gap) */}
-            <div className="hidden xl:flex shrink-0 items-center justify-end mr-2.5">
-              <div className="flex items-center gap-4">
-                {/* Theme Toggle */}
+            {/* Right: Theme, Notifications, Profile */}
+            <div className="hidden xl:flex shrink-0 items-center justify-end gap-5">
+              <div className="flex items-center gap-1">
+                {/* Theme Toggle - keep current night mode icon */}
                 <button
                   type="button"
                   onClick={toggleMode}
-                  className="p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  className="flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
                   aria-label="Toggle theme"
                 >
                   {theme === "light" ? (
-                    <Icon icon="material-symbols:dark-mode-rounded" className="w-5 h-5" />
+                    <Icon icon="material-symbols:dark-mode-rounded" className="text-[22px]" />
                   ) : (
-                    <Icon icon="material-symbols:light-mode-rounded" className="w-5 h-5" />
+                    <Icon icon="material-symbols:light-mode-rounded" className="text-[22px]" />
                   )}
                 </button>
 
-                {/* Notifications Dropdown - a5d92987 style */}
+                {/* Notifications Dropdown */}
                 <div
                   className="relative group/menu"
                   ref={notificationsRef}
@@ -311,10 +314,10 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                       setShowProfileMenu(false);
                     }}
                     aria-label="Notifications"
-                    className="relative p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                    className="relative flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
                   >
-                    <Icon icon="material-symbols:notifications-rounded" className="w-5 h-5" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
+                    <Icon icon="material-symbols:notifications" className="text-[22px]" />
+                    <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-primary rounded-full shadow-[0_0_8px_rgba(93,135,255,0.4)] border-2 border-white dark:border-slate-800" />
                   </button>
 
                   {showNotifications && (
@@ -411,7 +414,10 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                   )}
                 </div>
 
-                {/* Profile Dropdown - advanced design (19% reduced width) */}
+                {/* Divider */}
+                <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-600 mx-1 hidden sm:block" />
+
+                {/* Profile Dropdown */}
                 <div className="relative group/menu" ref={menuRef}>
                   <button
                     type="button"
@@ -422,33 +428,24 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                     aria-expanded={showProfileMenu ? "true" : "false"}
                     aria-haspopup="true"
                     aria-label="Open profile menu"
-                    className="flex items-center gap-3 focus:outline-none p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                    className="flex items-center gap-3 pl-1 cursor-pointer group focus:outline-none"
                   >
-                    <div className="relative">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm ring-2 ring-gray-100 dark:ring-slate-700">
+                    <div className="hidden sm:flex flex-col items-end leading-none">
+                      <span className="text-sm font-semibold text-[#1E293B] dark:text-white group-hover:text-primary transition-colors">
+                        {profile?.name || "User"}
+                      </span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 tracking-wider mt-1.5 uppercase">
+                        {profile?.plan_tier
+                          ? (profile.plan_tier as string).toUpperCase().replace(/\s+/g, " ") + " PLAN"
+                          : "MEMBER"}
+                      </span>
+                    </div>
+                    <div className="relative group-hover:scale-105 transition-transform duration-300">
+                      <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary to-purple-500 rounded-full opacity-0 group-hover:opacity-40 blur-[4px] transition-opacity duration-300" />
+                      <div className="relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-100 dark:border-slate-700 bg-primary text-sm font-bold text-white shadow-sm">
                         {profile?.name?.charAt(0).toUpperCase() || "U"}
                       </div>
-                      <span
-                        className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white dark:ring-slate-800"
-                        aria-hidden
-                      />
                     </div>
-                    <div className="hidden md:block text-left min-w-0">
-                      <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">
-                        {profile?.name || "User"}
-                      </p>
-                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">
-                        {profile?.plan_tier
-                          ? profile.plan_tier.charAt(0).toUpperCase() +
-                            profile.plan_tier.slice(1).toLowerCase() +
-                            " Plan"
-                          : "Member"}
-                      </p>
-                    </div>
-                    <Icon
-                      icon="material-symbols:expand-more-rounded"
-                      className={`w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark transition-transform duration-200 ${showProfileMenu ? "rotate-180" : ""}`}
-                    />
                   </button>
 
                   {showProfileMenu && (

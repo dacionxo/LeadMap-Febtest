@@ -61,7 +61,7 @@ export default function AppLinks() {
     <div className="dropdown-wrapper group">
       <button
         type="button"
-        className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center xl:flex hidden transition-colors"
+        className="text-sm text-gray-900 dark:text-white hover:text-primary px-4 h-10 flex items-center justify-center xl:flex hidden transition-colors"
         aria-label="Open apps menu"
         aria-haspopup="true"
       >

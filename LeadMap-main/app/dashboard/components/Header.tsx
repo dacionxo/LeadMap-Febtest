@@ -235,8 +235,8 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
               <Icon icon="material-symbols:menu-rounded" className="w-5 h-5" />
             </span>
 
-            {/* Desktop: sidebar toggle + Search, Apps, Calendar, Campaigns, Unibox (left side) */}
-            <div className="xl:!flex !hidden items-center gap-0 relative">
+            {/* Desktop: sidebar toggle + Search (left) */}
+            <div className="xl:!flex !hidden items-center gap-0 relative shrink-0">
               <span
                 onClick={toggleSidebar}
                 className="p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-primary flex items-center justify-center cursor-pointer transition-colors"
@@ -244,6 +244,10 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                 <Icon icon="material-symbols:menu-rounded" className="w-5 h-5" />
               </span>
               <Search />
+            </div>
+
+            {/* Desktop: Apps, Calendar, Campaigns, Unibox (centered) */}
+            <div className="xl:!flex !hidden items-center justify-center gap-0 flex-1 relative">
               <AppLinks />
               <Link
                 href="/dashboard/crm/calendar"
@@ -266,7 +270,7 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
             </div>
 
             {/* Mobile Logo */}
-            <div className="block xl:hidden">
+            <div className="block xl:hidden shrink-0">
               <img
                 src="/images/logos/nextdeal-logo.png"
                 alt="NextDeal"
@@ -278,9 +282,9 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
               />
             </div>
 
-            {/* Right: Theme, Notifications, Profile */}
-            <div className="hidden xl:flex flex-1 items-center justify-end gap-0">
-              <div className="flex gap-0 items-center">
+            {/* Right: Theme, Notifications, Profile (10px left via mr-2.5, increased gap) */}
+            <div className="hidden xl:flex shrink-0 items-center justify-end mr-2.5">
+              <div className="flex items-center gap-4">
                 {/* Theme Toggle */}
                 <button
                   type="button"
@@ -295,7 +299,7 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                   )}
                 </button>
 
-                {/* Notifications Dropdown - minimal card design */}
+                {/* Notifications Dropdown - a5d92987 style */}
                 <div
                   className="relative group/menu"
                   ref={notificationsRef}
@@ -314,8 +318,8 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                   </button>
 
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-full max-w-sm sm:w-[384px] bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark overflow-hidden z-[101]">
-                      <div className="px-6 py-5 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-card-light dark:bg-card-dark">
+                    <div className="absolute right-0 mt-2 w-full max-w-sm sm:w-[384px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.05),0_10px_10px_-5px_rgba(0,0,0,0.01)] dark:shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[101]">
+                      <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-slate-900">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
                           Notifications
                         </h2>
@@ -324,7 +328,7 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                             NOTIFICATIONS.length}
                         </span>
                       </div>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[480px] overflow-y-auto">
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[480px] overflow-y-auto custom-scrollbar">
                         {NOTIFICATIONS.map((item) => (
                           <Link
                             key={item.id}

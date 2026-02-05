@@ -1,36 +1,67 @@
-"use client";
+'use client'
 
-import { useApp } from "@/app/providers";
-import { Brain, MessageCircle } from "lucide-react";
-import { useState } from "react";
-import AdvancedChatbot from "./AdvancedChatbot";
+import { useState, useId } from 'react'
+import AdvancedChatbot from './AdvancedChatbot'
+import AISparkleIcon from './AISparkleIcon'
+import { useApp } from '@/app/providers'
 
 export default function AdvancedChatButton() {
-  const [isOpen, setIsOpen] = useState(false);
-  const { user } = useApp();
+  const [isOpen, setIsOpen] = useState(false)
+  const { user } = useApp()
+  const gradientId = useId().replace(/:/g, '_')
 
-  // Only show chat button if user is authenticated
   if (!user) {
-    return null;
+    return null
   }
 
   return (
     <>
-      {/* Floating Chat Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-40 group"
-        aria-label="Open Advanced AI Assistant"
-      >
-        <MessageCircle className="w-6 h-6" />
-        <div className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 text-xs px-2 py-1 rounded-full font-bold flex items-center space-x-1">
-          <Brain className="w-3 h-3" />
-          <span>AI</span>
-        </div>
-      </button>
+      {/* Floating AI Assistant Button - Sparkle design with glow */}
+      <div className="fixed bottom-6 right-6 z-40 group cursor-pointer animate-float">
+        {/* Outer glow - stronger on hover */}
+        <div
+          className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 blur-xl opacity-40 transition-opacity duration-500 group-hover:opacity-60"
+          aria-hidden
+        />
+        <button
+          onClick={() => setIsOpen(true)}
+          className="relative flex items-center gap-2 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 p-3 shadow-glow ring-1 ring-white/20 transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+          aria-label="Open AI Assistant"
+        >
+          {/* Dotted overlay for texture */}
+          <div
+            className="absolute inset-0 rounded-2xl opacity-10"
+            style={{
+              backgroundImage: 'radial-gradient(white 1px, transparent 1px)',
+              backgroundSize: '8px 8px',
+            }}
+            aria-hidden
+          />
+          <div className="relative z-10 flex items-center gap-2 text-white drop-shadow-md">
+            <AISparkleIcon
+              size={28}
+              variant="full"
+              gradientId={gradientId}
+              useCurrentColor
+              className="shrink-0"
+            />
+            <div className="hidden flex-col sm:flex">
+              <span className="text-left text-sm font-semibold leading-none">
+                Ask AI
+              </span>
+              <span className="mt-0.5 text-[10px] font-medium text-white/80">
+                Ready to help
+              </span>
+            </div>
+          </div>
+          {/* Keyboard hint badge */}
+          <span className="absolute -top-1.5 -right-1.5 rounded border border-white/20 bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-gray-700 shadow-sm dark:bg-gray-800 dark:text-gray-200">
+            ⌘K
+          </span>
+        </button>
+      </div>
 
-      {/* Advanced Chatbot Modal */}
       <AdvancedChatbot isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>
-  );
+  )
 }

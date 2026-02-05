@@ -219,47 +219,47 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
     <>
       <header
         ref={headerRef}
-        className={`sticky top-0 z-[100] transition-all ${
+        className={`sticky top-0 z-[100] transition-all border-b border-gray-200 dark:border-gray-700 ${
           isSticky
             ? "bg-white dark:bg-dark shadow-md dark:shadow-dark-md"
             : "bg-white dark:bg-dark"
         }`}
       >
-        <nav className="px-2 dark:border-gray-700 rounded-none bg-white dark:bg-dark py-4 sm:px-6">
+        <nav className="px-2 sm:px-6 py-3 rounded-none bg-white dark:bg-dark border-0">
           <div className="mx-auto flex flex-nowrap items-center justify-between">
             {/* Mobile Menu Toggle */}
             <span
               onClick={toggleSidebar}
-              className="px-[15px] hover:text-primary dark:hover:text-primary text-link dark:text-darklink relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent rounded-full xl:hidden flex justify-center items-center cursor-pointer"
+              className="px-3 py-2 text-sm font-medium text-link dark:text-darklink hover:text-primary dark:hover:text-primary relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent rounded-full xl:hidden flex justify-center items-center cursor-pointer"
             >
-              <Icon icon="tabler:menu-2" height={20} />
+              <Icon icon="tabler:menu-2" width={20} height={20} />
             </span>
 
             {/* Desktop: sidebar toggle + Search, Apps, Calendar, Campaigns, Unibox (left side) */}
             <div className="xl:!flex !hidden items-center gap-0 relative">
               <span
                 onClick={toggleSidebar}
-                className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer relative"
+                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer relative"
               >
-                <Icon icon="tabler:menu-2" height={20} />
+                <Icon icon="tabler:menu-2" width={20} height={20} />
               </span>
               <Search />
               <AppLinks />
               <Link
                 href="/dashboard/crm/calendar"
-                className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
+                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center"
               >
                 Calendar
               </Link>
               <Link
                 href="/dashboard/email/campaigns"
-                className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
+                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center"
               >
                 Campaigns
               </Link>
               <Link
                 href="/dashboard/unibox"
-                className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
+                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center"
               >
                 Unibox
               </Link>
@@ -284,17 +284,17 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                 {/* Theme Toggle */}
                 {theme === "light" ? (
                   <div
-                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group relative"
+                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer group relative"
                     onClick={toggleMode}
                   >
-                    <Icon icon="tabler:moon" width="20" />
+                    <Icon icon="tabler:moon" width={20} height={20} />
                   </div>
                 ) : (
                   <div
-                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group relative"
+                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer group relative"
                     onClick={toggleMode}
                   >
-                    <Icon icon="solar:sun-bold-duotone" width="20" />
+                    <Icon icon="solar:sun-bold-duotone" width={20} height={20} />
                   </div>
                 )}
 
@@ -310,11 +310,11 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                       setShowProfileMenu(false);
                     }}
                     aria-label="Notifications"
-                    className="text-sm text-link dark:text-darklink dark:hover:text-primary h-10 hover:text-primary flex items-center justify-center cursor-pointer"
+                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary h-9 hover:text-primary flex items-center justify-center cursor-pointer"
                   >
                     <div className="relative">
                       <span className="relative after:absolute after:w-10 after:h-10 after:rounded-full hover:text-primary after:-top-1/2 hover:after:bg-lightprimary text-link dark:text-darklink rounded-full flex justify-center items-center cursor-pointer group-hover/menu:after:bg-lightprimary group-hover/menu:!text-primary">
-                        <Icon icon="tabler:bell-ringing" height={20} />
+                        <Icon icon="tabler:bell-ringing" width={20} height={20} />
                       </span>
                       <span className="rounded-full absolute -end-[6px] -top-[5px] text-[10px] h-2 w-2 bg-primary flex justify-center items-center" />
                     </div>
@@ -425,7 +425,7 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                     aria-expanded={showProfileMenu ? "true" : "false"}
                     aria-haspopup="true"
                     aria-label="Open profile menu"
-                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-2 sm:px-4 h-10 hover:text-primary flex items-center justify-center gap-2 cursor-pointer group-hover/menu:text-primary mt-[10px]"
+                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-2 sm:px-4 h-9 hover:text-primary flex items-center justify-center gap-2 cursor-pointer group-hover/menu:text-primary"
                   >
                     <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm ring-2 ring-gray-100 dark:ring-slate-700">
                       {profile?.name?.charAt(0).toUpperCase() || "U"}
@@ -597,10 +597,10 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
 
             {/* Mobile Toggle Icon */}
             <span
-              className="h-10 w-10 flex xl:hidden hover:text-primary hover:bg-lightprimary rounded-full justify-center items-center cursor-pointer"
+              className="h-9 w-9 flex xl:hidden text-link dark:text-darklink hover:text-primary hover:bg-lightprimary rounded-full justify-center items-center cursor-pointer"
               onClick={handleMobileMenu}
             >
-              <Icon icon="tabler:dots" height={21} />
+              <Icon icon="tabler:dots" width={20} height={20} />
             </span>
           </div>
         </nav>

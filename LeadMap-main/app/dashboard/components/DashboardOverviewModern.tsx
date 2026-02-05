@@ -2,6 +2,7 @@
 
 import { useApp } from "@/app/providers";
 import {
+  ArrowRight,
   ArrowUp,
   Bookmark,
   Download,
@@ -138,7 +139,6 @@ export default function DashboardOverviewModern({
   const userName = profile?.name ?? "Alex Rivera";
   const activeListingsCount = activeListings;
   const prospectInteractions = totalProspects;
-  const portfolioSummary = `You have ${activeListingsCount} active listings pending review and ${prospectInteractions} new prospect interactions today. Your portfolio value has increased by 2.4%.`;
 
   if (loading) {
     return (
@@ -155,42 +155,74 @@ export default function DashboardOverviewModern({
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/5 via-secondary/5 to-white dark:from-primary/10 dark:via-secondary/10 dark:to-gray-800 border border-primary/10 shadow-sm p-6 sm:p-10 dark:border-primary/20">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome Back, {userName}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 max-w-xl">
-              {portfolioSummary}
+      {/* Welcome Banner - SaaS style */}
+      <div className="dashboard-welcome-card relative overflow-hidden rounded-[2rem] border border-gray-200 dark:border-gray-700 shadow-[0_20px_50px_-12px_rgba(93,135,255,0.12)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] p-10 sm:p-14 lg:p-16 transition-all duration-500">
+        <div className="organic-wave" aria-hidden="true" />
+        <div className="absolute -right-20 -top-20 w-80 h-80 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-blue-100/30 dark:bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-start gap-10">
+          <div className="space-y-6 max-w-3xl">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
+              Welcome Back,{" "}
+              <span className="text-primary">{userName}</span>
+            </h2>
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 font-normal leading-relaxed">
+              Here&apos;s what&apos;s happening with your projects today. You
+              have{" "}
+              <span className="font-semibold text-gray-900 dark:text-white border-b-2 border-primary/20">
+                {activeListingsCount} Active Listings
+              </span>
+              ,{" "}
+              <span className="font-semibold text-gray-900 dark:text-white border-b-2 border-primary/20">
+                {prospectInteractions} prospect interactions
+              </span>
+              , and{" "}
+              <span className="font-semibold text-gray-900 dark:text-white border-b-2 border-primary/20">
+                {avgPropertyValue} in Average Deal Value
+              </span>
+              .
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              href="/dashboard/prospect-enrich"
+              className="group inline-flex items-center justify-center px-10 py-4 bg-primary hover:bg-primary-hover text-white text-base font-semibold rounded-full shadow-lg shadow-primary/25 transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 focus:ring-primary/20"
+            >
+              View Listings
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
             <button
               type="button"
               onClick={onRefresh}
-              className="inline-flex items-center justify-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+              className="hidden sm:flex items-center px-4 py-2 bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm rounded-full border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-slate-800/70 transition-colors"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 mr-2" />
               Export Report
             </button>
-            <Link
-              href="/dashboard/prospect-enrich"
-              className="inline-flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              New Listing
-            </Link>
+            <div className="hidden sm:flex items-center px-4 py-2 bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm rounded-full border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-400">
+              <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse" />
+              Live Update
+            </div>
           </div>
         </div>
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-50 pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='1' fill='rgba(99,102,241,0.08)'/%3E%3C/svg%3E")`,
-          }}
-        />
+          className="absolute top-1/2 -right-4 translate-y-[-50%] opacity-[0.04] dark:opacity-[0.06] pointer-events-none select-none"
+          aria-hidden="true"
+        >
+          <svg
+            height="400"
+            viewBox="0 0 200 200"
+            width="400"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M44.7,-76.4C58.8,-69.2,71.8,-59.1,79.6,-45.8C87.4,-32.6,90,-16.3,88.5,-0.9C86.9,14.5,81.2,29,72.4,41.9C63.6,54.8,51.7,66.1,38,72.9C24.3,79.7,8.7,82,-5.8,82.1C-20.3,82.2,-33.7,80.1,-46.8,73.1C-59.9,66.1,-72.7,54.3,-79.7,40.1C-86.7,25.9,-87.9,9.4,-85.4,-6.2C-82.9,-21.8,-76.6,-36.5,-67.1,-48.8C-57.5,-61.2,-44.6,-71.2,-31,-78.6C-17.4,-86,17.4,-83.6,44.7,-76.4Z"
+              fill="currentColor"
+              className="text-primary"
+              transform="translate(100 100)"
+            />
+          </svg>
+        </div>
       </div>
 
       {error && (

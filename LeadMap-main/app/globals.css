@@ -666,3 +666,29 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Dashboard Welcome Card - SaaS style */
+.dashboard-welcome-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(93, 135, 255, 0.04) 0%, #ffffff 50%, #f8fafc 100%);
+  transition: all 0.5s ease;
+}
+.dark .dashboard-welcome-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+.dashboard-welcome-card .organic-wave {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0.6;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 100% 0%, rgba(93, 135, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 0% 100%, rgba(241, 245, 249, 0.8) 0%, transparent 60%);
+}
+.dark .dashboard-welcome-card .organic-wave {
+  background-image: radial-gradient(circle at 100% 0%, rgba(93, 135, 255, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 0% 100%, rgba(30, 41, 59, 0.8) 0%, transparent 60%);
+}

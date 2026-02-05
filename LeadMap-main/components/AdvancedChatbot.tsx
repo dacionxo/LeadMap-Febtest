@@ -23,7 +23,7 @@ export default function AdvancedChatbot({
     {
       id: "1",
       content:
-        "👋 Hey there! I'm LeadMap Assistant, your go-to helper for everything about the platform. I can answer questions about features, pricing, how to use tools, lead generation strategies, and more. What would you like to know?",
+        "👋 Hey there! I'm NextDeal Assistant, your go-to helper for everything about the platform. I can answer questions about features, pricing, how to use tools, lead generation strategies, and more. What would you like to know?",
       role: "assistant",
       timestamp: new Date(),
     },
@@ -228,7 +228,7 @@ export default function AdvancedChatbot({
               placeholder={
                 isThinking
                   ? "Thinking..."
-                  : "Ask about LeadMap features, pricing, or how to use the platform..."
+                  : "Ask about NextDeal features, pricing, or how to use the platform..."
               }
               className="flex-1 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-all duration-200"
             />

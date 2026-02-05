@@ -39,9 +39,9 @@ const Search = () => {
     <>
       <button
         onClick={() => setOpenModal(true)}
-        className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer"
+        className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer"
       >
-        <Icon icon="solar:magnifer-line-duotone" height={20} />
+        <Icon icon="solar:magnifer-line-duotone" width={20} height={20} />
       </button>
 
       {/* Modal */}

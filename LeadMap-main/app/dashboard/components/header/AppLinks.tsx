@@ -61,16 +61,16 @@ export default function AppLinks() {
     <div className="dropdown-wrapper group">
       <button
         type="button"
-        className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center xl:flex hidden"
+        className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center xl:flex hidden"
         aria-label="Open apps menu"
         aria-haspopup="true"
       >
         <span>Apps</span>
-        <Icon icon="tabler:chevron-down" height={15} className="shrink-0 ml-1" />
+        <Icon icon="tabler:chevron-down" width={15} height={15} className="shrink-0 ml-1" />
       </button>
 
-      <span className="xl:hidden text-link dark:text-darklink flex rounded-full px-[15px] pb-0.5 justify-center items-center cursor-pointer group-hover:text-primary">
-        <Icon icon="tabler:apps" className="shrink-0" height={20} />
+      <span className="xl:hidden text-sm font-medium text-link dark:text-darklink flex rounded-full px-3 py-2 justify-center items-center cursor-pointer group-hover:text-primary">
+        <Icon icon="tabler:apps" className="shrink-0" width={20} height={20} />
       </span>
 
       <div className="xl:invisible xl:group-hover:visible visible absolute top-[28px] right-0 xl:right-auto xl:left-0 z-[101] w-screen xl:w-auto xl:min-w-[320px] max-w-[400px] dropdown shadow-lg bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden dark:shadow-dark-md">

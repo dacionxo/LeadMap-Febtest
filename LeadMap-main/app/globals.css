@@ -358,7 +358,7 @@
   }
 
   .form-control.trans-input input {
-    @apply border border-ld bg-transparent dark:bg-transparent w-full ps-11 py-2 text-sm placeholder:text-black/50 dark:placeholder:text-lightgray rounded-xs;
+    @apply border border-ld bg-transparent dark:bg-transparent w-full ps-11 py-2 text-sm placeholder:text-black/50 dark:placeholder:text-lightgray rounded-sm;
   }
 
   .form-control.trans-input input:focus {

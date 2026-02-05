@@ -831,6 +831,18 @@
     0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
 
+/* Pipeline Funnel bars - same border logic as welcome card */
+.funnel-bar-welcome {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 1);
+  box-shadow: 0 20px 50px -12px rgba(93, 135, 255, 0.12);
+}
+.dark .funnel-bar-welcome {
+  border: 1px solid rgba(55, 65, 81, 1);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.3);
+}
+
 @keyframes sparkline-draw {
   from {
     stroke-dashoffset: 1000;

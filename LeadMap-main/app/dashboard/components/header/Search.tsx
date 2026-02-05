@@ -1,47 +1,53 @@
-'use client'
+"use client";
 
-import { useState, useRef, useEffect } from 'react'
-import { Icon } from '@iconify/react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Icon } from "@iconify/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const Search = () => {
-  const [openModal, setOpenModal] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const router = useRouter()
-  const modalRef = useRef<HTMLDivElement>(null)
+  const [openModal, setOpenModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        setOpenModal(false)
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        setOpenModal(false);
       }
-    }
+    };
 
     if (openModal) {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [openModal])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openModal]);
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/dashboard/prospect-enrich?search=${encodeURIComponent(searchQuery)}`)
-      setOpenModal(false)
+      router.push(
+        `/dashboard/prospect-enrich?search=${encodeURIComponent(searchQuery)}`
+      );
+      setOpenModal(false);
     }
-  }
+  };
 
   return (
     <>
       <button
         onClick={() => setOpenModal(true)}
-        className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer"
+        aria-label="Search"
+        className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center cursor-pointer transition-colors"
       >
-        <Icon icon="solar:magnifer-line-duotone" width={20} height={20} />
+        <Icon icon="material-symbols:search-rounded" className="w-5 h-5" />
       </button>
 
       {/* Modal */}
@@ -52,7 +58,7 @@ const Search = () => {
             className="fixed inset-0 bg-black/50 z-[60]"
             onClick={() => setOpenModal(false)}
           />
-          
+
           {/* Modal Content */}
           <div
             ref={modalRef}
@@ -77,7 +83,9 @@ const Search = () => {
             </div>
 
             <div className="flex-1 overflow-auto p-6 pt-0 max-h-72">
-              <h5 className="text-lg pt-5 mb-4 text-link dark:text-darklink">Quick Actions</h5>
+              <h5 className="text-lg pt-5 mb-4 text-link dark:text-darklink">
+                Quick Actions
+              </h5>
               <div className="space-y-2">
                 <Link
                   href="/dashboard/prospect-enrich"
@@ -121,7 +129,7 @@ const Search = () => {
         </>
       )}
     </>
-  )
-}
+  );
+};
 
-export default Search
+export default Search;

@@ -1,76 +1,80 @@
-'use client'
+"use client";
 
-import { Icon } from '@iconify/react'
-import Link from 'next/link'
+import { Icon } from "@iconify/react";
+import Link from "next/link";
 
 interface AppTile {
-  href: string
-  label: string
-  icon: string
-  bgClass: string
-  iconClass: string
+  href: string;
+  label: string;
+  icon: string;
+  bgClass: string;
+  iconClass: string;
 }
 
 const APP_TILES: AppTile[] = [
   {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: 'solar:widget-2-linear',
-    bgClass: 'bg-purple-100 dark:bg-purple-900/30',
-    iconClass: 'text-purple-600 dark:text-purple-400',
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: "solar:widget-2-linear",
+    bgClass: "bg-purple-100 dark:bg-purple-900/30",
+    iconClass: "text-purple-600 dark:text-purple-400",
   },
   {
-    href: '/dashboard/crm/calendar',
-    label: 'Calendar',
-    icon: 'solar:calendar-linear',
-    bgClass: 'bg-green-100 dark:bg-green-900/30',
-    iconClass: 'text-green-600 dark:text-green-400',
+    href: "/dashboard/crm/calendar",
+    label: "Calendar",
+    icon: "solar:calendar-linear",
+    bgClass: "bg-green-100 dark:bg-green-900/30",
+    iconClass: "text-green-600 dark:text-green-400",
   },
   {
-    href: '/dashboard/unibox',
-    label: 'Unibox',
-    icon: 'solar:letter-linear',
-    bgClass: 'bg-orange-100 dark:bg-orange-900/30',
-    iconClass: 'text-orange-600 dark:text-orange-400',
+    href: "/dashboard/unibox",
+    label: "Unibox",
+    icon: "solar:letter-linear",
+    bgClass: "bg-orange-100 dark:bg-orange-900/30",
+    iconClass: "text-orange-600 dark:text-orange-400",
   },
   {
-    href: '/dashboard/map',
-    label: 'Map View',
-    icon: 'solar:map-point-linear',
-    bgClass: 'bg-red-100 dark:bg-red-900/30',
-    iconClass: 'text-red-600 dark:text-red-400',
+    href: "/dashboard/map",
+    label: "Map View",
+    icon: "solar:map-point-linear",
+    bgClass: "bg-red-100 dark:bg-red-900/30",
+    iconClass: "text-red-600 dark:text-red-400",
   },
   {
-    href: '/dashboard/crm/deals',
-    label: 'Deals',
-    icon: 'solar:card-linear',
-    bgClass: 'bg-purple-100 dark:bg-purple-900/30',
-    iconClass: 'text-purple-600 dark:text-purple-400',
+    href: "/dashboard/crm/deals",
+    label: "Deals",
+    icon: "solar:card-linear",
+    bgClass: "bg-purple-100 dark:bg-purple-900/30",
+    iconClass: "text-purple-600 dark:text-purple-400",
   },
   {
-    href: '/dashboard',
-    label: 'More',
-    icon: 'solar:add-circle-linear',
-    bgClass: 'bg-gray-100 dark:bg-gray-700/50',
-    iconClass: 'text-gray-600 dark:text-gray-400',
+    href: "/dashboard",
+    label: "More",
+    icon: "solar:add-circle-linear",
+    bgClass: "bg-gray-100 dark:bg-gray-700/50",
+    iconClass: "text-gray-600 dark:text-gray-400",
   },
-]
+];
 
 export default function AppLinks() {
   return (
     <div className="dropdown-wrapper group">
       <button
         type="button"
-        className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center xl:flex hidden"
+        className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center xl:flex hidden transition-colors"
         aria-label="Open apps menu"
         aria-haspopup="true"
       >
         <span>Apps</span>
-        <Icon icon="tabler:chevron-down" width={15} height={15} className="shrink-0 ml-1" />
+        <Icon
+          icon="material-symbols:expand-more-rounded"
+          height={20}
+          className="shrink-0 ml-1"
+        />
       </button>
 
-      <span className="xl:hidden text-sm font-medium text-link dark:text-darklink flex rounded-full px-3 py-2 justify-center items-center cursor-pointer group-hover:text-primary">
-        <Icon icon="tabler:apps" className="shrink-0" width={20} height={20} />
+      <span className="xl:hidden text-text-secondary-light dark:text-text-secondary-dark flex rounded-full p-2 justify-center items-center cursor-pointer hover:text-primary hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+        <Icon icon="material-symbols:apps-rounded" className="shrink-0 w-5 h-5" />
       </span>
 
       <div className="xl:invisible xl:group-hover:visible visible absolute top-[28px] right-0 xl:right-auto xl:left-0 z-[101] w-screen xl:w-auto xl:min-w-[320px] max-w-[400px] dropdown shadow-lg bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden dark:shadow-dark-md">
@@ -114,12 +118,15 @@ export default function AppLinks() {
               href="/dashboard/help"
               className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
             >
-              <Icon icon="solar:question-circle-linear" className="h-5 w-5 shrink-0" />
+              <Icon
+                icon="solar:question-circle-linear"
+                className="h-5 w-5 shrink-0"
+              />
               Frequently asked questions
             </Link>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

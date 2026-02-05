@@ -219,47 +219,47 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
     <>
       <header
         ref={headerRef}
-        className={`sticky top-0 z-[100] transition-all border-b border-gray-200 dark:border-gray-700 ${
+        className={`sticky top-0 z-[100] font-nav-display transition-all ${
           isSticky
-            ? "bg-white dark:bg-dark shadow-md dark:shadow-dark-md"
-            : "bg-white dark:bg-dark"
+            ? "bg-card-light dark:bg-card-dark border-b border-border-light dark:border-border-dark shadow-soft"
+            : "bg-card-light dark:bg-card-dark border-b border-border-light dark:border-border-dark"
         }`}
       >
-        <nav className="px-2 sm:px-6 py-3 rounded-none bg-white dark:bg-dark border-0">
-          <div className="mx-auto flex flex-nowrap items-center justify-between">
+        <nav className="h-16 px-4 sm:px-6 lg:px-8 w-full">
+          <div className="mx-auto flex flex-nowrap items-center justify-between h-full">
             {/* Mobile Menu Toggle */}
             <span
               onClick={toggleSidebar}
-              className="px-3 py-2 text-sm font-medium text-link dark:text-darklink hover:text-primary dark:hover:text-primary relative after:absolute after:w-10 after:h-10 after:rounded-full hover:after:bg-lightprimary after:bg-transparent rounded-full xl:hidden flex justify-center items-center cursor-pointer"
+              className="p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-primary transition-colors xl:hidden flex justify-center items-center cursor-pointer"
             >
-              <Icon icon="tabler:menu-2" width={20} height={20} />
+              <Icon icon="material-symbols:menu-rounded" className="w-5 h-5" />
             </span>
 
             {/* Desktop: sidebar toggle + Search, Apps, Calendar, Campaigns, Unibox (left side) */}
             <div className="xl:!flex !hidden items-center gap-0 relative">
               <span
                 onClick={toggleSidebar}
-                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer relative"
+                className="p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-primary flex items-center justify-center cursor-pointer transition-colors"
               >
-                <Icon icon="tabler:menu-2" width={20} height={20} />
+                <Icon icon="material-symbols:menu-rounded" className="w-5 h-5" />
               </span>
               <Search />
               <AppLinks />
               <Link
                 href="/dashboard/crm/calendar"
-                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center"
+                className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center transition-colors"
               >
                 Calendar
               </Link>
               <Link
                 href="/dashboard/email/campaigns"
-                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center"
+                className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center transition-colors"
               >
                 Campaigns
               </Link>
               <Link
                 href="/dashboard/unibox"
-                className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center"
+                className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary px-4 h-10 flex items-center justify-center transition-colors"
               >
                 Unibox
               </Link>
@@ -282,25 +282,22 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
             <div className="hidden xl:flex flex-1 items-center justify-end gap-0">
               <div className="flex gap-0 items-center">
                 {/* Theme Toggle */}
-                {theme === "light" ? (
-                  <div
-                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer group relative"
-                    onClick={toggleMode}
-                  >
-                    <Icon icon="tabler:moon" width={20} height={20} />
-                  </div>
-                ) : (
-                  <div
-                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-4 h-9 hover:text-primary flex items-center justify-center cursor-pointer group relative"
-                    onClick={toggleMode}
-                  >
-                    <Icon icon="solar:sun-bold-duotone" width={20} height={20} />
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={toggleMode}
+                  className="p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  aria-label="Toggle theme"
+                >
+                  {theme === "light" ? (
+                    <Icon icon="material-symbols:dark-mode-rounded" className="w-5 h-5" />
+                  ) : (
+                    <Icon icon="material-symbols:light-mode-rounded" className="w-5 h-5" />
+                  )}
+                </button>
 
                 {/* Notifications Dropdown - minimal card design */}
                 <div
-                  className="relative group/menu px-4"
+                  className="relative group/menu"
                   ref={notificationsRef}
                 >
                   <button
@@ -310,19 +307,15 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                       setShowProfileMenu(false);
                     }}
                     aria-label="Notifications"
-                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary h-9 hover:text-primary flex items-center justify-center cursor-pointer"
+                    className="relative p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                   >
-                    <div className="relative">
-                      <span className="relative after:absolute after:w-10 after:h-10 after:rounded-full hover:text-primary after:-top-1/2 hover:after:bg-lightprimary text-link dark:text-darklink rounded-full flex justify-center items-center cursor-pointer group-hover/menu:after:bg-lightprimary group-hover/menu:!text-primary">
-                        <Icon icon="tabler:bell-ringing" width={20} height={20} />
-                      </span>
-                      <span className="rounded-full absolute -end-[6px] -top-[5px] text-[10px] h-2 w-2 bg-primary flex justify-center items-center" />
-                    </div>
+                    <Icon icon="material-symbols:notifications-rounded" className="w-5 h-5" />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
                   </button>
 
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-full max-w-sm sm:w-[384px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.05),0_10px_10px_-5px_rgba(0,0,0,0.01)] dark:shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[101]">
-                      <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-slate-900">
+                    <div className="absolute right-0 mt-2 w-full max-w-sm sm:w-[384px] bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark overflow-hidden z-[101]">
+                      <div className="px-6 py-5 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-card-light dark:bg-card-dark">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
                           Notifications
                         </h2>
@@ -425,20 +418,22 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                     aria-expanded={showProfileMenu ? "true" : "false"}
                     aria-haspopup="true"
                     aria-label="Open profile menu"
-                    className="text-sm font-medium text-link dark:text-darklink dark:hover:text-primary px-2 sm:px-4 h-9 hover:text-primary flex items-center justify-center gap-2 cursor-pointer group-hover/menu:text-primary"
+                    className="flex items-center gap-3 focus:outline-none p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                   >
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm ring-2 ring-gray-100 dark:ring-slate-700">
-                      {profile?.name?.charAt(0).toUpperCase() || "U"}
+                    <div className="relative">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm ring-2 ring-gray-100 dark:ring-slate-700">
+                        {profile?.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
                       <span
                         className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white dark:ring-slate-800"
                         aria-hidden
                       />
                     </div>
                     <div className="hidden md:block text-left min-w-0">
-                      <p className="text-sm font-semibold text-link dark:text-white truncate">
+                      <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">
                         {profile?.name || "User"}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">
                         {profile?.plan_tier
                           ? profile.plan_tier.charAt(0).toUpperCase() +
                             profile.plan_tier.slice(1).toLowerCase() +
@@ -446,10 +441,14 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                           : "Member"}
                       </p>
                     </div>
+                    <Icon
+                      icon="material-symbols:expand-more-rounded"
+                      className={`w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark transition-transform duration-200 ${showProfileMenu ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-3 w-[321px] origin-top-right rounded-2xl bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-black/5 border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
+                    <div className="absolute right-0 mt-3 w-[321px] origin-top-right rounded-2xl bg-card-light dark:bg-card-dark shadow-2xl ring-1 ring-black/5 border border-border-light dark:border-border-dark overflow-hidden z-50">
                       <div className="p-6 border-b border-gray-200 dark:border-slate-700 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-800/50">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-4">
@@ -597,10 +596,10 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
 
             {/* Mobile Toggle Icon */}
             <span
-              className="h-9 w-9 flex xl:hidden text-link dark:text-darklink hover:text-primary hover:bg-lightprimary rounded-full justify-center items-center cursor-pointer"
+              className="p-2 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-slate-700 xl:hidden flex justify-center items-center cursor-pointer transition-colors"
               onClick={handleMobileMenu}
             >
-              <Icon icon="tabler:dots" width={20} height={20} />
+              <Icon icon="material-symbols:more-horiz-rounded" className="w-5 h-5" />
             </span>
           </div>
         </nav>

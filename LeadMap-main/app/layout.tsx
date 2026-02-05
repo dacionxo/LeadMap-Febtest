@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Montserrat, Lato, DM_Sans } from 'next/font/google'
+import { Inter, Montserrat, Lato, DM_Sans, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import AdvancedChatButton from '@/components/AdvancedChatButton'
@@ -33,6 +33,13 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
 })
 
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-plus-jakarta',
+  weight: ['400', '500', '600', '700'],
+})
+
 export const metadata: Metadata = {
   title: 'NextDeal - Real Estate Lead Generation',
   description: 'Find undervalued property leads with our subscription-based platform for real estate agents and brokers.',
@@ -50,7 +57,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${montserrat.variable} ${lato.variable} ${dmSans.variable} ${dmSans.className}`}>
+      <body className={`${inter.variable} ${montserrat.variable} ${lato.variable} ${dmSans.variable} ${plusJakarta.variable} ${dmSans.className}`}>
         <GoogleMapsScript />
         <ThemeProvider>
           <Providers>

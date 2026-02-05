@@ -16,6 +16,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ["var(--font-dm-sans)", "var(--font-inter)", "sans-serif"],
+        "nav-display": ["var(--font-plus-jakarta)", "Plus Jakarta Sans", "sans-serif"],
         heading: ["var(--font-montserrat)", "sans-serif"],
         ui: ["var(--font-lato)", "sans-serif"],
         montserrat: ["var(--font-montserrat)", "sans-serif"],
@@ -186,6 +187,15 @@ module.exports = {
         bgmuted: "#eff4fa",
         lightemphasis: "#dfe5ef",
         bordergray: "#e5e5e5",
+        // Nav bar styling (reference palette)
+        "card-light": "#FFFFFF",
+        "card-dark": "#1E293B",
+        "border-light": "#E5E7EB",
+        "border-dark": "#334155",
+        "text-primary-light": "#111827",
+        "text-primary-dark": "#F8FAFC",
+        "text-secondary-light": "#6B7280",
+        "text-secondary-dark": "#94A3B8",
       },
       fontSize: {
         "heading-1": ["60px", "72px"],
@@ -211,6 +221,7 @@ module.exports = {
         "btn-shadow": "rgba(0, 0, 0, 0.05) 0 9px 17.5px",
         1: "0px 1px 2px 0px rgba(84, 87, 118, 0.12)",
         card: "0px 1px 2px 0px rgba(0, 0, 0, 0.12)",
+        soft: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
       },
     },
   },

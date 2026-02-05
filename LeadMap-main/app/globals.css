@@ -326,7 +326,7 @@
   }
 
   .input-group input:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 dark:ring-transparent ring-transparent;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 dark:ring-transparent ring-transparent;
   }
 
   .border-less-input input {
@@ -354,7 +354,7 @@
   }
 
   .form-control input:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control.trans-input input {
@@ -362,7 +362,7 @@
   }
 
   .form-control.trans-input input:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control-group-left input {
@@ -386,7 +386,7 @@
   }
 
   .form-control-rounded input:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control-textarea {
@@ -394,7 +394,7 @@
   }
 
   .form-control-textarea:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control-input {
@@ -402,7 +402,7 @@
   }
 
   .form-control-input:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-rounded-md input {
@@ -410,7 +410,7 @@
   }
 
   .form-rounded-md input:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-rounded input {
@@ -530,11 +530,11 @@
   }
 
   .ui-form-control:focus {
-    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent dark:ring-transparent dark:focus:ring-0;
+    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent dark:ring-transparent dark:focus:ring-0;
   }
 
   .ui-checkbox {
-    @apply !h-[18px] !w-[18px] border !border-border !bg-white dark:!bg-transparent data-[checked]:!bg-primary dark:data-[checked]:!bg-primary rounded cursor-pointer focus:ring-0 focus:ring-offset-0 outline-hidden;
+    @apply !h-[18px] !w-[18px] border !border-border !bg-white dark:!bg-transparent data-[checked]:!bg-primary dark:data-[checked]:!bg-primary rounded cursor-pointer focus:ring-0 focus:ring-offset-0 outline-none;
   }
 }
 

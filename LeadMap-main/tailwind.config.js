@@ -196,6 +196,9 @@ module.exports = {
         "text-primary-dark": "#F8FAFC",
         "text-secondary-light": "#6B7280",
         "text-secondary-dark": "#94A3B8",
+        /* SaaS Welcome Card teal accent */
+        "saas-teal": "#06B6D4",
+        "saas-teal-hover": "#0891B2",
       },
       fontSize: {
         "heading-1": ["60px", "72px"],

@@ -3,20 +3,20 @@
 @tailwind utilities;
 
 /* Import Tailwindadmin CSS structure */
-@import './css/layouts/container.css';
-@import './css/layouts/sidebar.css';
-@import './css/layouts/horizontal.css';
-@import './css/layouts/header.css';
-@import './css/pages/dashboards.css';
-@import './css/pages/widgets.css';
-@import './css/pages/landingpage.css';
-@import './css/pages/frontend-pages.css';
-@import './css/pages/auth.css';
-@import './css/pages/app.css';
-@import './css/theme/dark.css';
-@import './css/override/reboot.css';
-@import './css/layouts/rtl.css';
-@import './css/theme/default-theme.css';
+@import "./css/layouts/container.css";
+@import "./css/layouts/sidebar.css";
+@import "./css/layouts/horizontal.css";
+@import "./css/layouts/header.css";
+@import "./css/pages/dashboards.css";
+@import "./css/pages/widgets.css";
+@import "./css/pages/landingpage.css";
+@import "./css/pages/frontend-pages.css";
+@import "./css/pages/auth.css";
+@import "./css/pages/app.css";
+@import "./css/theme/dark.css";
+@import "./css/override/reboot.css";
+@import "./css/layouts/rtl.css";
+@import "./css/theme/default-theme.css";
 
 @layer base {
   /* Tailwindadmin CSS Variables - Adapted from @theme inline for Tailwind v3 */
@@ -151,7 +151,12 @@
     --bordergray: var(--border);
 
     /* Lighter/opacity-like versions (using rgba fallback for color-mix) */
-    --lightprimary: rgba(93, 135, 255, 0.12); /* Fallback: color-mix(in oklab, var(--color-primary) 12%, transparent) */
+    --lightprimary: rgba(
+      93,
+      135,
+      255,
+      0.12
+    ); /* Fallback: color-mix(in oklab, var(--color-primary) 12%, transparent) */
     --lightsecondary: rgba(73, 190, 255, 0.12);
     --lightsuccess: rgba(19, 222, 185, 0.12);
     --lightinfo: rgba(135, 84, 236, 0.12);
@@ -167,9 +172,13 @@
     --error-emphasis: rgba(239, 68, 68, 0.8);
 
     /* Shadow variables */
-    --shadow-md: rgb(145 158 171 / 30%) 0px 0px 2px 0px, rgb(145 158 171 / 12%) 0px 12px 24px -4px;
+    --shadow-md:
+      rgb(145 158 171 / 30%) 0px 0px 2px 0px,
+      rgb(145 158 171 / 12%) 0px 12px 24px -4px;
     --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-    --shadow-dark-md: rgba(145, 158, 171, 0.3) 0px 0px 2px 0px, rgba(145, 158, 171, 0.02) 0px 12px 24px -4px;
+    --shadow-dark-md:
+      rgba(145, 158, 171, 0.3) 0px 0px 2px 0px,
+      rgba(145, 158, 171, 0.02) 0px 12px 24px -4px;
     --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     --shadow-btn-shadow: rgba(0, 0, 0, 0.05) 0 9px 17.5px;
 
@@ -192,7 +201,9 @@
     --primary-background-color: #ffffff;
     --primary-background-hover-color: rgba(103, 104, 121, 0.1);
     --brand-color: #0073ea;
-    --font-family: Figtree, Roboto, 'Noto Sans Hebrew', 'Noto Kufi Arabic', 'Noto Sans JP', sans-serif;
+    --font-family:
+      Figtree, Roboto, "Noto Sans Hebrew", "Noto Kufi Arabic", "Noto Sans JP",
+      sans-serif;
     --font-size-10: 14px;
     --font-size-20: 14px;
     --font-line-height-10: 18px;
@@ -315,7 +326,7 @@
   }
 
   .input-group input:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 dark:ring-transparent ring-transparent;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 dark:ring-transparent ring-transparent;
   }
 
   .border-less-input input {
@@ -343,15 +354,15 @@
   }
 
   .form-control input:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control.trans-input input {
-    @apply border border-ld bg-transparent dark:bg-transparent w-full ps-11 py-2 text-sm placeholder:text-black/50 dark:placeholder:text-lightgray rounded-sm;
+    @apply border border-ld bg-transparent dark:bg-transparent w-full ps-11 py-2 text-sm placeholder:text-black/50 dark:placeholder:text-lightgray rounded-xs;
   }
 
   .form-control.trans-input input:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control-group-left input {
@@ -375,7 +386,7 @@
   }
 
   .form-control-rounded input:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control-textarea {
@@ -383,7 +394,7 @@
   }
 
   .form-control-textarea:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-control-input {
@@ -391,7 +402,7 @@
   }
 
   .form-control-input:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-rounded-md input {
@@ -399,7 +410,7 @@
   }
 
   .form-rounded-md input:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent;
   }
 
   .form-rounded input {
@@ -519,11 +530,11 @@
   }
 
   .ui-form-control:focus {
-    @apply border-primary dark:border-primary outline-none shadow-none ring-offset-0 ring-transparent dark:ring-transparent dark:focus:ring-0;
+    @apply border-primary dark:border-primary outline-hidden shadow-none ring-offset-0 ring-transparent dark:ring-transparent dark:focus:ring-0;
   }
 
   .ui-checkbox {
-    @apply !h-[18px] !w-[18px] border !border-border !bg-white dark:!bg-transparent data-[checked]:!bg-primary dark:data-[checked]:!bg-primary rounded cursor-pointer focus:ring-0 focus:ring-offset-0 outline-none;
+    @apply !h-[18px] !w-[18px] border !border-border !bg-white dark:!bg-transparent data-[checked]:!bg-primary dark:data-[checked]:!bg-primary rounded cursor-pointer focus:ring-0 focus:ring-offset-0 outline-hidden;
   }
 }
 
@@ -550,11 +561,11 @@
     @apply text-dark dark:text-white font-semibold;
   }
 
-  input[type='radio']:focus {
+  input[type="radio"]:focus {
     @apply !ring-primary;
   }
 
-  input[type='radio']:checked {
+  input[type="radio"]:checked {
     @apply !bg-primary;
   }
 
@@ -631,23 +642,27 @@
   isolation: isolate;
 }
 
-/* AI Chat widget - custom scrollbar (TailwindAdmin-style) */
-.ai-chat-scroll::-webkit-scrollbar {
-  width: 5px;
+/* AdminOS / Dashboard custom scrollbar and sparkline */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
 }
-.ai-chat-scroll::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-.ai-chat-scroll::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 20px;
 }
-.ai-chat-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
-}
-.dark .ai-chat-scroll::-webkit-scrollbar-thumb {
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #475569;
 }
-.dark .ai-chat-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #64748b;
+.sparkline path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: dash 1.5s ease-in-out forwards;
+}
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
 }

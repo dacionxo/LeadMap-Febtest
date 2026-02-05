@@ -37,13 +37,12 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
       </Suspense>
       <main
         ref={mainRef as any}
-        className={`flex-1 overflow-y-auto relative z-10 dark:bg-dark h-full transition-all duration-300 ${isOpen ? 'ml-[270px]' : 'ml-[75px]'
+        className={`flex-1 overflow-y-auto custom-scrollbar relative z-10 bg-background-light dark:bg-dark h-full transition-all duration-300 ${isOpen ? 'ml-[270px]' : 'ml-[75px]'
           }`}
-        style={{ backgroundColor: '#F6F7FB' }}
       >
         <Header scrollContainerRef={mainRef} />
-        {/* Main Content */}
-        <div className="container relative z-10 py-[30px]">
+        {/* Main Content - AdminOS style: max-w-7xl, consistent padding */}
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-8">
           {mounted && children}
         </div>
       </main>

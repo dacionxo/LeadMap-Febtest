@@ -1,35 +1,62 @@
-"use client";
+'use client'
 
-import { useApp } from "@/app/providers";
-import { useTheme } from "@/components/ThemeProvider";
-import { Icon } from "@iconify/react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
-import { useSidebar } from "./SidebarContext";
-import AppLinks from "./header/AppLinks";
-import MobileHeaderItems from "./header/MobileHeaderItems";
-import Search from "./header/Search";
+import React, { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { Icon } from '@iconify/react'
+import { useApp } from '@/app/providers'
+import { useRouter } from 'next/navigation'
+import { useTheme } from '@/components/ThemeProvider'
+import { useSidebar } from './SidebarContext'
+import Search from './header/Search'
+import AppLinks from './header/AppLinks'
+import MobileHeaderItems from './header/MobileHeaderItems'
 
-interface MessageType {
-  title: string;
-  subtitle: string;
+type NotificationType = 'comment' | 'system' | 'file' | 'warning'
+
+interface NotificationItem {
+  id: string
+  type: NotificationType
+  title: string
+  message: React.ReactNode
+  time: string
+  unread?: boolean
+  attachment?: string
+  projectName?: string
 }
 
-const MessagesLink: MessageType[] = [
+const NOTIFICATIONS: NotificationItem[] = [
   {
-    title: "Welcome to LeadMap!",
-    subtitle: "Get started with your first lead",
+    id: '1',
+    type: 'comment',
+    title: 'Sarah Williams',
+    message: <>commented on your <span className="text-primary font-medium hover:underline">Dashboard Design</span> project.</>,
+    time: '2 min ago',
+    unread: true,
+    projectName: 'Dashboard Design',
   },
   {
-    title: "New feature available",
-    subtitle: "Check out our latest updates",
+    id: '2',
+    type: 'system',
+    title: 'System Update',
+    message: 'Your application has been successfully updated to version 2.4.0.',
+    time: '1 hour ago',
   },
   {
-    title: "Payment received",
-    subtitle: "Your subscription is active",
+    id: '3',
+    type: 'file',
+    title: 'Michael Foster',
+    message: <>attached a file to <span className="font-medium text-gray-700 dark:text-gray-300">Weekly Report</span>.</>,
+    time: '3 hours ago',
+    attachment: 'report_q3_final.pdf',
   },
-];
+  {
+    id: '4',
+    type: 'warning',
+    title: 'Subscription Expiring',
+    message: 'Your Pro plan subscription will expire in 3 days. Renew now to keep features.',
+    time: 'Yesterday',
+  },
+]
 
 type HeaderProps = {
   scrollContainerRef?: React.RefObject<HTMLElement | null>;
@@ -209,24 +236,24 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
 
                 {/* Quick Links - Matching Tailwindadmin */}
                 <Link
-                  href="/dashboard/conversations"
-                  className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
-                >
-                  Chat
-                </Link>
-
-                <Link
-                  href="/dashboard/calendar"
+                  href="/dashboard/crm/calendar"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >
                   Calendar
                 </Link>
 
                 <Link
-                  href="/dashboard/email"
+                  href="/dashboard/email/campaigns"
                   className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
                 >
-                  Email
+                  Campaigns
+                </Link>
+
+                <Link
+                  href="/dashboard/unibox"
+                  className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center"
+                >
+                  Unibox
                 </Link>
               </div>
             </div>
@@ -234,9 +261,9 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
             {/* Mobile Logo */}
             <div className="block xl:hidden">
               <img
-                src="/nextdeal-logo.png"
+                src="/images/logos/nextdeal-logo.png"
                 alt="NextDeal"
-                className="h-6 w-auto"
+                className="h-8 w-auto"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
@@ -264,229 +291,238 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
                   </div>
                 )}
 
-                {/* Messages Dropdown */}
-                <div
-                  className="relative group/menu px-4"
-                  ref={notificationsRef}
-                >
+                {/* Notifications Dropdown - minimal card design */}
+                <div className="relative group/menu px-4" ref={notificationsRef}>
                   <button
+                    type="button"
                     onClick={() => {
-                      setShowNotifications(!showNotifications);
-                      setShowProfileMenu(false);
+                      setShowNotifications(!showNotifications)
+                      setShowProfileMenu(false)
                     }}
+                    aria-label="Notifications"
                     className="text-sm text-link dark:text-darklink dark:hover:text-primary h-10 hover:text-primary flex items-center justify-center cursor-pointer"
                   >
                     <div className="relative">
                       <span className="relative after:absolute after:w-10 after:h-10 after:rounded-full hover:text-primary after:-top-1/2 hover:after:bg-lightprimary text-link dark:text-darklink rounded-full flex justify-center items-center cursor-pointer group-hover/menu:after:bg-lightprimary group-hover/menu:!text-primary">
                         <Icon icon="tabler:bell-ringing" height={20} />
                       </span>
-                      <span className="rounded-full absolute -end-[6px] -top-[5px] text-[10px] h-2 w-2 bg-primary flex justify-center items-center"></span>
+                      <span className="rounded-full absolute -end-[6px] -top-[5px] text-[10px] h-2 w-2 bg-primary flex justify-center items-center" />
                     </div>
                   </button>
 
-                  {/* Notifications Dropdown */}
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-screen sm:w-[360px] bg-white dark:bg-dark shadow-md dark:shadow-dark-md rounded-sm py-6 z-[101]">
-                      <div className="flex items-center px-6 justify-between">
-                        <h3 className="mb-0 text-lg font-semibold text-ld">
-                          Notification
-                        </h3>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-primary text-white">
-                          5 new
+                    <div className="absolute right-0 mt-2 w-full max-w-sm sm:w-[384px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.05),0_10px_10px_-5px_rgba(0,0,0,0.01)] dark:shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[101]">
+                      <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-slate-900">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
+                          Notifications
+                        </h2>
+                        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white shadow-sm">
+                          {NOTIFICATIONS.filter(n => n.unread).length || NOTIFICATIONS.length}
                         </span>
                       </div>
-                      <div className="max-h-80 mt-3 overflow-y-auto">
-                        {MessagesLink.map((link, index) => (
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[480px] overflow-y-auto">
+                        {NOTIFICATIONS.map((item) => (
                           <Link
-                            key={index}
+                            key={item.id}
                             href="#"
-                            className="px-6 py-3 flex justify-between items-center bg-hover group/link w-full hover:bg-lightprimary"
+                            className="block px-6 py-5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200 group relative"
+                            onClick={() => setShowNotifications(false)}
                           >
-                            <div className="flex items-center">
-                              <span className="flex-shrink-0 relative">
-                                <div className="h-[45px] w-[45px] rounded-full bg-primary flex items-center justify-center text-white font-semibold">
-                                  {link.title.charAt(0)}
-                                </div>
-                              </span>
-                              <div className="ps-4">
-                                <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                  {link.title}
-                                </h5>
-                                <span className="text-xs block truncate text-darklink">
-                                  {link.subtitle}
-                                </span>
+                            <div className="flex items-start space-x-4">
+                              <div className="flex-shrink-0">
+                                {item.type === 'comment' || item.type === 'file' ? (
+                                  <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-semibold shadow-sm border border-gray-100 dark:border-gray-600">
+                                    {item.title.charAt(0)}
+                                  </div>
+                                ) : item.type === 'system' ? (
+                                  <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center border border-blue-100 dark:border-blue-800">
+                                    <Icon icon="solar:shield-check-linear" className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                  </div>
+                                ) : (
+                                  <div className="h-10 w-10 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center border border-amber-100 dark:border-amber-800/50">
+                                    <Icon icon="solar:danger-triangle-linear" className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {item.title}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                                  {item.message}
+                                </p>
+                                {item.attachment && (
+                                  <div className="mt-2 flex items-center p-2 rounded bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 max-w-xs">
+                                    <Icon icon="solar:document-linear" className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2 shrink-0" />
+                                    <span className="text-xs text-gray-600 dark:text-gray-300 font-medium truncate">
+                                      {item.attachment}
+                                    </span>
+                                  </div>
+                                )}
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center">
+                                  {item.unread && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary mr-2 shrink-0" />
+                                  )}
+                                  {item.time}
+                                </p>
                               </div>
                             </div>
+                            {item.unread && (
+                              <span className="absolute right-6 top-6 w-2 h-2 bg-primary rounded-full shadow-sm" aria-hidden />
+                            )}
                           </Link>
                         ))}
                       </div>
-                      <div className="pt-5 px-6">
+                      <div className="bg-gray-50 dark:bg-gray-800/30 border-t border-gray-100 dark:border-gray-700 p-4 text-center">
                         <Link
                           href="/dashboard/email"
-                          className="w-full border border-primary text-primary hover:bg-primary hover:text-white rounded-md py-2 px-4 block text-center"
+                          onClick={() => setShowNotifications(false)}
+                          className="inline-flex items-center text-sm font-medium text-primary hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors group"
                         >
                           See All Notifications
+                          <Icon icon="solar:arrow-right-linear" className="h-5 w-5 ml-1 transform group-hover:translate-x-1 transition-transform" />
                         </Link>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Profile Dropdown */}
+                {/* Profile Dropdown - advanced design (19% reduced width) */}
                 <div className="relative group/menu" ref={menuRef}>
                   <button
+                    type="button"
                     onClick={() => {
-                      setShowProfileMenu(!showProfileMenu);
-                      setShowNotifications(false);
+                      setShowProfileMenu(!showProfileMenu)
+                      setShowNotifications(false)
                     }}
-                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group-hover/menu:text-primary"
+                    aria-expanded={showProfileMenu ? 'true' : 'false'}
+                    aria-haspopup="true"
+                    aria-label="Open profile menu"
+                    className="text-sm text-link dark:text-darklink dark:hover:text-primary px-4 h-10 hover:text-primary flex items-center justify-center cursor-pointer group-hover/menu:text-primary mt-[10px]"
                   >
-                    <div className="flex h-[35px] w-[35px] items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm">
-                      {profile?.name?.charAt(0).toUpperCase() || "U"}
+                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm ring-2 ring-gray-100 dark:ring-slate-700">
+                      {profile?.name?.charAt(0).toUpperCase() || 'U'}
+                      <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white dark:ring-slate-800" aria-hidden />
                     </div>
                   </button>
 
-                  {/* Profile Dropdown Menu */}
                   {showProfileMenu && (
-                    <div className="dropdown ui-dropdown ui-dropdown-animation absolute right-0 mt-2 z-50 w-screen sm:w-[292px] py-6 px-0 rounded-sm">
-                      {/* Header */}
-                      <div className="px-6">
-                        <h3 className="text-lg font-semibold text-ld">
-                          User Profile
-                        </h3>
-                        <div className="flex items-center gap-6 pb-5 border-b border-border dark:border-darkborder mt-5 mb-3">
-                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white shadow-sm">
-                            {profile?.name?.charAt(0).toUpperCase() || "U"}
-                          </div>
-                          <div>
-                            <h5 className="card-title text-sm mb-0.5 font-medium">
-                              {profile?.name || "User"}
-                            </h5>
-                            <span className="card-subtitle text-muted font-normal">
-                              {profile?.plan_tier
-                                ? profile.plan_tier.charAt(0).toUpperCase() +
-                                  profile.plan_tier.slice(1)
-                                : "Member"}
-                            </span>
-                            <p className="card-subtitle font-normal text-muted mb-0 mt-1 flex items-center">
-                              <Icon
-                                icon="tabler:mail"
-                                className="text-base me-1 relative top-0.5"
-                              />
-                              {profile?.email || "user@example.com"}
-                            </p>
+                    <div className="absolute right-0 mt-3 w-[292px] origin-top-right rounded-2xl bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-black/5 border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
+                      <div className="p-6 border-b border-gray-200 dark:border-slate-700 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-800/50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white shadow-md ring-4 ring-white dark:ring-slate-700">
+                              {profile?.name?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-slate-50 leading-tight">
+                                {profile?.name || 'User'}
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-slate-400 mb-2">
+                                {profile?.email || 'user@example.com'}
+                              </p>
+                              <span className="inline-flex items-center rounded-full bg-primary/10 dark:bg-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
+                                {profile?.plan_tier ? profile.plan_tier.charAt(0).toUpperCase() + profile.plan_tier.slice(1).toLowerCase() + ' Plan' : 'Member'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Dropdown items */}
-                      <div className="max-h-64 overflow-y-auto">
+                      <div className="grid grid-cols-2 gap-3 p-4 bg-white dark:bg-slate-900">
                         <button
+                          type="button"
                           onClick={() => {
-                            router.push("/dashboard/settings");
-                            setShowProfileMenu(false);
+                            router.push('/dashboard/settings')
+                            setShowProfileMenu(false)
                           }}
-                          className="px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer hover:bg-lightprimary"
+                          className="group relative flex flex-col justify-between rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/30 p-4 hover:border-primary/50 hover:shadow-md transition-all duration-200 text-left"
                         >
-                          <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
-                            <Icon
-                              icon="solar:user-circle-linear"
-                              className="h-6 w-6 text-primary"
-                            />
-                          </div>
-                          <div className="ps-4 flex justify-between w-full">
-                            <div className="w-3/4">
-                              <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                My Profile
-                              </h5>
-                              <div className="text-xs text-darklink">
-                                Account settings
-                              </div>
+                          <div className="flex justify-between items-start w-full mb-2">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+                              <Icon icon="solar:user-circle-linear" className="h-5 w-5" />
                             </div>
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">
+                              85%
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                              My Profile
+                            </h4>
+                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-2">
+                              <div className="bg-blue-500 h-1.5 rounded-full w-[85%]" />
+                            </div>
+                            <p className="text-[10px] text-gray-500 dark:text-slate-400 mt-1">
+                              Complete setup
+                            </p>
                           </div>
                         </button>
-
                         <button
+                          type="button"
                           onClick={() => {
-                            router.push("/dashboard");
-                            setShowProfileMenu(false);
+                            router.push('/dashboard')
+                            setShowProfileMenu(false)
                           }}
-                          className="px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer hover:bg-lightprimary"
+                          className="group relative flex flex-col justify-between rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/30 p-4 hover:border-primary/50 hover:shadow-md transition-all duration-200 text-left"
                         >
-                          <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
-                            <Icon
-                              icon="solar:notes-linear"
-                              className="h-6 w-6 text-primary"
-                            />
-                          </div>
-                          <div className="ps-4 flex justify-between w-full">
-                            <div className="w-3/4">
-                              <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                My Notes
-                              </h5>
-                              <div className="text-xs text-darklink">
-                                My Daily Notes
-                              </div>
+                          <div className="flex justify-between items-start w-full mb-2">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600 dark:text-amber-400">
+                              <Icon icon="solar:notes-linear" className="h-5 w-5" />
                             </div>
+                            <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
+                              2m ago
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                              My Notes
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                              Review Q3 marketing goals...
+                            </p>
                           </div>
                         </button>
+                      </div>
 
-                        <button
-                          onClick={() => {
-                            router.push("/dashboard");
-                            setShowProfileMenu(false);
-                          }}
-                          className="px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer hover:bg-lightprimary"
+                      <div className="px-2 pb-2">
+                        <Link
+                          href="/dashboard/settings"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-slate-100 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group"
                         >
-                          <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
-                            <Icon
-                              icon="solar:checklist-linear"
-                              className="h-6 w-6 text-primary"
-                            />
-                          </div>
-                          <div className="ps-4 flex justify-between w-full">
-                            <div className="w-3/4">
-                              <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                My Tasks
-                              </h5>
-                              <div className="text-xs text-darklink">
-                                To-do and Daily tasks
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-
+                          <Icon icon="solar:settings-linear" className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+                          Account Settings
+                        </Link>
                         <Link
                           href="/dashboard/billing"
                           onClick={() => setShowProfileMenu(false)}
-                          className="px-6 py-3 flex justify-between items-center bg-hover group/link w-full cursor-pointer hover:bg-lightprimary"
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-slate-100 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group"
                         >
-                          <div className="h-11 w-11 flex-shrink-0 rounded-md flex justify-center items-center bg-lightprimary">
-                            <Icon
-                              icon="solar:card-linear"
-                              className="h-6 w-6 text-primary"
-                            />
-                          </div>
-                          <div className="ps-4 flex justify-between w-full">
-                            <div className="w-3/4">
-                              <h5 className="mb-1 text-sm group-hover/link:text-primary">
-                                Billing & Plans
-                              </h5>
-                              <div className="text-xs text-darklink">
-                                Subscription and billing
-                              </div>
-                            </div>
-                          </div>
+                          <Icon icon="solar:card-linear" className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+                          Billing & Plans
+                        </Link>
+                        <Link
+                          href="/dashboard/settings"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-slate-100 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group"
+                        >
+                          <Icon icon="solar:users-group-rounded-linear" className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+                          Invite Team
+                          <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                            New
+                          </span>
                         </Link>
                       </div>
 
-                      {/* Logout Button */}
-                      <div className="pt-2 px-7">
+                      <div className="border-t border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 p-2">
                         <button
+                          type="button"
                           onClick={handleSignOut}
-                          className="w-full border border-primary text-primary hover:bg-primary hover:text-white rounded-md py-2 px-4 text-sm font-medium transition-colors"
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full group"
                         >
-                          Logout
+                          <Icon icon="solar:logout-2-linear" className="h-5 w-5 group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors" />
+                          Sign out
                         </button>
                       </div>
                     </div>

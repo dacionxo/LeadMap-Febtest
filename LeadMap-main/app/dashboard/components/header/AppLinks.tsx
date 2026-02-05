@@ -61,18 +61,18 @@ export default function AppLinks() {
     <div className="dropdown-wrapper group relative">
       <button
         type="button"
-        className="flex items-center gap-2.5 px-6 py-2.5 rounded-full bg-primary/[0.04] text-primary border border-primary/30 transition-all duration-300 shadow-[0_0_15px_-3px_rgba(93,135,255,0.15)] xl:flex hidden"
+        className="flex items-center gap-2 px-5 py-1.5 rounded-full bg-primary/[0.04] text-primary border border-primary/30 transition-all duration-300 shadow-[0_0_15px_-3px_rgba(93,135,255,0.15)] xl:flex hidden"
         aria-label="Open apps menu"
         aria-haspopup="true"
       >
         <Icon
           icon="material-symbols:grid-view"
-          className="text-[20px]"
+          className="text-[18px]"
         />
         <span className="text-sm font-bold">Apps</span>
         <Icon
           icon="material-symbols:expand-more-rounded"
-          height={18}
+          height={16}
           className="shrink-0 -mr-0.5"
         />
       </button>
@@ -81,7 +81,7 @@ export default function AppLinks() {
         <Icon icon="material-symbols:grid-view" className="shrink-0 w-5 h-5" />
       </span>
 
-      <div className="xl:invisible xl:group-hover:visible visible absolute top-12 right-0 xl:right-auto xl:left-0 z-[101] w-screen xl:w-auto xl:min-w-[320px] max-w-[400px] dropdown shadow-lg bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden dark:shadow-dark-md">
+      <div className="xl:invisible xl:group-hover:visible visible absolute top-10 right-0 xl:right-auto xl:left-0 z-[101] w-screen xl:w-auto xl:min-w-[320px] max-w-[400px] dropdown shadow-lg bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden dark:shadow-dark-md">
         <div className="xl:relative xl:translate-none xl:z-0 hidden xl:block">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">

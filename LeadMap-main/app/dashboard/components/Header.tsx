@@ -246,28 +246,28 @@ export default function Header({ scrollContainerRef }: HeaderProps) {
               <Search />
             </div>
 
-            {/* Desktop: Apps, Calendar, Campaigns, Unibox (centered) - pill container */}
-            <div className="xl:!flex !hidden items-center justify-center gap-1.5 p-1.5 bg-slate-100/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm flex-1 max-w-fit mx-auto relative">
+            {/* Desktop: Apps, Calendar, Campaigns, Unibox (centered) - compact pill container */}
+            <div className="xl:!flex !hidden items-center justify-center gap-1 p-1 bg-slate-100/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm flex-1 max-w-fit mx-auto relative">
               <AppLinks />
               <Link
                 href="/dashboard/crm/calendar"
-                className="flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
+                className="flex items-center gap-2 px-5 py-1.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
               >
-                <Icon icon="material-symbols:calendar-month" className="text-[20px] group-hover:text-primary transition-colors" />
+                <Icon icon="material-symbols:calendar-month" className="text-[18px] group-hover:text-primary transition-colors" />
                 <span className="text-sm font-medium">Calendar</span>
               </Link>
               <Link
                 href="/dashboard/email/campaigns"
-                className="flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
+                className="flex items-center gap-2 px-5 py-1.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
               >
-                <Icon icon="material-symbols:campaign" className="text-[20px] group-hover:text-primary transition-colors" />
+                <Icon icon="material-symbols:campaign" className="text-[18px] group-hover:text-primary transition-colors" />
                 <span className="text-sm font-medium">Campaigns</span>
               </Link>
               <Link
                 href="/dashboard/unibox"
-                className="flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
+                className="flex items-center gap-2 px-5 py-1.5 rounded-full text-[#64748B] dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50 transition-all duration-200 group border border-transparent"
               >
-                <Icon icon="material-symbols:mark-email-unread" className="text-[20px] group-hover:text-primary transition-colors" />
+                <Icon icon="material-symbols:mark-email-unread" className="text-[18px] group-hover:text-primary transition-colors" />
                 <span className="text-sm font-medium">Unibox</span>
               </Link>
             </div>

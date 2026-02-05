@@ -58,10 +58,9 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
       </Suspense>
       <main
         ref={mainRef as any}
-        className={`flex-1 overflow-y-auto relative z-10 dark:bg-dark h-full transition-all duration-300 ${
+        className={`flex-1 overflow-y-auto relative z-10 bg-[#F8FAFC] dark:bg-dark h-full transition-all duration-300 ${
           isOpen ? "ml-[270px]" : "ml-[75px]"
         }`}
-        style={{ backgroundColor: "#F6F7FB" }}
       >
         <Header scrollContainerRef={mainRef} />
         {/* Main Content */}

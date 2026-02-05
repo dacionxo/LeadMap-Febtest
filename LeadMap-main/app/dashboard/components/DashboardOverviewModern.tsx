@@ -220,44 +220,42 @@ export default function DashboardOverviewModern({
         </div>
       )}
 
-      {/* Prospecting Overview - SaaS Bento style, max 2/3 welcome card size */}
-      <div className="prospecting-overview max-w-5xl">
-        <div className="relative overflow-hidden bento-gradient border border-blue-50/50 dark:border-gray-700 shadow-bento rounded-5xl p-6 sm:p-8 lg:p-10 transition-all duration-500">
+      {/* Prospecting Overview - same border/shadow as welcome card */}
+      <div>
+        <div className="dashboard-welcome-card relative overflow-hidden rounded-[2rem] border border-gray-200 dark:border-gray-700 shadow-[0_20px_50px_-12px_rgba(93,135,255,0.12)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] p-5 sm:p-6 lg:p-7 transition-all duration-500">
           <div className="organic-wave" aria-hidden="true" />
-          <div className="relative z-10 flex flex-col gap-8">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                   Prospecting Overview
                 </h2>
-                <p className="mt-2 text-base sm:text-lg text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                <p className="mt-1.5 text-sm sm:text-base text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                   Your high-level pipeline metrics for today.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <Link
                   href="/dashboard/prospect-enrich"
-                  className="text-sm text-primary font-medium hover:underline"
+                  className="text-xs sm:text-sm text-primary font-medium hover:underline"
                 >
                   View All
                 </Link>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
                   Updated Just Now
                 </span>
                 <button
                   type="button"
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary transition-all shadow-sm hover:shadow-md active:scale-95"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary transition-all shadow-sm hover:shadow-md active:scale-95"
                   aria-label="Filter prospecting metrics"
                 >
-                  <Settings2 className="w-5 h-5" />
+                  <Settings2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <ProspectMetricCard
-                icon={UserPlus}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <SavedProspectsCard
                 value={totalProspects.toLocaleString()}
-                label="Saved Prospects"
                 change={totalProspectsChange}
                 trend={totalProspectsTrend}
               />
@@ -515,6 +513,125 @@ export default function DashboardOverviewModern({
   );
 }
 
+interface SavedProspectsCardProps {
+  value: string;
+  change: string;
+  trend: "up" | "down" | "neutral";
+}
+
+function SavedProspectsCard({ value, change, trend }: SavedProspectsCardProps) {
+  const isDown = trend === "down";
+  const monthlyGoalPercent = 81;
+  return (
+    <div
+      className="group relative overflow-hidden bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+      role="article"
+      aria-label={`Saved Prospects: ${value}`}
+    >
+      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-primary opacity-[0.03] dark:opacity-[0.05] rounded-full blur-3xl pointer-events-none" aria-hidden />
+      <div className="relative z-10 p-4">
+        <div className="flex justify-between items-start mb-1">
+          <div className="flex items-center gap-2">
+            <span className="bg-indigo-100 dark:bg-indigo-900/30 p-1.5 rounded-lg">
+              <UserPlus className="h-4 w-4 text-primary" strokeWidth={2} />
+            </span>
+            <h2 className="text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Saved Prospects
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-0.5"
+            aria-label="More options"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex items-end justify-between gap-2 py-1">
+          <div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white mb-0.5">
+              {value}
+            </div>
+            <div className="flex items-center text-[10px] font-medium">
+              {isDown ? (
+                <span className="text-rose-500 dark:text-rose-400 flex items-center">
+                  <TrendingDown className="h-3 w-3 mr-0.5" />
+                  {change}
+                </span>
+              ) : (
+                <span className="text-emerald-500 dark:text-emerald-400 flex items-center">
+                  <TrendingUp className="h-3 w-3 mr-0.5" />
+                  {change}
+                </span>
+              )}
+              <span className="ml-1 text-slate-500 dark:text-slate-400 font-normal">
+                vs last month
+              </span>
+            </div>
+          </div>
+          <div className="h-8 w-14 flex-shrink-0 text-primary">
+            <svg className="w-full h-full overflow-visible" viewBox="0 0 100 50">
+              <defs>
+                <linearGradient id="saved-prospects-gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+                  <stop offset="0%" stopColor="currentColor" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <path
+                className="opacity-50 dark:opacity-30 text-primary"
+                d="M0 45 L10 40 L25 42 L40 25 L55 30 L70 15 L85 20 L100 5 V50 H0 Z"
+                fill="url(#saved-prospects-gradient)"
+              />
+              <path
+                className="sparkline-draw"
+                d="M0 45 L10 40 L25 42 L40 25 L55 30 L70 15 L85 20 L100 5"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+              />
+            </svg>
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="flex justify-between text-[9px] mb-0.5 text-slate-500 dark:text-slate-400">
+            <span>Monthly Goal</span>
+            <span>{monthlyGoalPercent}%</span>
+          </div>
+          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+            <div
+              className="bg-primary h-1 rounded-full transition-all duration-500"
+              style={{ width: `${monthlyGoalPercent}%` }}
+            />
+          </div>
+        </div>
+        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 -mx-4 -mb-4 px-4 pb-3 rounded-b-2xl flex justify-between items-center">
+          <div className="flex -space-x-1.5 overflow-hidden">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-50 dark:ring-slate-900 bg-indigo-200 dark:bg-indigo-800"
+                aria-hidden
+              />
+            ))}
+            <div className="flex items-center justify-center h-6 w-6 rounded-full ring-2 ring-slate-50 dark:ring-slate-900 bg-gray-200 dark:bg-gray-600 text-[8px] font-medium text-gray-500 dark:text-gray-400">
+              +5
+            </div>
+          </div>
+          <Link
+            href="/dashboard/prospect-enrich"
+            className="inline-flex items-center text-[10px] font-medium text-primary hover:text-primary-hover dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+          >
+            View All
+            <ArrowRight className="h-3 w-3 ml-0.5" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface ProspectMetricCardProps {
   icon: React.ElementType;
   value: string;
@@ -533,42 +650,42 @@ function ProspectMetricCard({
   const isDown = trend === "down";
   return (
     <div
-      className="group relative overflow-hidden bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+      className="group relative overflow-hidden bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
       role="article"
       aria-label={`${label}: ${value}`}
     >
       {/* Faint background icon */}
       <div
-        className="absolute -right-4 -bottom-4 opacity-[0.025] group-hover:opacity-[0.04] transition-opacity duration-700 pointer-events-none"
+        className="absolute -right-3 -bottom-3 opacity-[0.025] group-hover:opacity-[0.04] transition-opacity duration-700 pointer-events-none"
         aria-hidden
       >
-        <Icon className="h-32 w-32 text-slate-900 dark:text-white" strokeWidth={1} />
+        <Icon className="h-28 w-28 text-slate-900 dark:text-white" strokeWidth={1} />
       </div>
-      <div className="relative z-10 flex flex-col justify-between min-h-[130px]">
-        <Icon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" strokeWidth={2} />
-        <div className="mt-3">
-          <div className="pb-2 mb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+      <div className="relative z-10 flex flex-col justify-between min-h-[117px]">
+        <Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" strokeWidth={2} />
+        <div className="mt-2">
+          <div className="pb-1.5 mb-1.5 border-b border-slate-200/50 dark:border-slate-700/50">
             <div className="flex items-center mb-0.5">
               <span
-                className={`inline-flex items-center text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${
+                className={`inline-flex items-center text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                   isDown
                     ? "text-rose-500 bg-rose-100/60 dark:bg-rose-900/20"
                     : "text-emerald-600 bg-emerald-100/60 dark:bg-emerald-900/20 dark:text-emerald-400"
                 }`}
               >
                 {isDown ? (
-                  <TrendingDown className="h-3 w-3 mr-1 font-bold" />
+                  <TrendingDown className="h-2.5 w-2.5 mr-0.5 font-bold" />
                 ) : (
-                  <TrendingUp className="h-3 w-3 mr-1 font-bold" />
+                  <TrendingUp className="h-2.5 w-2.5 mr-0.5 font-bold" />
                 )}
                 {change}
               </span>
             </div>
-            <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
               {value}
             </h3>
           </div>
-          <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+          <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
             {label}
           </p>
         </div>

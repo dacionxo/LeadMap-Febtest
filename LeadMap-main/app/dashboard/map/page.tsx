@@ -5,16 +5,7 @@ import DashboardLayout from '../components/DashboardLayout'
 import MapView from '@/components/MapView'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useApp } from '@/app/providers'
-import {
-  Search,
-  Filter,
-  Home,
-  Plus,
-  Minus,
-  RefreshCw,
-  Settings,
-  HelpCircle
-} from 'lucide-react'
+import { Home, Plus, Minus, RefreshCw } from 'lucide-react'
 import MapsOnboardingModal from './components/MapsOnboardingModal'
 
 const LeadDetailModal = lazy(() => import('../prospect-enrich/components/LeadDetailModal'))
@@ -61,9 +52,6 @@ export default function MapPage() {
   const supabase = useMemo(() => createClientComponentClient(), [])
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [location, setLocation] = useState('Pasadena')
-  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>(['Good For Wholesaling'])
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
 
@@ -236,22 +224,6 @@ export default function MapPage() {
     })
   }, [listings])
 
-  const propertyTypeOptions = [
-    'Distressed Properties',
-    'Good For Wholesaling',
-    'Corner Lots',
-    'Bad Roofs',
-    'Solar-Ready'
-  ]
-
-  const togglePropertyType = (type: string) => {
-    setSelectedPropertyTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    )
-  }
-
   // Handle Street View click from map
   const handleStreetViewClick = (leadId: string) => {
     setSelectedListingId(leadId)
@@ -263,65 +235,10 @@ export default function MapPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-2rem)] bg-white dark:bg-gray-900">
-        {/* Top Section - Search and Filters */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-          <div className="flex items-center gap-4 mb-4">
-            {/* Search Bar */}
-            <div className="flex-1 relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search for an address, zip code, city or county"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Filter Buttons */}
-            <div className="flex items-center gap-2">
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                Quick Filters
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                Property Type
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                $ Price
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                Beds & Baths
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                More
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                Clear All
-              </button>
-            </div>
-
-            {/* Location */}
-            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {location}
-            </div>
-          </div>
-
-          {/* Sort By */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 dark:text-gray-400">Sort By:</label>
-            <select className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-              <option>Sale Date (Newest)</option>
-              <option>Price (Low to High)</option>
-              <option>Price (High to Low)</option>
-              <option>Days on Market</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Main Content Area - Map and Sidebar */}
-        <div className="flex-1 flex overflow-hidden">
+    <DashboardLayout hideHeader fullBleed>
+      <div className="flex flex-col h-full w-full min-h-0 bg-white dark:bg-gray-900">
+        {/* Main Content Area - Map and Sidebar (full screen) */}
+        <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Map Section - Enlarged */}
           <div className="flex-1 relative">
 
@@ -421,48 +338,6 @@ export default function MapPage() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Bottom Section - Property Type Filters */}
-        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-          <div className="mb-3">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Zoom in more to load properties and build a list in an area, or search for a location.
-            </p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-              What kind of properties are you looking for?
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            {propertyTypeOptions.map((type) => (
-              <button
-                key={type}
-                onClick={() => togglePropertyType(type)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  selectedPropertyTypes.includes(type)
-                    ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-            <a
-              href="#"
-              className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-2"
-            >
-              Build With AI Vision
-              <div className="flex items-center gap-1">
-                <Home className="w-4 h-4" />
-                <Settings className="w-4 h-4" />
-                <HelpCircle className="w-4 h-4" />
-              </div>
-            </a>
-            <select className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-              <option>Back To Basic Builder</option>
-            </select>
           </div>
         </div>
 

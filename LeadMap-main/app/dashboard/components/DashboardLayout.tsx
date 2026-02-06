@@ -7,9 +7,17 @@ import { SidebarProvider, useSidebar } from "./SidebarContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
+  /** When true, hide the top nav bar (header). Sidebar remains visible. */
+  hideHeader?: boolean;
+  /** When true, content is full-bleed (no container/padding) and fills the main area. */
+  fullBleed?: boolean;
 }
 
-function DashboardLayoutContent({ children }: DashboardLayoutProps) {
+function DashboardLayoutContent({
+  children,
+  hideHeader,
+  fullBleed,
+}: DashboardLayoutProps) {
   const [mounted, setMounted] = useState(false);
   const { isOpen } = useSidebar();
   const mainRef = useRef<HTMLElement | null>(null);
@@ -62,9 +70,15 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
           isOpen ? "ml-[270px]" : "ml-[75px]"
         }`}
       >
-        <Header scrollContainerRef={mainRef} />
+        {!hideHeader && <Header scrollContainerRef={mainRef} />}
         {/* Main Content */}
-        <div className="container relative z-10 py-[30px]">
+        <div
+          className={
+            fullBleed
+              ? "relative z-10 h-full w-full min-h-0"
+              : "container relative z-10 py-[30px]"
+          }
+        >
           {mounted && children}
         </div>
       </main>
@@ -72,10 +86,16 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   );
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({
+  children,
+  hideHeader,
+  fullBleed,
+}: DashboardLayoutProps) {
   return (
     <SidebarProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      <DashboardLayoutContent hideHeader={hideHeader} fullBleed={fullBleed}>
+        {children}
+      </DashboardLayoutContent>
     </SidebarProvider>
   );
 }

@@ -1,30 +1,11 @@
 "use client";
 
-// #region agent log
-const ACTIVE_DEALS_DEBUG_SOURCE = "LeadMap-main/app/dashboard/components/DashboardOverviewModern.tsx";
-if (typeof fetch !== "undefined") {
-  fetch("http://127.0.0.1:7242/ingest/a7565911-e087-4f8e-bc4b-5620fd981055", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      location: "DashboardOverviewModern.tsx:module",
-      message: "Module evaluated (which file is bundled)",
-      data: { filePath: ACTIVE_DEALS_DEBUG_SOURCE, deployTarget: "vercel" },
-      timestamp: Date.now(),
-      sessionId: "debug-session",
-      hypothesisId: "A",
-    }),
-  }).catch(() => {});
-}
-// #endregion
-
 import { useApp } from "@/app/providers";
 import {
   AlertCircle,
   ArrowRight,
   ArrowUp,
   Briefcase,
-  ChevronDown,
   ChevronRight,
   CreditCard,
   DollarSign,
@@ -110,23 +91,6 @@ export default function DashboardOverviewModern({
 }: DashboardOverviewModernProps) {
   const { profile } = useApp();
   const data = widgetData as WidgetData;
-
-  // #region agent log
-  if (typeof fetch !== "undefined") {
-    fetch("http://127.0.0.1:7242/ingest/a7565911-e087-4f8e-bc4b-5620fd981055", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        location: "DashboardOverviewModern.tsx:mount",
-        message: "DashboardOverviewModern mounted",
-data: { filePath: ACTIVE_DEALS_DEBUG_SOURCE, deployTarget: "vercel" },
-      timestamp: Date.now(),
-      sessionId: "debug-session",
-      hypothesisId: "B",
-      }),
-    }).catch(() => {});
-  }
-  // #endregion
 
   const totalProspects = data["total-prospects"]?.value ?? 1482;
   const activeListings = data["active-listings"]?.value ?? 56;
@@ -422,14 +386,6 @@ data: { filePath: ACTIVE_DEALS_DEBUG_SOURCE, deployTarget: "vercel" },
         </div>
       </div>
 
-      {/* Pipeline Health: Pipeline Value only (Conversion Rate, Active Deals, Deal Size moved into Deal Analytics) */}
-      <div className="grid grid-cols-1 gap-6 max-w-7xl mx-auto items-start">
-        <PipelineValueCard totalValue={pipelineValue} />
-      </div>
-
-      {/* Stage Distribution - wide horizontal bar (1:1 with reference design) */}
-      <StageDistributionCard stages={stageDist} />
-
       {/* Deal Analytics - Sleek Single-Card */}
       <div className="dashboard-welcome-card relative overflow-hidden rounded-[2rem] border border-gray-200 dark:border-gray-700 shadow-[0_20px_50px_-12px_rgba(93,135,255,0.12)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] p-6 md:p-10 transition-all duration-500">
         <div className="organic-wave" aria-hidden="true" />
@@ -471,22 +427,29 @@ data: { filePath: ACTIVE_DEALS_DEBUG_SOURCE, deployTarget: "vercel" },
               change={pipelineChange}
               trend="up"
             />
-            {/* Conversion Rate: new component design in same-sized metric slot (replaces old DealMetricCard) */}
-            <ConversionRateMetricCard
-              conversionRate={conversionRate}
+            <DealMetricCard
+              icon={Zap}
+              iconBg="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+              value={conversionRate}
+              label="Conversion Rate"
               change={conversionChange}
               trend="up"
             />
-            {/* Active Deals: new component design in same-sized metric slot (replaces old DealMetricCard) */}
-            <ActiveDealsMetricCard
-              count={activeDeals}
-              changeLabel={`${activeDealsChange} vs last month`}
+            <DealMetricCard
+              icon={Briefcase}
+              iconBg="bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400"
+              value={String(activeDeals)}
+              label="Active Deals"
+              change={activeDealsChange}
               trend={activeDealsTrend}
             />
-            {/* Deal Size: new component design in same-sized metric slot (replaces old DealMetricCard) */}
-            <DealSizeMetricCard
+            <DealMetricCard
+              icon={PieChart}
+              iconBg="bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400"
               value={avgDealSize}
-              changeLabel={`${avgDealSizeChange} vs last month`}
+              label="Avg Deal Size"
+              change={avgDealSizeChange}
+              trend="up"
             />
           </div>
           <div className="py-2.5">
@@ -572,6 +535,47 @@ data: { filePath: ACTIVE_DEALS_DEBUG_SOURCE, deployTarget: "vercel" },
               ))}
             </div>
           </div>
+          <div className="pt-6 border-t border-dashed border-slate-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-white uppercase tracking-wider">
+                Stage Distribution
+              </h3>
+              <Link
+                href="/dashboard/engage"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View Full Report
+              </Link>
+            </div>
+            <div className="w-full h-32 flex items-end justify-between gap-2 md:gap-4 px-2">
+              {stageDist.map((s, i) => {
+                const barColors = [
+                  "bg-blue-400 group-hover:bg-blue-500",
+                  "bg-blue-500 group-hover:bg-blue-600",
+                  "bg-indigo-500 group-hover:bg-indigo-600",
+                  "bg-indigo-600 group-hover:bg-indigo-700",
+                  "bg-purple-600 group-hover:bg-purple-700",
+                ];
+                return (
+                  <div key={s.name} className="flex-1 flex flex-col items-center group">
+                    <div className="w-full max-w-[60px] bg-blue-100 dark:bg-blue-900/30 rounded-t-sm relative h-full flex items-end group-hover:bg-blue-50 dark:group-hover:bg-blue-900/40 transition-colors">
+                      <div
+                        className={`w-full ${barColors[i] || barColors[0]} rounded-t-sm relative transition-colors`}
+                        style={{ height: `${Math.min(100, s.percentage || 30)}%` }}
+                      >
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {s.value} Deals
+                        </span>
+                      </div>
+                    </div>
+                    <span className="mt-2 text-[10px] md:text-xs font-medium text-slate-500 dark:text-slate-400 text-center">
+                      {s.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -624,66 +628,57 @@ data: { filePath: ACTIVE_DEALS_DEBUG_SOURCE, deployTarget: "vercel" },
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-gray-100 dark:divide-gray-800">
-            {/* Notifications - 1:1 with Modern CRM Notifications (timeline, dot colors, min-height) */}
-            <div className="relative overflow-hidden p-8 flex flex-col justify-between min-h-[580px] lg:min-h-[520px]">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-50/50 dark:bg-indigo-900/20 blur-[80px] rounded-full pointer-events-none z-0" aria-hidden />
-              <div className="flex items-center justify-between mb-8 z-10 relative">
-                <h2 className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Notifications
-                </h2>
+                </h3>
                 <button
-                  type="button"
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 text-slate-500 dark:text-slate-400 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
                   aria-label="Notification actions"
                   title="Notification actions"
                 >
-                  <MoreHorizontal className="w-5 h-5" />
+                  <MoreHorizontal className="w-4 h-4" />
                 </button>
               </div>
-              <div className="notifications-timeline flex flex-col flex-grow relative z-10 space-y-0">
+              <div className="space-y-0 relative">
+                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700 z-0" />
                 {displayNotifications.map((n, idx) => {
-                  const dotBorder =
-                    ["border-blue-500", "border-green-500", "border-slate-400 dark:border-slate-500", "border-blue-500", "border-green-500"][idx % 5] ??
-                    "border-blue-500";
-                  const isLast = idx === displayNotifications.length - 1;
+                  const accent =
+                    ["bg-blue-500", "bg-green-500", "bg-gray-300 dark:bg-gray-600", "bg-purple-400"][idx] ??
+                    "bg-blue-500";
                   return (
-                    <div
-                      key={n.id ?? idx}
-                      className={`notifications-timeline-item flex gap-4 relative ${isLast ? "" : "pb-8"}`}
-                    >
-                      <div className="notifications-timeline-line relative flex-shrink-0">
-                        <div
-                          className={`w-4 h-4 rounded-full bg-white dark:bg-gray-800 border-[3px] ${dotBorder} shadow-sm z-10 relative`}
-                        />
-                      </div>
-                      <div className="flex-grow pt-0.5 min-w-0">
-                        <div className="flex justify-between items-start mb-0.5 gap-2">
-                          <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                    <div key={n.id ?? idx} className="relative pl-6 py-3 group">
+                      <div
+                        className={`absolute left-0 top-4 w-3.5 h-3.5 rounded-full ${accent} border-[3px] border-white dark:border-gray-900 shadow-sm`}
+                      />
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                             {n.title}
-                          </h3>
-                          {n.time && (
-                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
-                              {n.time}
-                            </span>
+                          </p>
+                          {n.description && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {n.description}
+                            </p>
                           )}
                         </div>
-                        {n.description && (
-                          <p className="text-sm text-slate-500 dark:text-slate-400 font-normal">
-                            {n.description}
-                          </p>
+                        {n.time && (
+                          <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 whitespace-nowrap ml-2">
+                            {n.time}
+                          </span>
                         )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div className="flex items-center pt-6 border-t border-gray-100 dark:border-gray-800 mt-auto">
+              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <Link
                   href="/dashboard/notifications"
-                  className="group flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                  className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1"
                 >
-                  View all notifications
-                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                  View all notifications <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
@@ -769,112 +764,92 @@ data: { filePath: ACTIVE_DEALS_DEBUG_SOURCE, deployTarget: "vercel" },
               </div>
             </div>
 
-            {/* Active Campaigns - 1:1 with reference (metric cards, Activity Volume bar chart, min-height 520px) */}
-            <div className="p-8 flex flex-col gap-8 min-h-[520px] relative overflow-hidden">
-              <div className="flex items-start justify-between z-10 relative">
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Active Campaigns</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Email performance summary</p>
-                </div>
-                <button
-                  type="button"
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
-                  aria-label="Campaign options"
-                  title="Campaign options"
-                >
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 z-10 relative">
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Total Sent</p>
-                    <div className="text-3xl font-bold text-slate-900 dark:text-white tracking-tighter">
-                      {campaignMetrics.totalSent.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 self-start px-2 py-1 rounded-full border border-emerald-100 dark:border-emerald-500/20">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span>{campaignMetrics.sentChange}</span>
-                  </div>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Open Rate</p>
-                    <div className="text-3xl font-bold text-slate-900 dark:text-white tracking-tighter">
-                      {campaignMetrics.openRate}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 self-start px-2 py-1 rounded-full border border-emerald-100 dark:border-emerald-500/20">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span>{campaignMetrics.openChange}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-grow flex flex-col pt-2 z-10 relative">
+            <div className="p-6 flex flex-col justify-between">
+              <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Activity Volume</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">Active Campaigns</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Email performance summary</p>
+                    </div>
+                  </div>
                   <button
-                    type="button"
-                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-500/20 hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-colors px-3 py-1.5 rounded-full flex items-center gap-1"
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                    aria-label="Campaign options"
+                    title="Campaign options"
                   >
-                    Last 7 Days
-                    <ChevronDown className="w-3.5 h-3.5" />
+                    <MoreHorizontal className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="relative w-full h-40 flex items-end justify-between px-2 gap-2">
-                  {/* Dashed horizontal grid lines */}
-                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0">
-                    <div className="border-t border-dashed border-slate-100 dark:border-slate-700 w-full h-px" />
-                    <div className="border-t border-dashed border-slate-100 dark:border-slate-700 w-full h-px" />
-                    <div className="border-t border-dashed border-slate-100 dark:border-slate-700 w-full h-px" />
-                    <div className="border-t border-dashed border-slate-100 dark:border-slate-700 w-full h-px" />
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Sent</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {campaignMetrics.totalSent.toLocaleString()}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp className="w-3.5 h-3.5 text-green-500" />
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                        {campaignMetrics.sentChange}
+                      </span>
+                    </div>
                   </div>
-                  {(() => {
-                    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                    const vol = campaignMetrics.volume?.length === 7
-                      ? campaignMetrics.volume
-                      : [30, 45, 35, 55, 75, 60, 40];
-                    const highlightIdx = 4;
-                    return days.map((day, i) => {
-                      const pct = Math.min(100, Math.max(0, vol[i] ?? 0));
-                      const isHighlight = i === highlightIdx;
-                      return (
-                        <div key={day} className="group relative w-full h-full flex items-end flex-1 min-w-0">
-                          <div
-                            className={`w-full rounded-t-md transition-all origin-bottom flex-shrink-0 ${
-                              isHighlight
-                                ? "bar-gradient shadow-lg shadow-blue-500/20 hover:scale-y-105"
-                                : i === 3
-                                  ? "bg-blue-100 dark:bg-blue-900/40 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/60"
-                                  : i === 5
-                                    ? "bg-blue-200 dark:bg-blue-800/50 group-hover:bg-blue-300 dark:group-hover:bg-blue-700/50"
-                                    : "bg-slate-200 dark:bg-slate-600 opacity-50 group-hover:bg-blue-500/30 group-hover:opacity-70"
-                            }`}
-                            style={{ height: `${pct}%` }}
-                          >
-                            {isHighlight && (
-                              <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-bold py-1 px-2 rounded flex flex-col items-center whitespace-nowrap z-20">
-                                {campaignMetrics.highlight}
-                                <div className="w-1.5 h-1.5 bg-slate-900 dark:bg-slate-800 rotate-45 absolute -bottom-0.5" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Open Rate</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {campaignMetrics.openRate}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp className="w-3.5 h-3.5 text-green-500" />
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                        {campaignMetrics.openChange}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between px-2 mt-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  <span className="w-full text-center">Mon</span>
-                  <span className="w-full text-center">Tue</span>
-                  <span className="w-full text-center">Wed</span>
-                  <span className="w-full text-center">Thu</span>
-                  <span className="w-full text-center text-blue-600 dark:text-blue-400 font-bold">Fri</span>
-                  <span className="w-full text-center">Sat</span>
-                  <span className="w-full text-center">Sun</span>
+              </div>
+
+              <div className="relative">
+                <div className="flex justify-between items-end mb-2 px-1">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    Activity Volume
+                  </span>
+                  <span className="text-xs text-primary bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full font-medium">
+                    Last 7 Days
+                  </span>
+                </div>
+                <div className="h-24 w-full bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10 dark:to-transparent rounded-lg border border-blue-100 dark:border-blue-900/30 overflow-hidden relative">
+                  <svg
+                    className="absolute bottom-0 left-0 right-0 w-full h-full"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 100 50"
+                  >
+                    <defs>
+                      <linearGradient id="recent-activity-gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M0,50 L0,30 C10,25 20,40 30,20 C40,5 50,30 60,15 C70,25 80,10 90,20 L100,10 L100,50 Z"
+                      fill="url(#recent-activity-gradient)"
+                      stroke="none"
+                    />
+                    <path
+                      d="M0,30 C10,25 20,40 30,20 C40,5 50,30 60,15 C70,25 80,10 90,20 L100,10"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                  <div className="absolute top-[20%] left-[60%] w-2.5 h-2.5 bg-primary rounded-full border-2 border-white dark:border-gray-800 shadow-md transform -translate-x-1/2 -translate-y-1/2 z-10" />
+                  <div className="absolute top-[5%] left-[60%] transform -translate-x-1/2 bg-gray-900 text-white text-xs py-0.5 px-2 rounded opacity-90 shadow-lg">
+                    {campaignMetrics.highlight}
+                  </div>
                 </div>
               </div>
             </div>
@@ -969,136 +944,6 @@ function DealMetricCard({
       </h3>
       <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
         {label}
-      </p>
-    </div>
-  );
-}
-
-/* Conversion Rate metric card - same size as DealMetricCard, new Conversion Funnel design (replaces old in Deal Analytics grid) */
-interface ConversionRateMetricCardProps {
-  conversionRate: string;
-  change: string;
-  trend: "up" | "down" | "neutral";
-}
-
-function ConversionRateMetricCard({
-  conversionRate,
-  change,
-  trend,
-}: ConversionRateMetricCardProps) {
-  const displayRate = conversionRate?.replace(/%/g, "").trim() || "67";
-  const isUp = trend === "up";
-  const isDown = trend === "down";
-  const isNeutral = trend === "neutral";
-  const trendPillClass = isDown
-    ? "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20"
-    : isUp
-      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20"
-      : "text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600";
-
-  return (
-    <div className="group bg-white dark:bg-gray-700/40 p-5 rounded-2xl border border-slate-100 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="flex justify-between items-start mb-4">
-        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-          <Zap className="w-5 h-5" strokeWidth={2} />
-        </div>
-        <div className={`flex items-center px-2 py-1 rounded-md text-[10px] font-bold border ${trendPillClass}`}>
-          {isDown && <TrendingDown className="w-3.5 h-3.5 mr-0.5" />}
-          {isUp && <TrendingUp className="w-3.5 h-3.5 mr-0.5" />}
-          {isNeutral && <Minus className="w-3.5 h-3.5 mr-0.5" />}
-          {change}
-        </div>
-      </div>
-      <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-        {displayRate}%
-      </h3>
-      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
-        Conversion Rate
-      </p>
-    </div>
-  );
-}
-
-/* Active Deals metric card - same size as DealMetricCard, new Active Deals design (replaces old in Deal Analytics grid) */
-interface ActiveDealsMetricCardProps {
-  count: number;
-  changeLabel: string;
-  trend: "up" | "down" | "neutral";
-}
-
-function ActiveDealsMetricCard({
-  count,
-  changeLabel,
-  trend,
-}: ActiveDealsMetricCardProps) {
-  const isUp = trend === "up";
-  const isDown = trend === "down";
-  const trendPillClass = isDown
-    ? "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20"
-    : isUp
-      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20"
-      : "text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600";
-
-  return (
-    <div className="group bg-white dark:bg-gray-700/40 p-5 rounded-2xl border border-slate-100 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="flex justify-between items-start mb-4">
-        <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
-          <Briefcase className="w-5 h-5" strokeWidth={2} />
-        </div>
-        <div className={`flex items-center px-2 py-1 rounded-md text-[10px] font-bold border ${trendPillClass}`}>
-          {isDown ? (
-            <TrendingDown className="w-3.5 h-3.5 mr-0.5" />
-          ) : isUp ? (
-            <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
-          ) : (
-            <Minus className="w-3.5 h-3.5 mr-0.5" />
-          )}
-          {changeLabel}
-        </div>
-      </div>
-      <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-        {count}
-      </h3>
-      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
-        Active Deals
-      </p>
-    </div>
-  );
-}
-
-/* Deal Size (Avg Deal Size) metric card - same size as DealMetricCard, new Deal Size design (replaces old in Deal Analytics grid) */
-interface DealSizeMetricCardProps {
-  value: string;
-  changeLabel: string;
-}
-
-function DealSizeMetricCard({ value, changeLabel }: DealSizeMetricCardProps) {
-  const isUp = changeLabel.startsWith("+");
-  const isDown = changeLabel.startsWith("-");
-  const trendPillClass = isDown
-    ? "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20"
-    : isUp
-      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20"
-      : "text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600";
-
-  return (
-    <div className="group bg-white dark:bg-gray-700/40 p-5 rounded-2xl border border-slate-100 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="flex justify-between items-start mb-4">
-        <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400">
-          <DollarSign className="w-5 h-5" strokeWidth={2} />
-        </div>
-        <div className={`flex items-center px-2 py-1 rounded-md text-[10px] font-bold border ${trendPillClass}`}>
-          {isDown && <TrendingDown className="w-3.5 h-3.5 mr-0.5" />}
-          {isUp && <TrendingUp className="w-3.5 h-3.5 mr-0.5" />}
-          {!isUp && !isDown && <Minus className="w-3.5 h-3.5 mr-0.5" />}
-          {changeLabel}
-        </div>
-      </div>
-      <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-        {value?.trim() || "$32.5k"}
-      </h3>
-      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
-        Avg Deal Size
       </p>
     </div>
   );
@@ -1618,487 +1463,6 @@ function ProspectMetricCard({
           <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
             {label}
           </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* Conversion Funnel card - Pipeline Health (1:1 with reference design, retains min-height 520px, max-w-md) */
-interface ConversionFunnelCardProps {
-  conversionRate: string;
-  monthlyTargetPercent: number;
-}
-
-function ConversionFunnelCard({
-  conversionRate,
-  monthlyTargetPercent,
-}: ConversionFunnelCardProps) {
-  const displayRate =
-    conversionRate?.replace(/%/g, "").trim() || "3.4";
-  return (
-    <div
-      className="glass-panel w-full max-w-md bg-white dark:bg-slate-900/60 rounded-[2rem] shadow-card-pop border border-gray-100 dark:border-slate-700/40 p-10 transition-all duration-300 relative overflow-hidden z-10 flex flex-col justify-between min-h-[520px]"
-      style={{ minHeight: "520px" }}
-    >
-      <div
-        className="absolute inset-0 bg-mesh-gradient dark:bg-mesh-dark pointer-events-none opacity-40"
-        aria-hidden
-      />
-      <div className="flex items-center justify-between mb-8 z-10 relative">
-        <div>
-          <h3 className="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase mb-1">
-            Pipeline Health
-          </h3>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-50">
-            Conversion Funnel
-          </h2>
-        </div>
-        <button
-          type="button"
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 transition-colors"
-          aria-label="More options"
-        >
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="flex flex-col justify-center items-center flex-grow py-8 relative">
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-indigo-500/10 blur-[60px] rounded-full pointer-events-none"
-          aria-hidden
-        />
-        <div className="relative w-72 h-72">
-          <svg
-            className="w-full h-full transform -rotate-90 drop-shadow-xl"
-            viewBox="0 0 200 200"
-            aria-hidden
-          >
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="rgba(203, 213, 225, 0.3)"
-              strokeWidth="14"
-              className="dark:stroke-slate-800/50"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#6366F1"
-              strokeDasharray="280 550"
-              strokeDashoffset="0"
-              strokeLinecap="round"
-              strokeWidth="16"
-              className="filter drop-shadow-md transition-all duration-500 cursor-pointer"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#EC4899"
-              strokeDasharray="90 550"
-              strokeDashoffset="-295"
-              strokeLinecap="round"
-              strokeWidth="14"
-              className="filter drop-shadow-md transition-all duration-500 cursor-pointer"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#F59E0B"
-              strokeDasharray="50 550"
-              strokeDashoffset="-400"
-              strokeLinecap="round"
-              strokeWidth="14"
-              className="filter drop-shadow-md transition-all duration-500 cursor-pointer"
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-10">
-            <span className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-slate-800 to-slate-500 dark:from-white dark:to-slate-400 tracking-tight">
-              {displayRate}%
-            </span>
-            <span className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-2 opacity-80">
-              Conversion Rate
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="z-10 relative">
-        <div className="mb-6 z-10 relative px-1">
-          <div className="flex justify-between items-end mb-3">
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-              Monthly Target Progress
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-800 dark:text-slate-50">
-                {monthlyTargetPercent}%
-              </span>
-            </div>
-          </div>
-          <div className="relative w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full">
-            <div
-              className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#6366F1] via-[#EC4899] to-[#F59E0B] rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-              style={{ width: `${monthlyTargetPercent}%` }}
-            />
-            <div
-              className="absolute top-1/2 -translate-y-1/2 -ml-1.5 w-3 h-3 bg-white border-2 border-amber-500 rounded-full shadow-glow-amber z-20"
-              style={{ left: `${monthlyTargetPercent}%` }}
-            />
-            <div
-              className="absolute -top-10 -translate-x-1/2 bg-slate-800 dark:bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity cursor-help border-4 border-transparent border-t-slate-800 dark:border-t-slate-700 pointer-events-none"
-              style={{ left: `${monthlyTargetPercent}%` }}
-            >
-              On Track
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between pt-4 z-10 relative border-t border-white/20 dark:border-slate-600/40">
-          <div className="flex -space-x-3 hover:space-x-1 transition-all duration-300">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800 shadow-sm bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-                aria-hidden
-              >
-                {i}
-              </div>
-            ))}
-            <div className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800 bg-gray-50 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 shadow-sm">
-              +4
-            </div>
-          </div>
-          <Link
-            href="/dashboard/crm/analytics"
-            className="group flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors bg-indigo-500/10 px-4 py-2 rounded-full hover:bg-indigo-500/20"
-          >
-            Full Report
-            <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* Pipeline Value card - Pipeline Health (1:1 with reference design, retains min-height 580px, max-w-md) */
-interface PipelineValueCardProps {
-  totalValue: string;
-}
-
-const PIPELINE_LEGEND = [
-  { label: "Discovery", color: "bg-blue-500" },
-  { label: "Proposal", color: "bg-violet-500" },
-  { label: "Negotiation", color: "bg-pink-500" },
-  { label: "Closing", color: "bg-orange-500" },
-] as const;
-
-function PipelineValueCard({ totalValue }: PipelineValueCardProps) {
-  const displayValue = totalValue?.trim() || "$1.2M";
-  return (
-    <div
-      className="glass-panel w-full max-w-md bg-white dark:bg-slate-900/60 rounded-[2rem] shadow-card-soft border border-gray-100 dark:border-slate-700/40 p-10 relative overflow-hidden flex flex-col justify-between min-h-[580px]"
-      style={{ minHeight: "580px" }}
-    >
-      <div className="flex items-center justify-between mb-2 z-10 relative">
-        <div>
-          <h3 className="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase mb-1">
-            Pipeline Health
-          </h3>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-50">
-            Pipeline Value
-          </h2>
-        </div>
-        <button
-          type="button"
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 transition-colors"
-          aria-label="More options"
-        >
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="flex flex-col justify-center items-center flex-grow py-6 relative z-10">
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-indigo-50 dark:bg-indigo-900/20 blur-[50px] rounded-full pointer-events-none"
-          aria-hidden
-        />
-        <div className="relative w-72 h-72">
-          <svg
-            className="w-full h-full transform -rotate-90 drop-shadow-lg"
-            viewBox="0 0 200 200"
-            aria-hidden
-          >
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#F1F5F9"
-              strokeWidth="12"
-              className="dark:stroke-slate-700/50"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#3B82F6"
-              strokeDasharray="160 600"
-              strokeDashoffset="0"
-              strokeLinecap="round"
-              strokeWidth="12"
-              className="transition-all duration-500 cursor-pointer"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#8B5CF6"
-              strokeDasharray="110 600"
-              strokeDashoffset="-175"
-              strokeLinecap="round"
-              strokeWidth="12"
-              className="transition-all duration-500 cursor-pointer"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#EC4899"
-              strokeDasharray="90 600"
-              strokeDashoffset="-300"
-              strokeLinecap="round"
-              strokeWidth="12"
-              className="transition-all duration-500 cursor-pointer"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              fill="transparent"
-              r="80"
-              stroke="#F97316"
-              strokeDasharray="60 600"
-              strokeDashoffset="-405"
-              strokeLinecap="round"
-              strokeWidth="12"
-              className="transition-all duration-500 cursor-pointer"
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-10">
-            <span className="text-5xl font-bold text-slate-800 dark:text-slate-50 tracking-tight">
-              {displayValue}
-            </span>
-            <span className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-2 opacity-80">
-              Total Value
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="z-10 relative">
-        <div className="mb-8 px-1">
-          <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-            {PIPELINE_LEGEND.map(({ label, color }) => (
-              <div key={label} className="flex items-center gap-2.5">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${color} shadow-sm ring-2 ring-white dark:ring-slate-800`}
-                  aria-hidden
-                />
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center justify-between pt-6 border-t border-gray-100 dark:border-slate-700/50">
-          <div className="flex -space-x-3 hover:space-x-1 transition-all duration-300">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800 shadow-sm bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 object-cover"
-                aria-hidden
-              >
-                {i}
-              </div>
-            ))}
-            <div className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800 bg-gray-50 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 shadow-sm">
-              +4
-            </div>
-          </div>
-          <Link
-            href="/dashboard/crm/deals"
-            className="group flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors bg-indigo-50 dark:bg-indigo-500/10 px-4 py-2.5 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
-          >
-            Full Report
-            <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* Deal Size (Avg Deal Size) card - Pipeline Health (1:1 with reference design, retains min-height 480px, max-w-md) */
-interface DealSizeCardProps {
-  value: string;
-  changeLabel: string;
-}
-
-function DealSizeCard({ value, changeLabel }: DealSizeCardProps) {
-  const isUp = changeLabel.startsWith("+");
-  const isDown = changeLabel.startsWith("-");
-  const trendPillClass = isDown
-    ? "text-rose-600 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400 border-rose-100 dark:border-rose-500/20"
-    : isUp
-      ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20"
-      : "text-slate-600 bg-slate-50 dark:bg-slate-700/50 dark:text-slate-400 border-slate-100 dark:border-slate-600";
-
-  return (
-    <div
-      className="glass-panel w-full max-w-md bg-white dark:bg-slate-900/60 rounded-[2rem] shadow-card-soft border border-gray-100 dark:border-slate-700/40 p-10 relative overflow-hidden flex flex-col justify-between min-h-[480px]"
-      style={{ minHeight: "480px" }}
-    >
-      {/* Decorative dollar icon - top right, faded */}
-      <div
-        className="absolute right-[-2rem] top-[-1rem] text-gray-200 dark:text-slate-600 opacity-30 select-none pointer-events-none transform rotate-12 z-0"
-        aria-hidden
-      >
-        <DollarSign className="w-[300px] h-[300px]" strokeWidth={1.5} />
-      </div>
-      <div className="flex items-center justify-between mb-2 z-10 relative">
-        <div>
-          <h3 className="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase mb-1">
-            Pipeline Health
-          </h3>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-50">
-            Deal Size
-          </h2>
-        </div>
-        <button
-          type="button"
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 transition-colors"
-          aria-label="More options"
-        >
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="flex flex-col justify-center items-center flex-grow py-6 relative z-10">
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-emerald-50 dark:bg-emerald-900/20 blur-[60px] rounded-full pointer-events-none"
-          aria-hidden
-        />
-        <div className="relative flex flex-col items-center justify-center text-center z-10">
-          <span className="text-7xl font-bold text-slate-800 dark:text-slate-50 tracking-tight">
-            {value?.trim() || "$15,420"}
-          </span>
-          <div
-            className={`flex items-center gap-1 mt-4 px-3 py-1.5 rounded-full border shadow-sm ${trendPillClass}`}
-          >
-            {isDown ? (
-              <TrendingDown className="w-3.5 h-3.5 flex-shrink-0" />
-            ) : isUp ? (
-              <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
-            ) : (
-              <Minus className="w-3.5 h-3.5 flex-shrink-0" />
-            )}
-            <span className="text-xs font-bold">{changeLabel}</span>
-          </div>
-        </div>
-      </div>
-      <div className="z-10 relative">
-        <div className="flex items-center justify-between pt-6 border-t border-gray-100 dark:border-slate-700/50 mt-4">
-          <div className="flex -space-x-3 hover:space-x-1 transition-all duration-300">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800 shadow-sm bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-                aria-hidden
-              >
-                {i}
-              </div>
-            ))}
-            <div className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800 bg-gray-50 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 shadow-sm">
-              +4
-            </div>
-          </div>
-          <Link
-            href="/dashboard/crm/deals"
-            className="group flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors bg-indigo-50 dark:bg-indigo-500/10 px-4 py-2.5 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
-          >
-            Full Report
-            <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* Stage Distribution - wide horizontal bar (1:1 with reference: glass panel, 4 segments, tooltips) */
-const STAGE_DIST_SEGMENTS = [
-  { width: 35, color: "bg-emerald-500", label: "New" },
-  { width: 25, color: "bg-violet-500", label: "Contacted" },
-  { width: 20, color: "bg-indigo-500", label: "Qualified" },
-  { width: 20, color: "bg-rose-500", label: "Proposal" },
-] as const;
-
-interface StageDistributionCardProps {
-  stages: { name: string; value: number; percentage: number }[];
-}
-
-function StageDistributionCard({ stages }: StageDistributionCardProps) {
-  const four = stages.slice(0, 4);
-  const segments = STAGE_DIST_SEGMENTS.map((seg, i) => ({
-    ...seg,
-    stage: four[i] ?? { name: seg.label, value: 0, percentage: seg.width },
-  }));
-
-  return (
-    <div className="glass-panel w-full max-w-5xl mx-auto bg-white dark:bg-slate-900/60 rounded-2xl shadow-card-soft border border-gray-100 dark:border-slate-700/40 p-8 sm:p-10 relative overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between mb-8 sm:mb-12 relative z-10">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
-          Stage Distribution
-        </h2>
-        <Link
-          href="/dashboard/engage"
-          className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors flex items-center gap-1 group"
-        >
-          View Full Report
-          <ArrowRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
-        </Link>
-      </div>
-      <div className="flex flex-col flex-grow relative z-10 w-full">
-        <div className="relative w-full h-10 flex items-center gap-0">
-          {segments.map((seg, i) => (
-            <div
-              key={seg.label}
-              className={`h-full shadow-sm hover:brightness-110 transition-all cursor-pointer relative group ${i === 0 ? "rounded-l-md" : ""} ${i === segments.length - 1 ? "rounded-r-md" : ""} ${seg.color}`}
-              style={{ width: `${seg.width}%` }}
-            >
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-gray-900 dark:bg-slate-800 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 shadow-lg pointer-events-none">
-                {seg.stage.name}: {seg.width}% ({seg.stage.value} Deals)
-                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900 dark:border-t-slate-800" />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="w-full flex text-sm text-slate-500 dark:text-slate-400 font-medium items-start mt-4">
-          {segments.map((seg, i) => (
-            <div
-              key={seg.label}
-              className="text-center"
-              style={{ width: `${seg.width}%`, paddingLeft: i === 0 ? 0 : 4 }}
-            >
-              {seg.label}
-            </div>
-          ))}
         </div>
       </div>
     </div>

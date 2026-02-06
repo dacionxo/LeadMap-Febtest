@@ -16,7 +16,11 @@ module.exports = {
       },
       fontFamily: {
         sans: ["var(--font-dm-sans)", "var(--font-inter)", "sans-serif"],
-        "nav-display": ["var(--font-plus-jakarta)", "Plus Jakarta Sans", "sans-serif"],
+        "nav-display": [
+          "var(--font-plus-jakarta)",
+          "Plus Jakarta Sans",
+          "sans-serif",
+        ],
         heading: ["var(--font-montserrat)", "sans-serif"],
         ui: ["var(--font-lato)", "sans-serif"],
         montserrat: ["var(--font-montserrat)", "sans-serif"],
@@ -232,17 +236,6 @@ module.exports = {
         card: "0px 1px 2px 0px rgba(0, 0, 0, 0.12)",
         soft: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
         glow: "0 0 15px rgba(79, 70, 229, 0.3)",
-        "card-pop":
-          "0 20px 40px -5px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.05)",
-        "glow-amber": "0 0 10px rgba(245, 158, 11, 0.6)",
-        "card-soft":
-          "0 20px 40px -5px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.02)",
-      },
-      backgroundImage: {
-        "mesh-gradient":
-          "radial-gradient(at 40% 20%, rgba(238, 242, 255, 0.8) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.05) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(99, 102, 241, 0.05) 0px, transparent 50%)",
-        "mesh-dark":
-          "radial-gradient(at 40% 20%, rgba(30, 41, 59, 0.5) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(99, 102, 241, 0.1) 0px, transparent 50%)",
       },
     },
   },

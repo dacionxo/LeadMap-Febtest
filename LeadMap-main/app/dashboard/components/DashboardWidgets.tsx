@@ -1378,6 +1378,162 @@ function SalesEfficiencyWidget({
   );
 }
 
+function ConversionRateWidget({
+  widget,
+  data,
+}: {
+  widget: DashboardWidget;
+  data?: any;
+}) {
+  const rawValue = data?.value ?? "3.4%";
+  const formattedValue =
+    typeof rawValue === "string" ? rawValue : `${rawValue}%`;
+  const numericValue = Number(
+    String(rawValue).replace("%", "").replace(/[^\d.]/g, "")
+  );
+  const displayValue = Number.isFinite(numericValue) ? numericValue : 3.4;
+  const progressPercent = 85;
+
+  return (
+    <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-ld shadow-[0_0.125rem_0.25rem_rgba(0,0,0,0.075)] hover:shadow-lg transition-all duration-200 overflow-hidden p-4 h-full flex flex-col">
+      <div className="absolute inset-0 bg-[radial-gradient(at_40%_20%,rgba(238,242,255,0.8)_0px,transparent_50%),radial-gradient(at_80%_0%,rgba(236,72,153,0.05)_0px,transparent_50%),radial-gradient(at_0%_50%,rgba(99,102,241,0.05)_0px,transparent_50%)] dark:bg-[radial-gradient(at_40%_20%,rgba(30,41,59,0.5)_0px,transparent_50%),radial-gradient(at_80%_0%,rgba(236,72,153,0.1)_0px,transparent_50%),radial-gradient(at_0%_50%,rgba(99,102,241,0.1)_0px,transparent_50%)] pointer-events-none opacity-40" />
+
+      <div className="relative z-10 flex items-center justify-between mb-4">
+        <div>
+          <p className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
+            Pipeline Health
+          </p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Conversion Funnel
+          </h3>
+        </div>
+        <button
+          type="button"
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-700/50 text-gray-400 dark:text-slate-400 transition-colors"
+          aria-label="Conversion widget options"
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center justify-center flex-1 py-3">
+        <div className="absolute w-28 h-28 bg-primary/10 blur-[40px] rounded-full pointer-events-none" />
+        <div className="relative w-36 h-36">
+          <svg className="w-full h-full -rotate-90 drop-shadow-xl" viewBox="0 0 200 200">
+            <circle
+              className="dark:stroke-slate-800/50"
+              cx="100"
+              cy="100"
+              r="80"
+              fill="transparent"
+              stroke="rgba(203, 213, 225, 0.3)"
+              strokeWidth="14"
+            />
+            <circle
+              cx="100"
+              cy="100"
+              r="80"
+              fill="transparent"
+              stroke="#6366F1"
+              strokeDasharray="280 550"
+              strokeDashoffset="0"
+              strokeLinecap="round"
+              strokeWidth="16"
+              className="transition-all duration-500"
+            />
+            <circle
+              cx="100"
+              cy="100"
+              r="80"
+              fill="transparent"
+              stroke="#EC4899"
+              strokeDasharray="90 550"
+              strokeDashoffset="-295"
+              strokeLinecap="round"
+              strokeWidth="14"
+              className="transition-all duration-500"
+            />
+            <circle
+              cx="100"
+              cy="100"
+              r="80"
+              fill="transparent"
+              stroke="#F59E0B"
+              strokeDasharray="50 550"
+              strokeDashoffset="-400"
+              strokeLinecap="round"
+              strokeWidth="14"
+              className="transition-all duration-500"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-slate-800 to-slate-400 dark:from-white dark:to-slate-400 tracking-tight">
+              {formattedValue || `${displayValue.toFixed(1)}%`}
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-1">
+              Conversion Rate
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative z-10 pt-3">
+        <div className="mb-4">
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              Monthly Target Progress
+            </span>
+            <span className="text-[11px] font-bold text-slate-800 dark:text-white">
+              {progressPercent}%
+            </span>
+          </div>
+          <div className="relative w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full">
+            <div
+              className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary via-pink-500 to-amber-400 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+              style={{ width: `${progressPercent}%` }}
+            />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -ml-1.5 w-3 h-3 bg-white border-2 border-amber-400 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.6)]"
+              style={{ left: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-3 border-t border-white/20 dark:border-slate-700/40">
+          <div className="flex -space-x-2">
+            {["A", "B", "C"].map((initials, idx) => (
+              <div
+                key={initials}
+                className={`w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center text-[9px] font-bold ${
+                  idx === 0
+                    ? "bg-indigo-100 text-indigo-700"
+                    : idx === 1
+                      ? "bg-pink-100 text-pink-700"
+                      : "bg-amber-100 text-amber-700"
+                }`}
+                aria-hidden="true"
+              >
+                {initials}
+              </div>
+            ))}
+            <div className="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 bg-gray-50 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 dark:text-slate-300 shadow-sm">
+              +4
+            </div>
+          </div>
+          <button
+            type="button"
+            className="group flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary-hover transition-colors bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20"
+            aria-label={`${widget.title} full report`}
+          >
+            Full Report
+            <ArrowRight className="w-3 h-3 transform group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Available Widgets Registry - NextDeal Specific
 export const availableWidgets: DashboardWidget[] = [
   // Core Metrics
@@ -1467,7 +1623,7 @@ export const availableWidgets: DashboardWidget[] = [
     type: "metric",
     title: "Conversion Rate",
     icon: Percent,
-    component: ProspectMetricsWidget,
+    component: ConversionRateWidget,
     defaultEnabled: true,
     category: "crm",
     size: "small",

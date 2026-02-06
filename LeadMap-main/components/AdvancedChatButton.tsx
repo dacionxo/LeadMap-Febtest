@@ -19,9 +19,9 @@ export default function AdvancedChatButton() {
 
   return (
     <>
-      {/* Floating AI Assistant Button - left on /dashboard/map, right elsewhere */}
+      {/* Floating AI Assistant Button - left edge of map on /dashboard/map, right elsewhere */}
       <div
-        className={`fixed bottom-6 z-40 group cursor-pointer animate-float ${isMapPage ? 'left-6' : 'right-6'}`}
+        className={`fixed bottom-6 z-40 group cursor-pointer animate-float ${isMapPage ? 'left-[282px]' : 'right-6'}`}
       >
         {/* Outer glow - stronger on hover */}
         <div

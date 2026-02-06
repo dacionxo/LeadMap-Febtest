@@ -240,12 +240,6 @@ export default function MapPage() {
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Map Section - full screen */}
           <div className="flex-1 relative">
-            {/* Title on map - left side */}
-            <div className="absolute left-4 top-4 z-10">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white drop-shadow-sm bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-3 py-2 rounded-lg border border-gray-200/80 dark:border-gray-700/80">
-                Property Map
-              </h1>
-            </div>
             {/* Map Component - full screen */}
             <div className="w-full h-full">
               <MapView

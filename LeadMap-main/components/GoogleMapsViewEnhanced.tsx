@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 
 // Extend window type for Google Maps
@@ -47,23 +47,21 @@ interface GoogleMapsViewEnhancedProps {
   fullScreen?: boolean;
 }
 
-export type MapComponentRef = { setStreetViewLead: (lead: Lead | null) => void };
-
-const MapComponent = forwardRef<MapComponentRef, { 
+const MapComponent: React.FC<{ 
   leads: Lead[]; 
-  onStreetViewClick: (lead: Lead) => void;
+  onStreetViewClick: (lead: Lead) => void; // CHANGED: Pass full Lead object
   onMapReady: (map: google.maps.Map) => void;
   onError?: () => void;
   fullHeight?: boolean;
-}>(({ leads, onStreetViewClick, onMapReady, onError, fullHeight }, ref) => {
+}> = ({ leads, onStreetViewClick, onMapReady, onError, fullHeight }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const markerLeadMapRef = useRef<Map<google.maps.Marker, Lead>>(new Map());
   const [infoWindow, setInfoWindow] = useState<google.maps.InfoWindow | null>(null);
+  const streetViewMarkerRef = useRef<google.maps.Marker | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number | null>(null);
-  const [streetViewLead, setStreetViewLead] = useState<Lead | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
   // Store callbacks in refs to avoid dependency issues
@@ -105,12 +103,36 @@ const MapComponent = forwardRef<MapComponentRef, {
             });
             panorama.setVisible(true);
             mapInstance.setStreetView(panorama);
-            if (lead) setStreetViewLead(lead);
-
+            
             // Center the map on the location and zoom in
             mapInstance.setCenter({ lat, lng });
             mapInstance.setZoom(18);
 
+            const resolvedLead =
+              lead ||
+              leads.find(l => l.latitude === lat && l.longitude === lng) ||
+              null;
+            if (streetViewMarkerRef.current) {
+              streetViewMarkerRef.current.setMap(null);
+              streetViewMarkerRef.current = null;
+            }
+            if (resolvedLead) {
+              streetViewMarkerRef.current = new window.google.maps.Marker({
+                position: { lat, lng },
+                map: panorama,
+                icon: getMarkerIcon(resolvedLead, false, 1.3),
+                zIndex: 9999,
+                title: `${resolvedLead.address}, ${resolvedLead.city}, ${resolvedLead.state}`,
+              });
+            }
+
+            panorama.addListener('visible_changed', () => {
+              if (!panorama.getVisible() && streetViewMarkerRef.current) {
+                streetViewMarkerRef.current.setMap(null);
+                streetViewMarkerRef.current = null;
+              }
+            });
+            
             console.log('Street View opened successfully at', lat, lng);
           } else {
             // Street View not available - open modal as fallback
@@ -218,7 +240,7 @@ const MapComponent = forwardRef<MapComponentRef, {
   };
 
   // Property price marker: pill with dynamic price and pointed bottom (default + active styles)
-  const getMarkerIcon = (lead: Lead, isActive = false) => {
+  const getMarkerIcon = (lead: Lead, isActive = false, scale = 1) => {
     const priceLabel = formatPrice(lead.price);
     const primary = '#0F62FE';
     const surfaceLight = '#FFFFFF';
@@ -251,39 +273,9 @@ const MapComponent = forwardRef<MapComponentRef, {
     `;
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-      scaledSize: new google.maps.Size(totalW, totalH),
-      anchor: new google.maps.Point(cx, totalH),
+      scaledSize: new google.maps.Size(totalW * scale, totalH * scale),
+      anchor: new google.maps.Point(cx * scale, totalH * scale),
     };
-  };
-
-  // Street View overlay: same price pill at 30% larger scale
-  const getStreetViewPricePillDataUrl = (lead: Lead): string => {
-    const priceLabel = formatPrice(lead.price);
-    const scale = 1.3;
-    const primary = '#0F62FE';
-    const surfaceLight = '#FFFFFF';
-    const borderSlate = '#e2e8f0';
-    const textSlate = '#1e293b';
-    const pillW = Math.round((Math.max(56, priceLabel.length * 10)) * scale);
-    const pillH = Math.round(24 * scale);
-    const pointSize = Math.round(6 * scale);
-    const totalH = pillH + pointSize;
-    const totalW = pillW + Math.round(8 * scale);
-    const cx = totalW / 2;
-    const fontSize = Math.round(11 * scale);
-    const svg = `
-      <svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="markerShadowSv" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.12"/>
-          </filter>
-        </defs>
-        <rect x="5" y="0" width="${pillW}" height="${pillH}" rx="14" ry="14" fill="${surfaceLight}" stroke="${borderSlate}" stroke-width="1" filter="url(#markerShadowSv)"/>
-        <path d="M${cx} ${totalH} L${cx - pointSize} ${pillH} L${cx} ${pillH + pointSize * 0.6} L${cx + pointSize} ${pillH} Z" fill="${surfaceLight}" stroke="${borderSlate}" stroke-width="1"/>
-        <text x="${cx}" y="${pillH / 2 + 5}" text-anchor="middle" fill="${textSlate}" font-family="Inter, system-ui, sans-serif" font-size="${fontSize}" font-weight="600">${priceLabel}</text>
-      </svg>
-    `;
-    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
   };
 
   const markerZoomThreshold = 6;
@@ -477,16 +469,6 @@ const MapComponent = forwardRef<MapComponentRef, {
     };
   }, [map, mapInitAttempt]);
 
-  // Clear Street View price overlay when user closes Street View
-  useEffect(() => {
-    if (!map || typeof window === 'undefined' || !window.google?.maps) return;
-    const panorama = map.getStreetView();
-    const listener = window.google.maps.event.addListener(panorama, 'visible_changed', () => {
-      if (!panorama.getVisible()) setStreetViewLead(null);
-    });
-    return () => window.google.maps.event.removeListener(listener);
-  }, [map]);
-
   useEffect(() => {
     if (!map || !leads.length) return;
 
@@ -678,40 +660,14 @@ const MapComponent = forwardRef<MapComponentRef, {
     openStreetViewImmediately,
   ]);
 
-  useImperativeHandle(ref, () => ({ setStreetViewLead }), []);
-
   return (
     <div
+      ref={mapRef}
       className={fullHeight ? 'h-full' : undefined}
-      style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : '600px' }}
-    >
-      <div
-        ref={mapRef}
-        className={fullHeight ? 'h-full' : undefined}
-        style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-      />
-      {streetViewLead && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 80,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            pointerEvents: 'none',
-          }}
-        >
-          <img
-            src={getStreetViewPricePillDataUrl(streetViewLead)}
-            alt=""
-            style={{ display: 'block' }}
-          />
-        </div>
-      )}
-    </div>
+      style={{ width: '100%', height: fullHeight ? '100%' : '600px' }}
+    />
   );
-});
-MapComponent.displayName = 'MapComponent';
+};
 
 const render = (status: Status, onError?: () => void): React.ReactElement => {
   switch (status) {
@@ -752,7 +708,6 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
   const [isSearching, setIsSearching] = useState(false);
   const searchMarkerRef = useRef<google.maps.Marker | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const mapComponentRef = useRef<MapComponentRef | null>(null);
 
   // Callback when map is ready - memoized to prevent re-renders
   const handleMapReady = useCallback((map: google.maps.Map) => {
@@ -795,7 +750,6 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
                 mapInstanceRef.current?.setStreetView(panorama);
                 mapInstanceRef.current?.setCenter({ lat: lead.latitude!, lng: lead.longitude! });
                 mapInstanceRef.current?.setZoom(18);
-                mapComponentRef.current?.setStreetViewLead(lead);
               } else {
                 // Street View not available - open modal as fallback
                 if (onStreetViewListingClick) {
@@ -1023,9 +977,8 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
 
       <div className={fullScreen ? 'h-full min-h-0' : undefined}>
         <Wrapper apiKey={GOOGLE_MAPS_API_KEY} render={(status) => render(status, onError)}>
-          <MapComponent
-            ref={mapComponentRef}
-            leads={listings}
+          <MapComponent 
+            leads={listings} 
             onStreetViewClick={handleStreetViewClickFromMap}
             onMapReady={handleMapReady}
             onError={onError}

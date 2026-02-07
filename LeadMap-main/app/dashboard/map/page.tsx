@@ -252,8 +252,8 @@ export default function MapPage() {
               />
             </div>
 
-            {/* Profile and notifications - top right, to the left of map fullscreen control */}
-            <div className="absolute top-4 right-4 z-10">
+            {/* Profile and notifications - top right, 30px left of default */}
+            <div className="absolute top-4 right-[46px] z-10">
               <MapProfileNotificationButtons />
             </div>
 

@@ -120,7 +120,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     `;
   };
 
-  // Property details popup card (1:1 design: image, For Sale, price, address, beds/sqft, marker tip)
+  // Property details popup card (1:1: image, For Sale, price, address, Material Symbols, beds/sqft, marker tip). Single card only; no scroll.
   const createPopupContent = (lead: Lead): string => {
     const primary = "#6366f1";
     const imgSrc =
@@ -141,7 +141,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     const safeAddress = address.replace(/</g, "&lt;");
     const safeCity = cityStateZip.replace(/</g, "&lt;");
     return `
-    <div style="position:relative;width:100%;max-width:240px;font-family:Inter,system-ui,sans-serif;">
+    <div class="property-details-popup-root" style="position:relative;width:100%;max-width:240px;font-family:Inter,system-ui,sans-serif;overflow:hidden;">
       <div style="position:relative;background:#fff;border-radius:12px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;border:1px solid rgba(226,232,240,0.6);">
         <div style="width:100%;aspect-ratio:1;background:#f1f5f9;overflow:hidden;position:relative;">
           <img alt="Property" src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22240%22 viewBox=%220 0 240 240%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22240%22 height=%22240%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%2294a3b8%22 font-size=%2214%22%3ENo image%3C/text%3E%3C/svg%3E'"/>
@@ -154,11 +154,11 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
               <h2 style="margin:0;font-size:18px;font-weight:700;color:#0f172a;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${priceStr}</h2>
             </div>
             <div style="display:flex;gap:4px;">
-              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:8px;color:#64748b;background:transparent;border:none;border-radius:8px;cursor:pointer;text-decoration:none;display:flex;" title="View Details">
-                <span style="font-size:18px;">👁</span>
+              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:8px;color:#64748b;background:transparent;border:none;border-radius:8px;cursor:pointer;text-decoration:none;display:flex;" title="View Details" aria-label="View Details">
+                <span class="material-symbols-outlined">visibility</span>
               </a>
-              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:8px;color:#64748b;background:transparent;border:none;border-radius:8px;cursor:pointer;text-decoration:none;display:flex;" title="Street View">
-                <span style="font-size:18px;">🗺</span>
+              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:8px;color:#64748b;background:transparent;border:none;border-radius:8px;cursor:pointer;text-decoration:none;display:flex;" title="Street View" aria-label="Street View">
+                <span class="material-symbols-outlined">map</span>
               </a>
             </div>
           </div>
@@ -167,13 +167,13 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
             <p style="margin:2px 0 0 0;font-size:12px;color:#64748b;">${safeCity}</p>
           </div>
           <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(241,245,249,0.8);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:500;color:#64748b;">
-            <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;opacity:0.7;">🛏</span><span>${bedsStr}</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-outlined" style="font-size:14px;opacity:0.7;">bed</span><span>${bedsStr}</span></div>
             <div style="width:4px;height:4px;background:#cbd5e1;border-radius:9999px;"></div>
-            <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;opacity:0.7;">⊡</span><span>${sqftStr}</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-outlined" style="font-size:14px;opacity:0.7;">square_foot</span><span>${sqftStr}</span></div>
           </div>
         </div>
       </div>
-      <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%) rotate(45deg);width:16px;height:16px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
+      <div class="marker-tip" style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%) rotate(45deg);width:16px;height:16px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
     </div>
     `;
   };
@@ -456,7 +456,9 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
       const marker = new mapboxgl.Marker(el)
         .setLngLat([lead.longitude!, lead.latitude!])
         .setPopup(
-          new mapboxgl.Popup({ offset: 25 }).setHTML(createPopupContent(lead))
+          new mapboxgl.Popup({ offset: 25, className: "map-property-popup" }).setHTML(
+            createPopupContent(lead)
+          )
         )
         .addTo(map.current!);
 
@@ -507,7 +509,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
               const marker = new mapboxgl.Marker(el)
                 .setLngLat([coords.lng, coords.lat])
                 .setPopup(
-                  new mapboxgl.Popup({ offset: 25 }).setHTML(
+                  new mapboxgl.Popup({ offset: 25, className: "map-property-popup" }).setHTML(
                     createPopupContent(lead)
                   )
                 )

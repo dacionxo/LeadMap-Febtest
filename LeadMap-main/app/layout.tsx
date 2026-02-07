@@ -58,6 +58,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${montserrat.variable} ${lato.variable} ${dmSans.variable} ${plusJakarta.variable} ${dmSans.className}`}>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
         <GoogleMapsScript />
         <ThemeProvider>
           <Providers>

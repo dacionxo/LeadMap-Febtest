@@ -900,3 +900,45 @@
 .dark .bar-gradient-campaign {
   background: linear-gradient(180deg, #3b82f6 0%, #60a5fa 100%);
 }
+
+/* Material Symbols in map property popups */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
+  font-size: 18px;
+  font-family: "Material Symbols Outlined", system-ui, sans-serif;
+}
+
+/* Map property details popup: single background only (card), no scroll. Strip Google InfoWindow chrome. */
+.gm-style-iw {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.gm-style-iw-c {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  max-height: none !important;
+}
+.gm-style-iw-d {
+  overflow: hidden !important;
+  max-height: none !important;
+}
+.gm-style-iw-t::after {
+  background: transparent !important;
+}
+
+/* Mapbox: property popup = card only, no extra background, no scroll */
+.map-property-popup.mapboxgl-popup .mapboxgl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-width: 0 !important;
+  max-width: 240px !important;
+  overflow: hidden !important;
+}
+.map-property-popup.mapboxgl-popup .mapboxgl-popup-tip {
+  display: none !important;
+}

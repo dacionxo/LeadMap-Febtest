@@ -57,17 +57,14 @@ const MapComponent: React.FC<{
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const markerLeadMapRef = useRef<Map<google.maps.Marker, Lead>>(new Map());
   const [infoWindow, setInfoWindow] = useState<google.maps.InfoWindow | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(4);
-  const leadsRef = useRef<Lead[]>([]);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
   // Store callbacks in refs to avoid dependency issues
   const onMapReadyRef = useRef(onMapReady);
   const onErrorRef = useRef(onError);
-
-  // Zoom threshold: >= state level show price pill, < state level show home pin (nationwide)
-  const STATE_ZOOM_LEVEL = 6;
   
   // Update refs when callbacks change
   useEffect(() => {
@@ -254,40 +251,39 @@ const MapComponent: React.FC<{
     };
   };
 
-  // Home pin for zoomed-out (nationwide) view: circle + home icon + pointed bottom
-  const getHomePinIcon = () => {
+  const markerZoomThreshold = 6;
+
+  // Nationwide marker: circular home pin for zoomed-out view
+  const getNationwideMarkerIcon = () => {
     const primary = '#0F62FE';
-    const size = 64;
-    const tipH = 10;
-    const totalH = size + tipH;
-    const cx = size / 2;
-    // Simple house path (roof + body)
-    const housePath = 'M32 18 L50 32 L50 52 L14 52 L14 32 Z M32 28 L32 44 L42 44 L42 36 L32 36 Z';
+    const circleSize = 64;
+    const tipSize = 20;
+    const totalW = circleSize;
+    const totalH = 72;
+    const cx = totalW / 2;
     const svg = `
-      <svg width="${size}" height="${totalH}" viewBox="0 0 ${size} ${totalH}" xmlns="http://www.w3.org/2000/svg">
+      <svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <filter id="homePinShadow" x="-30%" y="-20%" width="160%" height="140%">
-            <feDropShadow dx="0" dy="4" stdDeviation="3" flood-opacity="0.12"/>
-            <feDropShadow dx="0" dy="2" stdDeviation="1" flood-opacity="0.08"/>
+          <filter id="markerShadowLg" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="6" stdDeviation="6" flood-opacity="0.22"/>
           </filter>
         </defs>
-        <!-- Pin tip (diamond) -->
-        <path d="M${cx} ${totalH} L${cx - 10} ${size} L${cx} ${size + 4} L${cx + 10} ${size} Z" fill="${primary}" stroke="white" stroke-width="2" filter="url(#homePinShadow)"/>
-        <!-- Circle -->
-        <circle cx="${cx}" cy="32" r="28" fill="${primary}" stroke="white" stroke-width="4" filter="url(#homePinShadow)"/>
-        <!-- Home icon -->
-        <path d="${housePath}" fill="white" stroke="none"/>
+        <circle cx="${cx}" cy="${circleSize / 2}" r="${circleSize / 2}" fill="${primary}" stroke="#ffffff" stroke-width="4" filter="url(#markerShadowLg)"/>
+        <path d="M${cx} ${totalH} L${cx - tipSize / 2} ${circleSize - 2} L${cx} ${circleSize + 6} L${cx + tipSize / 2} ${circleSize - 2} Z" fill="${primary}" stroke="#ffffff" stroke-width="4"/>
+        <path d="M32 26 L22 34 V44 H27 V38 H37 V44 H42 V34 Z" fill="#ffffff"/>
       </svg>
     `;
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-      scaledSize: new google.maps.Size(size, totalH),
+      scaledSize: new google.maps.Size(totalW, totalH),
       anchor: new google.maps.Point(cx, totalH),
     };
   };
 
-  const getIconForZoom = (lead: Lead, zoom: number) =>
-    zoom >= STATE_ZOOM_LEVEL ? getMarkerIcon(lead) : getHomePinIcon();
+  const getMarkerIconForZoom = (lead: Lead, zoomLevel: number | null | undefined) => {
+    if (!zoomLevel || zoomLevel < markerZoomThreshold) return getNationwideMarkerIcon();
+    return getMarkerIcon(lead);
+  };
 
   // Retry state for waiting for Google Maps API
   const [mapInitAttempt, setMapInitAttempt] = useState(0);
@@ -383,15 +379,17 @@ const MapComponent: React.FC<{
       
       const infoWindowInstance = new window.google.maps.InfoWindow();
       setInfoWindow(infoWindowInstance);
-
-      setZoomLevel(mapInstance.getZoom() ?? 4);
-      mapInstance.addListener('zoom_changed', () => {
-        const z = mapInstance.getZoom();
-        if (typeof z === 'number') setZoomLevel(z);
-      });
       
       mapInstance.addListener('click', () => {
         infoWindowInstance.close();
+      });
+      mapInstance.addListener('zoom_changed', () => {
+        const zoomLevel = mapInstance.getZoom();
+        markersRef.current.forEach((marker) => {
+          const lead = markerLeadMapRef.current.get(marker);
+          if (!lead) return;
+          marker.setIcon(getMarkerIconForZoom(lead, zoomLevel));
+        });
       });
 
       // Listen for map errors
@@ -421,6 +419,8 @@ const MapComponent: React.FC<{
     if (!map || !leads.length) return;
 
     markers.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+    markerLeadMapRef.current.clear();
 
     const newMarkers: google.maps.Marker[] = [];
 
@@ -437,16 +437,15 @@ const MapComponent: React.FC<{
       }
     });
 
-    leadsRef.current = [];
     // Create markers for leads with coordinates (fast path - instant rendering)
     leadsWithCoords.forEach((lead) => {
       const marker = new window.google.maps.Marker({
         position: { lat: lead.latitude!, lng: lead.longitude! },
           map: map,
           title: `${lead.address}, ${lead.city}, ${lead.state}`,
-          icon: getIconForZoom(lead, zoomLevel)
+          icon: getMarkerIconForZoom(lead, map.getZoom())
         });
-      leadsRef.current.push(lead);
+        markerLeadMapRef.current.set(marker, lead);
 
         marker.addListener('click', () => {
           if (infoWindow) {
@@ -511,9 +510,9 @@ const MapComponent: React.FC<{
                 position: { lat: location.lat(), lng: location.lng() },
                 map: map,
                 title: `${lead.address}, ${lead.city}, ${lead.state}`,
-                icon: getIconForZoom(lead, zoomLevel)
+                icon: getMarkerIconForZoom(lead, map.getZoom())
               });
-              leadsRef.current.push(lead);
+              markerLeadMapRef.current.set(marker, lead);
 
               marker.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
@@ -554,6 +553,7 @@ const MapComponent: React.FC<{
 
               newMarkers.push(marker);
               setMarkers([...newMarkers]);
+              markersRef.current = [...newMarkers];
 
               // Update bounds when new marker is added
               if (newMarkers.length > 0 && map) {
@@ -573,6 +573,7 @@ const MapComponent: React.FC<{
     }
 
     setMarkers(newMarkers);
+    markersRef.current = [...newMarkers];
 
     if (newMarkers.length > 0) {
       const bounds = new google.maps.LatLngBounds();
@@ -582,17 +583,7 @@ const MapComponent: React.FC<{
       });
       map.fitBounds(bounds);
     }
-  }, [map, leads, infoWindow, onStreetViewClick, openStreetViewImmediately, zoomLevel]);
-
-  // Update all marker icons when zoom level changes (home pin vs price pill)
-  useEffect(() => {
-    if (!map || markers.length === 0) return;
-    const leads = leadsRef.current;
-    markers.forEach((m, i) => {
-      const lead = leads[i];
-      if (lead) m.setIcon(getIconForZoom(lead, zoomLevel));
-    });
-  }, [map, zoomLevel, markers]);
+  }, [map, leads, infoWindow, onStreetViewClick, openStreetViewImmediately]);
 
   return (
     <div

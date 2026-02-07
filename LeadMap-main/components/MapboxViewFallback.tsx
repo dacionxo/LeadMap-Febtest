@@ -56,12 +56,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(4);
-  const leadsRef = useRef<Lead[]>([]);
   const geocodingInProgress = useRef<Set<string>>(new Set());
-
-  // Zoom threshold: >= state level show price pill, < state level show home pin (nationwide)
-  const STATE_ZOOM_LEVEL = 6;
 
   // Format price for marker label: $1.2M, $850k, $675k
   const formatPrice = (price: number): string => {
@@ -125,32 +120,33 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     `;
   };
 
-  // Home pin for zoomed-out (nationwide) view: circle + home icon + pointed bottom
-  const createHomePinHTML = (): string => {
-    const primary = "#0F62FE";
+  const markerZoomThreshold = 6;
+
+  // Nationwide marker: circular home pin for zoomed-out view
+  const createNationwideMarkerHTML = (): string => {
     return `
       <div style="
         position: relative;
         cursor: pointer;
         display: inline-flex;
-        flex-direction: column;
         align-items: center;
+        justify-content: center;
       ">
         <div style="
           position: relative;
           z-index: 1;
           width: 64px;
           height: 64px;
-          background: ${primary};
-          border: 4px solid white;
-          border-radius: 50%;
+          background: #0F62FE;
+          border-radius: 9999px;
           box-shadow: 0 12px 24px -4px rgba(15, 98, 254, 0.3), 0 8px 16px -4px rgba(15, 98, 254, 0.2);
+          border: 4px solid #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
           box-sizing: border-box;
         ">
-          <span class="material-symbols-outlined" style="font-size: 28px; color: white;">home</span>
+          <span class="material-symbols-outlined" style="font-size:28px;color:#ffffff;line-height:1;">home</span>
         </div>
         <div style="
           position: absolute;
@@ -159,18 +155,33 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
           bottom: -8px;
           width: 20px;
           height: 20px;
-          background: ${primary};
-          border-right: 4px solid white;
-          border-bottom: 4px solid white;
+          background: #0F62FE;
+          border-right: 4px solid #ffffff;
+          border-bottom: 4px solid #ffffff;
+          border-radius: 2px;
+          box-sizing: border-box;
           z-index: 0;
-          box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12);
+        "></div>
+        <div style="
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          bottom: -12px;
+          width: 16px;
+          height: 8px;
+          background: rgba(0, 0, 0, 0.2);
+          filter: blur(3px);
+          border-radius: 9999px;
+          z-index: -1;
         "></div>
       </div>
     `;
   };
 
-  const getMarkerHTMLForZoom = (lead: Lead, zoom: number): string =>
-    zoom >= STATE_ZOOM_LEVEL ? createMarkerHTML(lead) : createHomePinHTML();
+  const getMarkerHTMLForZoom = (lead: Lead, zoomLevel: number | null) => {
+    if (!zoomLevel || zoomLevel < markerZoomThreshold) return createNationwideMarkerHTML();
+    return createMarkerHTML(lead);
+  };
 
   // Property details popup card (1:1: image, For Sale, price, address, Material Symbols, beds/sqft, marker tip). Single card only; no scroll.
   const createPopupContent = (lead: Lead): string => {
@@ -283,11 +294,18 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
 
     map.current.on("load", () => {
       setMapLoaded(true);
-      setZoomLevel(map.current!.getZoom());
     });
-    map.current.on("zoom", () => {
-      const z = map.current?.getZoom();
-      if (typeof z === "number") setZoomLevel(z);
+    map.current.on("zoomend", () => {
+      if (!map.current) return;
+      const zoomLevel = map.current.getZoom();
+      markers.current.forEach((marker) => {
+        const el = marker.getElement() as unknown as { __lead?: Lead; innerHTML?: string };
+        const lead = el.__lead;
+        if (!lead) return;
+        if (typeof el.innerHTML === "string") {
+          el.innerHTML = getMarkerHTMLForZoom(lead, zoomLevel);
+        }
+      });
     });
 
     // Cleanup
@@ -505,11 +523,10 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     });
 
     // Add markers for leads with coordinates immediately
-    leadsRef.current = [];
-    const currentZoom = map.current.getZoom();
     leadsWithCoords.forEach((lead) => {
       const el = document.createElement("div");
-      el.innerHTML = getMarkerHTMLForZoom(lead, currentZoom);
+      el.innerHTML = getMarkerHTMLForZoom(lead, map.current?.getZoom() ?? null);
+      (el as unknown as { __lead?: Lead }).__lead = lead;
       el.style.cursor = "pointer";
 
       const marker = new mapboxgl.Marker(el)
@@ -522,7 +539,6 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
         .addTo(map.current!);
 
       markers.current.push(marker);
-      leadsRef.current.push(lead);
       bounds.extend([lead.longitude!, lead.latitude!]);
     });
 
@@ -560,11 +576,11 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
           });
 
           // Add markers for geocoded leads
-          const currentZoom = map.current.getZoom();
           results.forEach(({ lead, coords }) => {
             if (coords && map.current) {
               const el = document.createElement("div");
-              el.innerHTML = getMarkerHTMLForZoom(lead, currentZoom);
+              el.innerHTML = getMarkerHTMLForZoom(lead, map.current?.getZoom() ?? null);
+              (el as unknown as { __lead?: Lead }).__lead = lead;
               el.style.cursor = "pointer";
 
               const marker = new mapboxgl.Marker(el)
@@ -577,7 +593,6 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
                 .addTo(map.current!);
 
               markers.current.push(marker);
-              leadsRef.current.push(lead);
               newBounds.extend([coords.lng, coords.lat]);
             }
           });
@@ -596,18 +611,6 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
         });
     }
   }, [mapLoaded, listings]);
-
-  // Update marker icons when zoom level changes (home pin vs price pill)
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-    const leads = leadsRef.current;
-    markers.current.forEach((m, i) => {
-      const lead = leads[i];
-      if (!lead) return;
-      const el = m.getElement();
-      if (el) el.innerHTML = getMarkerHTMLForZoom(lead, zoomLevel);
-    });
-  }, [zoomLevel, mapLoaded]);
 
   if (!isActive) {
     return (

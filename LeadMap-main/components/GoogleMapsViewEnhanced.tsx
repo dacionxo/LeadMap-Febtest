@@ -253,24 +253,35 @@ const MapComponent: React.FC<{
 
   const markerZoomThreshold = 6;
 
-  // Nationwide marker: circular home pin for zoomed-out view
+  // Nationwide marker: circular home pin for zoomed-out view (~50% size, white tail, blue glow per design)
   const getNationwideMarkerIcon = () => {
     const primary = '#0F62FE';
-    const circleSize = 64;
-    const tipSize = 20;
+    const circleSize = 32;
+    const tipSize = 10;
     const totalW = circleSize;
-    const totalH = 72;
+    const totalH = 36;
     const cx = totalW / 2;
+    const strokeW = 2;
     const svg = `
       <svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <filter id="markerShadowLg" x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="6" stdDeviation="6" flood-opacity="0.22"/>
+          <filter id="blueGlowN" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+            <feFlood flood-color="#0F62FE" flood-opacity="0.35" result="color"/>
+            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+            <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="dropShadowN" x="-50%" y="-20%" width="200%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/>
           </filter>
         </defs>
-        <circle cx="${cx}" cy="${circleSize / 2}" r="${circleSize / 2}" fill="${primary}" stroke="#ffffff" stroke-width="4" filter="url(#markerShadowLg)"/>
-        <path d="M${cx} ${totalH} L${cx - tipSize / 2} ${circleSize - 2} L${cx} ${circleSize + 6} L${cx + tipSize / 2} ${circleSize - 2} Z" fill="${primary}" stroke="#ffffff" stroke-width="4"/>
-        <path d="M32 26 L22 34 V44 H27 V38 H37 V44 H42 V34 Z" fill="#ffffff"/>
+        <g filter="url(#dropShadowN)">
+          <g filter="url(#blueGlowN)">
+            <circle cx="${cx}" cy="${circleSize / 2}" r="${circleSize / 2 - 1}" fill="${primary}" stroke="#ffffff" stroke-width="${strokeW}"/>
+            <path d="M${cx} ${totalH} L${cx - tipSize / 2} ${circleSize - 1} L${cx} ${circleSize + 3} L${cx + tipSize / 2} ${circleSize - 1} Z" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
+            <path d="M16 13 L11 17 V22 H13.5 V19 H18.5 V22 H21 V17 Z" fill="#ffffff"/>
+          </g>
+        </g>
       </svg>
     `;
     return {

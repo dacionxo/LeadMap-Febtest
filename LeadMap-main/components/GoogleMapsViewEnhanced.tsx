@@ -195,9 +195,20 @@ const MapComponent: React.FC<{
         }
       }, 15000); // 15 second timeout - give more time for API to load
 
+      // Continental US bounds - lock map to United States
+      const usBounds = {
+        north: 49.38,
+        south: 24.52,
+        west: -125.0,
+        east: -66.95,
+      };
       const mapInstance = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 28.5383, lng: -81.3792 },
-        zoom: 10,
+        center: { lat: 39.8283, lng: -98.5795 }, // Geographic center of contiguous US
+        zoom: 4,
+        restriction: {
+          latLngBounds: usBounds,
+          strictBounds: false, // Allow some flexibility at edges
+        },
         streetViewControl: true, // Enable Street View Pegman control
         mapTypeControl: true,
         fullscreenControl: true,

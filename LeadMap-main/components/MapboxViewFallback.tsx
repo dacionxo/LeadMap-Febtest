@@ -205,11 +205,18 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
       searchMarker.current = null;
     }
 
+    // Continental US bounds - lock map to United States [sw, ne]
+    const usBounds = [
+      [-125.0, 24.52], // Southwest [lng, lat]
+      [-66.95, 49.38], // Northeast [lng, lat]
+    ] as [mapboxgl.LngLatLike, mapboxgl.LngLatLike];
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [-81.3792, 28.5383], // Orlando, FL center [lng, lat]
-      zoom: 10,
+      center: [-98.5795, 39.8283], // Geographic center of contiguous US [lng, lat]
+      zoom: 4,
+      maxBounds: usBounds,
     });
 
     map.current.on("load", () => {

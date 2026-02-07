@@ -58,11 +58,16 @@ const MapComponent: React.FC<{
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [infoWindow, setInfoWindow] = useState<google.maps.InfoWindow | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(4);
+  const leadsRef = useRef<Lead[]>([]);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
   // Store callbacks in refs to avoid dependency issues
   const onMapReadyRef = useRef(onMapReady);
   const onErrorRef = useRef(onError);
+
+  // Zoom threshold: >= state level show price pill, < state level show home pin (nationwide)
+  const STATE_ZOOM_LEVEL = 6;
   
   // Update refs when callbacks change
   useEffect(() => {
@@ -162,42 +167,42 @@ const MapComponent: React.FC<{
     const safeAddress = address.replace(/</g, '&lt;');
     const safeCity = cityStateZip.replace(/</g, '&lt;');
     return `
-    <div class="property-details-popup-root" style="position:relative;width:100%;max-width:240px;font-family:Inter,system-ui,sans-serif;overflow:hidden;">
-      <div style="position:relative;background:#fff;border-radius:12px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;border:1px solid rgba(226,232,240,0.6);">
-        <button id="${opts.closeBtnId}" type="button" style="position:absolute;top:10px;right:10px;z-index:20;display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);border-radius:9999px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;color:#64748b;padding:0;" title="Close" aria-label="Close">
-          <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+    <div class="property-details-popup-root" style="position:relative;width:100%;max-width:144px;font-family:Inter,system-ui,sans-serif;overflow:hidden;">
+      <div style="position:relative;background:#fff;border-radius:7px;box-shadow:0 15px 30px -7px rgba(0,0,0,0.25);overflow:hidden;border:1px solid rgba(226,232,240,0.6);">
+        <button id="${opts.closeBtnId}" type="button" style="position:absolute;top:6px;right:6px;z-index:20;display:flex;align-items:center;justify-content:center;width:17px;height:17px;background:rgba(255,255,255,0.9);backdrop-filter:blur(6px);border-radius:9999px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;color:#64748b;padding:0;" title="Close" aria-label="Close">
+          <span class="material-symbols-outlined" style="font-size:10px;">close</span>
         </button>
         <div style="width:100%;aspect-ratio:1;background:#f1f5f9;overflow:hidden;position:relative;">
           <img alt="Property" src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22240%22 viewBox=%220 0 240 240%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22240%22 height=%22240%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%2294a3b8%22 font-size=%2214%22%3ENo image%3C/text%3E%3C/svg%3E'"/>
           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.05),transparent);pointer-events:none;"></div>
         </div>
-        <div style="padding:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="padding:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:5px;">
             <div style="flex:1;min-width:0;">
-              <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${primary};margin-bottom:4px;">For Sale</div>
-              <h2 style="margin:0;font-size:18px;font-weight:700;color:#0f172a;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${priceStr}</h2>
+              <div style="font-size:7px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${primary};margin-bottom:2px;">For Sale</div>
+              <h2 style="margin:0;font-size:11px;font-weight:700;color:#0f172a;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${priceStr}</h2>
             </div>
-            <div style="display:flex;gap:4px;">
-              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:8px;color:#64748b;background:transparent;border:none;border-radius:8px;cursor:pointer;text-decoration:none;display:flex;" title="View Details" aria-label="View Details">
-                <span class="material-symbols-outlined">visibility</span>
+            <div style="display:flex;gap:2px;">
+              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:5px;color:#64748b;background:transparent;border:none;border-radius:5px;cursor:pointer;text-decoration:none;display:flex;" title="View Details" aria-label="View Details">
+                <span class="material-symbols-outlined" style="font-size:11px;">visibility</span>
               </a>
-              <button id="${opts.streetViewBtnId}" type="button" style="padding:8px;color:#64748b;background:transparent;border:none;border-radius:8px;cursor:pointer;display:flex;" title="Street View" aria-label="Street View">
-                <span class="material-symbols-outlined">map</span>
+              <button id="${opts.streetViewBtnId}" type="button" style="padding:5px;color:#64748b;background:transparent;border:none;border-radius:5px;cursor:pointer;display:flex;" title="Street View" aria-label="Street View">
+                <span class="material-symbols-outlined" style="font-size:11px;">map</span>
               </button>
             </div>
           </div>
-          <div style="margin-top:8px;">
-            <p style="margin:0;font-size:14px;font-weight:500;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeAddress}</p>
-            <p style="margin:2px 0 0 0;font-size:12px;color:#64748b;">${safeCity}</p>
+          <div style="margin-top:5px;">
+            <p style="margin:0;font-size:8px;font-weight:500;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeAddress}</p>
+            <p style="margin:1px 0 0 0;font-size:7px;color:#64748b;">${safeCity}</p>
           </div>
-          <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(241,245,249,0.8);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:500;color:#64748b;">
-            <div style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-outlined" style="font-size:14px;opacity:0.7;">bed</span><span>${bedsStr}</span></div>
-            <div style="width:4px;height:4px;background:#cbd5e1;border-radius:9999px;"></div>
-            <div style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-outlined" style="font-size:14px;opacity:0.7;">square_foot</span><span>${sqftStr}</span></div>
+          <div style="margin-top:10px;padding-top:7px;border-top:1px solid rgba(241,245,249,0.8);display:flex;align-items:center;justify-content:space-between;font-size:7px;font-weight:500;color:#64748b;">
+            <div style="display:flex;align-items:center;gap:4px;"><span class="material-symbols-outlined" style="font-size:8px;opacity:0.7;">bed</span><span>${bedsStr}</span></div>
+            <div style="width:2px;height:2px;background:#cbd5e1;border-radius:9999px;"></div>
+            <div style="display:flex;align-items:center;gap:4px;"><span class="material-symbols-outlined" style="font-size:8px;opacity:0.7;">square_foot</span><span>${sqftStr}</span></div>
           </div>
         </div>
       </div>
-      <div class="marker-tip" style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%) rotate(45deg);width:16px;height:16px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
+      <div class="marker-tip" style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
     </div>
     `;
   };
@@ -248,6 +253,41 @@ const MapComponent: React.FC<{
       anchor: new google.maps.Point(cx, totalH),
     };
   };
+
+  // Home pin for zoomed-out (nationwide) view: circle + home icon + pointed bottom
+  const getHomePinIcon = () => {
+    const primary = '#0F62FE';
+    const size = 64;
+    const tipH = 10;
+    const totalH = size + tipH;
+    const cx = size / 2;
+    // Simple house path (roof + body)
+    const housePath = 'M32 18 L50 32 L50 52 L14 52 L14 32 Z M32 28 L32 44 L42 44 L42 36 L32 36 Z';
+    const svg = `
+      <svg width="${size}" height="${totalH}" viewBox="0 0 ${size} ${totalH}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="homePinShadow" x="-30%" y="-20%" width="160%" height="140%">
+            <feDropShadow dx="0" dy="4" stdDeviation="3" flood-opacity="0.12"/>
+            <feDropShadow dx="0" dy="2" stdDeviation="1" flood-opacity="0.08"/>
+          </filter>
+        </defs>
+        <!-- Pin tip (diamond) -->
+        <path d="M${cx} ${totalH} L${cx - 10} ${size} L${cx} ${size + 4} L${cx + 10} ${size} Z" fill="${primary}" stroke="white" stroke-width="2" filter="url(#homePinShadow)"/>
+        <!-- Circle -->
+        <circle cx="${cx}" cy="32" r="28" fill="${primary}" stroke="white" stroke-width="4" filter="url(#homePinShadow)"/>
+        <!-- Home icon -->
+        <path d="${housePath}" fill="white" stroke="none"/>
+      </svg>
+    `;
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(size, totalH),
+      anchor: new google.maps.Point(cx, totalH),
+    };
+  };
+
+  const getIconForZoom = (lead: Lead, zoom: number) =>
+    zoom >= STATE_ZOOM_LEVEL ? getMarkerIcon(lead) : getHomePinIcon();
 
   // Retry state for waiting for Google Maps API
   const [mapInitAttempt, setMapInitAttempt] = useState(0);
@@ -343,6 +383,12 @@ const MapComponent: React.FC<{
       
       const infoWindowInstance = new window.google.maps.InfoWindow();
       setInfoWindow(infoWindowInstance);
+
+      setZoomLevel(mapInstance.getZoom() ?? 4);
+      mapInstance.addListener('zoom_changed', () => {
+        const z = mapInstance.getZoom();
+        if (typeof z === 'number') setZoomLevel(z);
+      });
       
       mapInstance.addListener('click', () => {
         infoWindowInstance.close();
@@ -391,14 +437,16 @@ const MapComponent: React.FC<{
       }
     });
 
+    leadsRef.current = [];
     // Create markers for leads with coordinates (fast path - instant rendering)
     leadsWithCoords.forEach((lead) => {
       const marker = new window.google.maps.Marker({
         position: { lat: lead.latitude!, lng: lead.longitude! },
           map: map,
           title: `${lead.address}, ${lead.city}, ${lead.state}`,
-          icon: getMarkerIcon(lead)
+          icon: getIconForZoom(lead, zoomLevel)
         });
+      leadsRef.current.push(lead);
 
         marker.addListener('click', () => {
           if (infoWindow) {
@@ -463,8 +511,9 @@ const MapComponent: React.FC<{
                 position: { lat: location.lat(), lng: location.lng() },
                 map: map,
                 title: `${lead.address}, ${lead.city}, ${lead.state}`,
-                icon: getMarkerIcon(lead)
+                icon: getIconForZoom(lead, zoomLevel)
               });
+              leadsRef.current.push(lead);
 
               marker.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
@@ -533,7 +582,17 @@ const MapComponent: React.FC<{
       });
       map.fitBounds(bounds);
     }
-  }, [map, leads, infoWindow, onStreetViewClick, openStreetViewImmediately]);
+  }, [map, leads, infoWindow, onStreetViewClick, openStreetViewImmediately, zoomLevel]);
+
+  // Update all marker icons when zoom level changes (home pin vs price pill)
+  useEffect(() => {
+    if (!map || markers.length === 0) return;
+    const leads = leadsRef.current;
+    markers.forEach((m, i) => {
+      const lead = leads[i];
+      if (lead) m.setIcon(getIconForZoom(lead, zoomLevel));
+    });
+  }, [map, zoomLevel, markers]);
 
   return (
     <div

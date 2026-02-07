@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 
 // Extend window type for Google Maps
@@ -47,19 +47,23 @@ interface GoogleMapsViewEnhancedProps {
   fullScreen?: boolean;
 }
 
-const MapComponent: React.FC<{ 
+export type MapComponentRef = { setStreetViewLead: (lead: Lead | null) => void };
+
+const MapComponent = forwardRef<MapComponentRef, { 
   leads: Lead[]; 
-  onStreetViewClick: (lead: Lead) => void; // CHANGED: Pass full Lead object
+  onStreetViewClick: (lead: Lead) => void;
   onMapReady: (map: google.maps.Map) => void;
   onError?: () => void;
   fullHeight?: boolean;
-}> = ({ leads, onStreetViewClick, onMapReady, onError, fullHeight }) => {
+}>(({ leads, onStreetViewClick, onMapReady, onError, fullHeight }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const markerLeadMapRef = useRef<Map<google.maps.Marker, Lead>>(new Map());
   const [infoWindow, setInfoWindow] = useState<google.maps.InfoWindow | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number | null>(null);
+  const [streetViewLead, setStreetViewLead] = useState<Lead | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
   // Store callbacks in refs to avoid dependency issues
@@ -101,11 +105,12 @@ const MapComponent: React.FC<{
             });
             panorama.setVisible(true);
             mapInstance.setStreetView(panorama);
-            
+            if (lead) setStreetViewLead(lead);
+
             // Center the map on the location and zoom in
             mapInstance.setCenter({ lat, lng });
             mapInstance.setZoom(18);
-            
+
             console.log('Street View opened successfully at', lat, lng);
           } else {
             // Street View not available - open modal as fallback
@@ -164,42 +169,42 @@ const MapComponent: React.FC<{
     const safeAddress = address.replace(/</g, '&lt;');
     const safeCity = cityStateZip.replace(/</g, '&lt;');
     return `
-    <div class="property-details-popup-root" style="position:relative;width:100%;max-width:144px;font-family:Inter,system-ui,sans-serif;overflow:hidden;">
-      <div style="position:relative;background:#fff;border-radius:7px;box-shadow:0 15px 30px -7px rgba(0,0,0,0.25);overflow:hidden;border:1px solid rgba(226,232,240,0.6);">
-        <button id="${opts.closeBtnId}" type="button" style="position:absolute;top:6px;right:6px;z-index:20;display:flex;align-items:center;justify-content:center;width:17px;height:17px;background:rgba(255,255,255,0.9);backdrop-filter:blur(6px);border-radius:9999px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;color:#64748b;padding:0;" title="Close" aria-label="Close">
-          <span class="material-symbols-outlined" style="font-size:10px;">close</span>
+    <div class="property-details-popup-root" style="position:relative;width:100%;max-width:173px;font-family:Inter,system-ui,sans-serif;overflow:hidden;">
+      <div style="position:relative;background:#fff;border-radius:8px;box-shadow:0 18px 36px -8px rgba(0,0,0,0.25);overflow:hidden;border:1px solid rgba(226,232,240,0.6);">
+        <button id="${opts.closeBtnId}" type="button" style="position:absolute;top:7px;right:7px;z-index:20;display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:rgba(255,255,255,0.9);backdrop-filter:blur(6px);border-radius:9999px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;color:#64748b;padding:0;" title="Close" aria-label="Close">
+          <span class="material-symbols-outlined" style="font-size:12px;">close</span>
         </button>
         <div style="width:100%;aspect-ratio:1;background:#f1f5f9;overflow:hidden;position:relative;">
           <img alt="Property" src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22240%22 viewBox=%220 0 240 240%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22240%22 height=%22240%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%2294a3b8%22 font-size=%2214%22%3ENo image%3C/text%3E%3C/svg%3E'"/>
           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.05),transparent);pointer-events:none;"></div>
         </div>
-        <div style="padding:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:5px;">
+        <div style="padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
             <div style="flex:1;min-width:0;">
-              <div style="font-size:7px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${primary};margin-bottom:2px;">For Sale</div>
-              <h2 style="margin:0;font-size:11px;font-weight:700;color:#0f172a;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${priceStr}</h2>
+              <div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${primary};margin-bottom:2px;">For Sale</div>
+              <h2 style="margin:0;font-size:13px;font-weight:700;color:#0f172a;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${priceStr}</h2>
             </div>
             <div style="display:flex;gap:2px;">
-              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:5px;color:#64748b;background:transparent;border:none;border-radius:5px;cursor:pointer;text-decoration:none;display:flex;" title="View Details" aria-label="View Details">
-                <span class="material-symbols-outlined" style="font-size:11px;">visibility</span>
+              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:6px;color:#64748b;background:transparent;border:none;border-radius:6px;cursor:pointer;text-decoration:none;display:flex;" title="View Details" aria-label="View Details">
+                <span class="material-symbols-outlined" style="font-size:13px;">visibility</span>
               </a>
-              <button id="${opts.streetViewBtnId}" type="button" style="padding:5px;color:#64748b;background:transparent;border:none;border-radius:5px;cursor:pointer;display:flex;" title="Street View" aria-label="Street View">
-                <span class="material-symbols-outlined" style="font-size:11px;">map</span>
+              <button id="${opts.streetViewBtnId}" type="button" style="padding:6px;color:#64748b;background:transparent;border:none;border-radius:6px;cursor:pointer;display:flex;" title="Street View" aria-label="Street View">
+                <span class="material-symbols-outlined" style="font-size:13px;">map</span>
               </button>
             </div>
           </div>
-          <div style="margin-top:5px;">
-            <p style="margin:0;font-size:8px;font-weight:500;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeAddress}</p>
-            <p style="margin:1px 0 0 0;font-size:7px;color:#64748b;">${safeCity}</p>
+          <div style="margin-top:6px;">
+            <p style="margin:0;font-size:10px;font-weight:500;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeAddress}</p>
+            <p style="margin:1px 0 0 0;font-size:8px;color:#64748b;">${safeCity}</p>
           </div>
-          <div style="margin-top:10px;padding-top:7px;border-top:1px solid rgba(241,245,249,0.8);display:flex;align-items:center;justify-content:space-between;font-size:7px;font-weight:500;color:#64748b;">
-            <div style="display:flex;align-items:center;gap:4px;"><span class="material-symbols-outlined" style="font-size:8px;opacity:0.7;">bed</span><span>${bedsStr}</span></div>
+          <div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(241,245,249,0.8);display:flex;align-items:center;justify-content:space-between;font-size:8px;font-weight:500;color:#64748b;">
+            <div style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:10px;opacity:0.7;">bed</span><span>${bedsStr}</span></div>
             <div style="width:2px;height:2px;background:#cbd5e1;border-radius:9999px;"></div>
-            <div style="display:flex;align-items:center;gap:4px;"><span class="material-symbols-outlined" style="font-size:8px;opacity:0.7;">square_foot</span><span>${sqftStr}</span></div>
+            <div style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:10px;opacity:0.7;">square_foot</span><span>${sqftStr}</span></div>
           </div>
         </div>
       </div>
-      <div class="marker-tip" style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
+      <div class="marker-tip" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
     </div>
     `;
   };
@@ -251,7 +256,50 @@ const MapComponent: React.FC<{
     };
   };
 
+  // Street View overlay: same price pill at 30% larger scale
+  const getStreetViewPricePillDataUrl = (lead: Lead): string => {
+    const priceLabel = formatPrice(lead.price);
+    const scale = 1.3;
+    const primary = '#0F62FE';
+    const surfaceLight = '#FFFFFF';
+    const borderSlate = '#e2e8f0';
+    const textSlate = '#1e293b';
+    const pillW = Math.round((Math.max(56, priceLabel.length * 10)) * scale);
+    const pillH = Math.round(24 * scale);
+    const pointSize = Math.round(6 * scale);
+    const totalH = pillH + pointSize;
+    const totalW = pillW + Math.round(8 * scale);
+    const cx = totalW / 2;
+    const fontSize = Math.round(11 * scale);
+    const svg = `
+      <svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="markerShadowSv" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.12"/>
+          </filter>
+        </defs>
+        <rect x="5" y="0" width="${pillW}" height="${pillH}" rx="14" ry="14" fill="${surfaceLight}" stroke="${borderSlate}" stroke-width="1" filter="url(#markerShadowSv)"/>
+        <path d="M${cx} ${totalH} L${cx - pointSize} ${pillH} L${cx} ${pillH + pointSize * 0.6} L${cx + pointSize} ${pillH} Z" fill="${surfaceLight}" stroke="${borderSlate}" stroke-width="1"/>
+        <text x="${cx}" y="${pillH / 2 + 5}" text-anchor="middle" fill="${textSlate}" font-family="Inter, system-ui, sans-serif" font-size="${fontSize}" font-weight="600">${priceLabel}</text>
+      </svg>
+    `;
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  };
+
   const markerZoomThreshold = 6;
+
+  // At nationwide zoom, show one marker per grid cell to prevent icon overlap
+  const sampleLeadsForNationwideView = (leads: Lead[]): Lead[] => {
+    const CELL_LAT = 2;
+    const CELL_LNG = 2.5;
+    const bucket = new Map<string, Lead>();
+    for (const lead of leads) {
+      if (lead.latitude == null || lead.longitude == null) continue;
+      const key = `${Math.floor(lead.latitude / CELL_LAT)}_${Math.floor(lead.longitude / CELL_LNG)}`;
+      if (!bucket.has(key)) bucket.set(key, lead);
+    }
+    return Array.from(bucket.values());
+  };
 
   // Nationwide marker: circular home pin for zoomed-out view (~50% size, white tail, blue glow per design)
   const getNationwideMarkerIcon = () => {
@@ -379,6 +427,8 @@ const MapComponent: React.FC<{
       }
 
       setMap(mapInstance);
+      const z = mapInstance.getZoom();
+      setZoomLevel(typeof z === 'number' ? z : null);
       onMapReadyRef.current(mapInstance);
       isInitializedRef.current = true;
       
@@ -395,11 +445,12 @@ const MapComponent: React.FC<{
         infoWindowInstance.close();
       });
       mapInstance.addListener('zoom_changed', () => {
-        const zoomLevel = mapInstance.getZoom();
+        const z = mapInstance.getZoom();
+        setZoomLevel(typeof z === 'number' ? z : null);
         markersRef.current.forEach((marker) => {
           const lead = markerLeadMapRef.current.get(marker);
           if (!lead) return;
-          marker.setIcon(getMarkerIconForZoom(lead, zoomLevel));
+          marker.setIcon(getMarkerIconForZoom(lead, z));
         });
       });
 
@@ -426,6 +477,16 @@ const MapComponent: React.FC<{
     };
   }, [map, mapInitAttempt]);
 
+  // Clear Street View price overlay when user closes Street View
+  useEffect(() => {
+    if (!map || typeof window === 'undefined' || !window.google?.maps) return;
+    const panorama = map.getStreetView();
+    const listener = window.google.maps.event.addListener(panorama, 'visible_changed', () => {
+      if (!panorama.getVisible()) setStreetViewLead(null);
+    });
+    return () => window.google.maps.event.removeListener(listener);
+  }, [map]);
+
   useEffect(() => {
     if (!map || !leads.length) return;
 
@@ -434,6 +495,7 @@ const MapComponent: React.FC<{
     markerLeadMapRef.current.clear();
 
     const newMarkers: google.maps.Marker[] = [];
+    const currentZoom = zoomLevel ?? map.getZoom();
 
     // Separate leads with coordinates from those needing geocoding
     const leadsWithCoords: Lead[] = [];
@@ -448,8 +510,14 @@ const MapComponent: React.FC<{
       }
     });
 
-    // Create markers for leads with coordinates (fast path - instant rendering)
-    leadsWithCoords.forEach((lead) => {
+    // At nationwide zoom, show one marker per grid cell to prevent overlap
+    const visibleLeadsWithCoords =
+      currentZoom != null && currentZoom < markerZoomThreshold
+        ? sampleLeadsForNationwideView(leadsWithCoords)
+        : leadsWithCoords;
+
+    // Create markers for visible leads with coordinates
+    visibleLeadsWithCoords.forEach((lead) => {
       const marker = new window.google.maps.Marker({
         position: { lat: lead.latitude!, lng: lead.longitude! },
           map: map,
@@ -499,8 +567,15 @@ const MapComponent: React.FC<{
         newMarkers.push(marker);
     });
 
-    // Geocode leads without coordinates (fallback - only if needed)
-    if (leadsNeedingGeocode.length > 0 && typeof window !== 'undefined' && window.google?.maps) {
+    // Geocode leads without coordinates only when zoomed in (state level+) to avoid loading many markers at nationwide
+    const shouldGeocode =
+      currentZoom != null && currentZoom >= markerZoomThreshold;
+    if (
+      leadsNeedingGeocode.length > 0 &&
+      shouldGeocode &&
+      typeof window !== 'undefined' &&
+      window.google?.maps
+    ) {
       // Use a small batch to avoid overwhelming the geocoding API
       const batchSize = 5;
       const batch = leadsNeedingGeocode.slice(0, batchSize);
@@ -594,16 +669,49 @@ const MapComponent: React.FC<{
       });
       map.fitBounds(bounds);
     }
-  }, [map, leads, infoWindow, onStreetViewClick, openStreetViewImmediately]);
+  }, [
+    map,
+    leads,
+    infoWindow,
+    zoomLevel,
+    onStreetViewClick,
+    openStreetViewImmediately,
+  ]);
+
+  useImperativeHandle(ref, () => ({ setStreetViewLead }), []);
 
   return (
     <div
-      ref={mapRef}
       className={fullHeight ? 'h-full' : undefined}
-      style={{ width: '100%', height: fullHeight ? '100%' : '600px' }}
-    />
+      style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : '600px' }}
+    >
+      <div
+        ref={mapRef}
+        className={fullHeight ? 'h-full' : undefined}
+        style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+      />
+      {streetViewLead && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            pointerEvents: 'none',
+          }}
+        >
+          <img
+            src={getStreetViewPricePillDataUrl(streetViewLead)}
+            alt=""
+            style={{ display: 'block' }}
+          />
+        </div>
+      )}
+    </div>
   );
-};
+});
+MapComponent.displayName = 'MapComponent';
 
 const render = (status: Status, onError?: () => void): React.ReactElement => {
   switch (status) {
@@ -644,6 +752,7 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
   const [isSearching, setIsSearching] = useState(false);
   const searchMarkerRef = useRef<google.maps.Marker | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const mapComponentRef = useRef<MapComponentRef | null>(null);
 
   // Callback when map is ready - memoized to prevent re-renders
   const handleMapReady = useCallback((map: google.maps.Map) => {
@@ -686,6 +795,7 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
                 mapInstanceRef.current?.setStreetView(panorama);
                 mapInstanceRef.current?.setCenter({ lat: lead.latitude!, lng: lead.longitude! });
                 mapInstanceRef.current?.setZoom(18);
+                mapComponentRef.current?.setStreetViewLead(lead);
               } else {
                 // Street View not available - open modal as fallback
                 if (onStreetViewListingClick) {
@@ -913,8 +1023,9 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
 
       <div className={fullScreen ? 'h-full min-h-0' : undefined}>
         <Wrapper apiKey={GOOGLE_MAPS_API_KEY} render={(status) => render(status, onError)}>
-          <MapComponent 
-            leads={listings} 
+          <MapComponent
+            ref={mapComponentRef}
+            leads={listings}
             onStreetViewClick={handleStreetViewClickFromMap}
             onMapReady={handleMapReady}
             onError={onError}

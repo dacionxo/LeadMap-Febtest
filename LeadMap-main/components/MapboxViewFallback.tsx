@@ -56,6 +56,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number | null>(null);
   const geocodingInProgress = useRef<Set<string>>(new Set());
 
   // Format price for marker label: $1.2M, $850k, $675k
@@ -180,9 +181,22 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     `;
   };
 
-  const getMarkerHTMLForZoom = (lead: Lead, zoomLevel: number | null) => {
-    if (!zoomLevel || zoomLevel < markerZoomThreshold) return createNationwideMarkerHTML();
+  const getMarkerHTMLForZoom = (lead: Lead, z: number | null) => {
+    if (!z || z < markerZoomThreshold) return createNationwideMarkerHTML();
     return createMarkerHTML(lead);
+  };
+
+  // At nationwide zoom, show one marker per grid cell to prevent icon overlap
+  const sampleLeadsForNationwideView = (leads: Lead[]): Lead[] => {
+    const CELL_LAT = 2;
+    const CELL_LNG = 2.5;
+    const bucket = new Map<string, Lead>();
+    for (const lead of leads) {
+      if (lead.latitude == null || lead.longitude == null) continue;
+      const key = `${Math.floor(lead.latitude / CELL_LAT)}_${Math.floor(lead.longitude / CELL_LNG)}`;
+      if (!bucket.has(key)) bucket.set(key, lead);
+    }
+    return Array.from(bucket.values());
   };
 
   // Property details popup card (1:1: image, For Sale, price, address, Material Symbols, beds/sqft, marker tip). Single card only; no scroll.
@@ -206,39 +220,39 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     const safeAddress = address.replace(/</g, "&lt;");
     const safeCity = cityStateZip.replace(/</g, "&lt;");
     return `
-    <div class="property-details-popup-root" style="position:relative;width:100%;max-width:144px;font-family:Inter,system-ui,sans-serif;overflow:hidden;">
-      <div style="position:relative;background:#fff;border-radius:7px;box-shadow:0 15px 30px -7px rgba(0,0,0,0.25);overflow:hidden;border:1px solid rgba(226,232,240,0.6);">
+    <div class="property-details-popup-root" style="position:relative;width:100%;max-width:173px;font-family:Inter,system-ui,sans-serif;overflow:hidden;">
+      <div style="position:relative;background:#fff;border-radius:8px;box-shadow:0 18px 36px -8px rgba(0,0,0,0.25);overflow:hidden;border:1px solid rgba(226,232,240,0.6);">
         <div style="width:100%;aspect-ratio:1;background:#f1f5f9;overflow:hidden;position:relative;">
           <img alt="Property" src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22240%22 viewBox=%220 0 240 240%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22240%22 height=%22240%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%2294a3b8%22 font-size=%2214%22%3ENo image%3C/text%3E%3C/svg%3E'"/>
           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.05),transparent);pointer-events:none;"></div>
         </div>
-        <div style="padding:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:5px;">
+        <div style="padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
             <div style="flex:1;min-width:0;">
-              <div style="font-size:7px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${primary};margin-bottom:2px;">For Sale</div>
-              <h2 style="margin:0;font-size:11px;font-weight:700;color:#0f172a;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${priceStr}</h2>
+              <div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${primary};margin-bottom:2px;">For Sale</div>
+              <h2 style="margin:0;font-size:13px;font-weight:700;color:#0f172a;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${priceStr}</h2>
             </div>
             <div style="display:flex;gap:2px;">
-              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:5px;color:#64748b;background:transparent;border:none;border-radius:5px;cursor:pointer;text-decoration:none;display:flex;" title="View Details" aria-label="View Details">
-                <span class="material-symbols-outlined" style="font-size:11px;">visibility</span>
+              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:6px;color:#64748b;background:transparent;border:none;border-radius:6px;cursor:pointer;text-decoration:none;display:flex;" title="View Details" aria-label="View Details">
+                <span class="material-symbols-outlined" style="font-size:13px;">visibility</span>
               </a>
-              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:5px;color:#64748b;background:transparent;border:none;border-radius:5px;cursor:pointer;text-decoration:none;display:flex;" title="Street View" aria-label="Street View">
-                <span class="material-symbols-outlined" style="font-size:11px;">map</span>
+              <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" style="padding:6px;color:#64748b;background:transparent;border:none;border-radius:6px;cursor:pointer;text-decoration:none;display:flex;" title="Street View" aria-label="Street View">
+                <span class="material-symbols-outlined" style="font-size:13px;">map</span>
               </a>
             </div>
           </div>
-          <div style="margin-top:5px;">
-            <p style="margin:0;font-size:8px;font-weight:500;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeAddress}</p>
-            <p style="margin:1px 0 0 0;font-size:7px;color:#64748b;">${safeCity}</p>
+          <div style="margin-top:6px;">
+            <p style="margin:0;font-size:10px;font-weight:500;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeAddress}</p>
+            <p style="margin:1px 0 0 0;font-size:8px;color:#64748b;">${safeCity}</p>
           </div>
-          <div style="margin-top:10px;padding-top:7px;border-top:1px solid rgba(241,245,249,0.8);display:flex;align-items:center;justify-content:space-between;font-size:7px;font-weight:500;color:#64748b;">
-            <div style="display:flex;align-items:center;gap:4px;"><span class="material-symbols-outlined" style="font-size:8px;opacity:0.7;">bed</span><span>${bedsStr}</span></div>
+          <div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(241,245,249,0.8);display:flex;align-items:center;justify-content:space-between;font-size:8px;font-weight:500;color:#64748b;">
+            <div style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:10px;opacity:0.7;">bed</span><span>${bedsStr}</span></div>
             <div style="width:2px;height:2px;background:#cbd5e1;border-radius:9999px;"></div>
-            <div style="display:flex;align-items:center;gap:4px;"><span class="material-symbols-outlined" style="font-size:8px;opacity:0.7;">square_foot</span><span>${sqftStr}</span></div>
+            <div style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:10px;opacity:0.7;">square_foot</span><span>${sqftStr}</span></div>
           </div>
         </div>
       </div>
-      <div class="marker-tip" style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
+      <div class="marker-tip" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:#fff;border-right:1px solid rgba(226,232,240,0.6);border-bottom:1px solid rgba(226,232,240,0.6);"></div>
     </div>
     `;
   };
@@ -296,16 +310,21 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
 
     map.current.on("load", () => {
       setMapLoaded(true);
+      if (map.current) setZoomLevel(map.current.getZoom());
     });
     map.current.on("zoomend", () => {
       if (!map.current) return;
-      const zoomLevel = map.current.getZoom();
+      const z = map.current.getZoom();
+      setZoomLevel(z);
       markers.current.forEach((marker) => {
-        const el = marker.getElement() as unknown as { __lead?: Lead; innerHTML?: string };
+        const el = marker.getElement() as unknown as {
+          __lead?: Lead;
+          innerHTML?: string;
+        };
         const lead = el.__lead;
         if (!lead) return;
         if (typeof el.innerHTML === "string") {
-          el.innerHTML = getMarkerHTMLForZoom(lead, zoomLevel);
+          el.innerHTML = getMarkerHTMLForZoom(lead, z);
         }
       });
     });
@@ -524,8 +543,14 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
       }
     });
 
-    // Add markers for leads with coordinates immediately
-    leadsWithCoords.forEach((lead) => {
+    const currentZoom = zoomLevel ?? map.current.getZoom();
+    const isNationwide = currentZoom != null && currentZoom < markerZoomThreshold;
+    const visibleLeadsWithCoords = isNationwide
+      ? sampleLeadsForNationwideView(leadsWithCoords)
+      : leadsWithCoords;
+
+    // Add markers for visible leads with coordinates
+    visibleLeadsWithCoords.forEach((lead) => {
       const el = document.createElement("div");
       el.innerHTML = getMarkerHTMLForZoom(lead, map.current?.getZoom() ?? null);
       (el as unknown as { __lead?: Lead }).__lead = lead;
@@ -545,15 +570,15 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     });
 
     // Fit map to show markers with coordinates first
-    if (leadsWithCoords.length > 0) {
+    if (visibleLeadsWithCoords.length > 0) {
       map.current.fitBounds(bounds, {
         padding: { top: 50, bottom: 50, left: 50, right: 50 },
         maxZoom: 15,
       });
     }
 
-    // Geocode and add markers for leads without coordinates asynchronously
-    if (leadsWithoutCoords.length > 0) {
+    // Geocode only when zoomed in (state level+) to avoid loading many markers at nationwide
+    if (leadsWithoutCoords.length > 0 && !isNationwide) {
       setGeocodingCount(leadsWithoutCoords.length);
 
       // Get current cached geocodes
@@ -612,7 +637,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
           setGeocodingCount(0);
         });
     }
-  }, [mapLoaded, listings]);
+  }, [mapLoaded, listings, zoomLevel]);
 
   if (!isActive) {
     return (

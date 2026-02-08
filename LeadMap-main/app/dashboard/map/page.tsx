@@ -62,7 +62,20 @@ export default function MapPage() {
   // Open property detail modal (with street view) when URL has ?listingId=...
   useEffect(() => {
     const id = searchParams.get('listingId')
-    if (id) setSelectedListingId(id)
+    if (id) {
+      // Ensure Google Maps API is loaded before opening modal with street view
+      const checkGoogleMaps = () => {
+        if (typeof window !== 'undefined' && window.google?.maps) {
+          setSelectedListingId(id)
+        } else {
+          // Retry after a short delay if Google Maps isn't ready yet
+          setTimeout(checkGoogleMaps, 100)
+        }
+      }
+      checkGoogleMaps()
+    } else {
+      setSelectedListingId(null)
+    }
   }, [searchParams])
 
   useEffect(() => {

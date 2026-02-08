@@ -124,7 +124,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
 
   const markerZoomThreshold = 6;
 
-  // Nationwide marker: modern blue dot (1:1 per design, retains 32px size)
+  // Nationwide marker: blue dot, 20% smaller (26px), black shadow outline, ratios retained
   const createNationwideMarkerHTML = (): string => {
     return `
     <div style="
@@ -136,12 +136,12 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
         transition: transform 0.3s;
       ">
         <div style="
-          width: 32px;
-          height: 32px;
+          width: 26px;
+          height: 26px;
           background: #0F62FE;
           border-radius: 9999px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05);
-          border: 3px solid #ffffff;
+          box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+          border: 2.4px solid #ffffff;
           box-sizing: border-box;
         "></div>
       </div>

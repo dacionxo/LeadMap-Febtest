@@ -294,12 +294,13 @@ const MapComponent: React.FC<{
     return Array.from(bucket.values());
   };
 
-  // Nationwide marker: modern blue dot (1:1 per design, retains 32px size)
+  // Nationwide marker: blue dot, 20% smaller (26px), black shadow outline, ratios retained
   const getNationwideMarkerIcon = () => {
     const primary = '#0F62FE';
-    const size = 32;
+    const size = 26; // 32 * 0.8
     const cx = size / 2;
-    const r = (size - 6) / 2;
+    const stroke = 2.4; // 3 * 0.8
+    const r = (size - stroke * 2) / 2;
     const svg = `
       <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -307,7 +308,7 @@ const MapComponent: React.FC<{
             <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.15"/>
           </filter>
         </defs>
-        <circle cx="${cx}" cy="${cx}" r="${r}" fill="${primary}" stroke="#ffffff" stroke-width="3" filter="url(#dotShadowN)" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.05));"/>
+        <circle cx="${cx}" cy="${cx}" r="${r}" fill="${primary}" stroke="#ffffff" stroke-width="${stroke}" filter="url(#dotShadowN)" style="filter:drop-shadow(0 0 0 2px rgba(0,0,0,0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.3));"/>
       </svg>
     `;
     return {

@@ -124,59 +124,25 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
 
   const markerZoomThreshold = 6;
 
-  // Nationwide marker: circular home pin for zoomed-out view (~50% size, white tail, blue glow per design)
+  // Nationwide marker: modern blue dot (1:1 per design, retains 32px size)
   const createNationwideMarkerHTML = (): string => {
     return `
-      <div style="
+    <div style="
         position: relative;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+        transition: transform 0.3s;
       ">
         <div style="
-          position: relative;
-          z-index: 1;
           width: 32px;
           height: 32px;
           background: #0F62FE;
           border-radius: 9999px;
-          box-shadow: 0 0 12px 4px rgba(15, 98, 254, 0.4), 0 0 20px 6px rgba(15, 98, 254, 0.25);
-          border: 2px solid #ffffff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05);
+          border: 3px solid #ffffff;
           box-sizing: border-box;
-        ">
-          <span class="material-symbols-outlined" style="font-size:14px;color:#ffffff;line-height:1;">home</span>
-        </div>
-        <div style="
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%) rotate(45deg);
-          bottom: -4px;
-          width: 10px;
-          height: 10px;
-          background: #ffffff;
-          border-right: 2px solid #ffffff;
-          border-bottom: 2px solid #ffffff;
-          border-radius: 1px;
-          box-sizing: border-box;
-          z-index: 0;
-          box-shadow: 0 2px 4px rgba(15, 98, 254, 0.2);
-        "></div>
-        <div style="
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
-          bottom: -6px;
-          width: 8px;
-          height: 4px;
-          background: rgba(0, 0, 0, 0.15);
-          filter: blur(2px);
-          border-radius: 9999px;
-          z-index: -1;
         "></div>
       </div>
     `;

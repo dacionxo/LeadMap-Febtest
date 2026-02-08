@@ -294,41 +294,26 @@ const MapComponent: React.FC<{
     return Array.from(bucket.values());
   };
 
-  // Nationwide marker: circular home pin for zoomed-out view (~50% size, white tail, blue glow per design)
+  // Nationwide marker: modern blue dot (1:1 per design, retains 32px size)
   const getNationwideMarkerIcon = () => {
     const primary = '#0F62FE';
-    const circleSize = 32;
-    const tipSize = 10;
-    const totalW = circleSize;
-    const totalH = 36;
-    const cx = totalW / 2;
-    const strokeW = 2;
+    const size = 32;
+    const cx = size / 2;
+    const r = (size - 6) / 2;
     const svg = `
-      <svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <filter id="blueGlowN" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
-            <feFlood flood-color="#0F62FE" flood-opacity="0.35" result="color"/>
-            <feComposite in="color" in2="blur" operator="in" result="glow"/>
-            <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <filter id="dropShadowN" x="-50%" y="-20%" width="200%" height="140%">
-            <feDropShadow dx="0" dy="2" stdDeviation="1" flood-color="#000" flood-opacity="0.12"/>
+          <filter id="dotShadowN" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.15"/>
           </filter>
         </defs>
-        <g filter="url(#dropShadowN)">
-          <g filter="url(#blueGlowN)">
-            <circle cx="${cx}" cy="${circleSize / 2}" r="${circleSize / 2 - 1}" fill="${primary}" stroke="#ffffff" stroke-width="${strokeW}"/>
-            <path d="M${cx} ${totalH} L${cx - tipSize / 2} ${circleSize - 1} L${cx} ${circleSize + 3} L${cx + tipSize / 2} ${circleSize - 1} Z" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
-            <path d="M16 13 L11 17 V22 H13.5 V19 H18.5 V22 H21 V17 Z" fill="#ffffff"/>
-          </g>
-        </g>
+        <circle cx="${cx}" cy="${cx}" r="${r}" fill="${primary}" stroke="#ffffff" stroke-width="3" filter="url(#dotShadowN)" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.05));"/>
       </svg>
     `;
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-      scaledSize: new google.maps.Size(totalW, totalH),
-      anchor: new google.maps.Point(cx, totalH),
+      scaledSize: new google.maps.Size(size, size),
+      anchor: new google.maps.Point(cx, cx),
     };
   };
 

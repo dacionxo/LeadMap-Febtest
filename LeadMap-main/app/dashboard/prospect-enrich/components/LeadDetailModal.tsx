@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { 
-  X, ChevronLeft, ChevronRight, MapPin, User, Tag, List, Workflow,
-  Camera, Star, Mail, Phone, Info, Activity, ChevronDown, Home, Check
+import {
+  X, ChevronLeft, ChevronRight, User, Tag, List,
+  Share2, Heart, Mail, Phone, Info, Activity, ChevronDown, Home, Check,
+  ExternalLink, Plus, Minus, Maximize2, Compass, MapPin
 } from 'lucide-react'
 import OwnerSelector from './OwnerSelector'
 import ListsManager from './ListsManager'
@@ -371,1001 +372,194 @@ export default function LeadDetailModal({
     return badges
   }, [listing?.status, listing?.list_price, listing?.last_sale_price, listing?.agent_email, listing?.agent_phone, listing?.year_built])
 
+  const tabLabels: Record<TabType, string> = { info: 'Details', comps: 'Comps', mail: 'Owner', activity: 'Activity' }
+
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)',
-        padding: '20px',
-        animation: 'fadeIn 0.4s ease-out'
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 md:p-8"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Property details"
     >
       <div
-        style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          border: '1px solid #e5e7eb',
-          maxWidth: '1100px',
-          width: '85vw',
-          maxHeight: '85vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          transform: 'scale(1)',
-          transition: 'transform 0.3s ease'
-        }}
+        className="bg-white w-full max-w-7xl h-[90vh] rounded-2xl border border-gray-100 flex overflow-hidden relative shadow-[0_35px_60px_-15px_rgba(0,0,0,0.1)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header with Action Icons */}
-        <div
-          style={{
-            padding: '16px 24px',
-            borderBottom: '1px solid #e5e7eb',
-            background: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexShrink: 0
-          }}
+        {/* Close button - absolute top right */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/90 hover:bg-white text-gray-400 hover:text-gray-900 transition-colors shadow-sm"
+          aria-label="Close"
         >
-          {/* Left side - Close & Address */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-            <button
-              onClick={onClose}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                flexShrink: 0
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-              }}
-              aria-label="Close"
-            >
-              <X size={18} style={{ color: '#6b7280' }} />
-            </button>
-            
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px'
-              }}>
-                <h2
-                  style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    color: '#111827',
-                    margin: 0,
-                    letterSpacing: '-0.01em',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: '1.4'
-                  }}
-                >
-                  {streetAddress || 'Address not available'}
-                </h2>
-                {/* Only show cityStateZip if streetAddress doesn't already include it (i.e., when we have a street address) */}
-                {cityStateZip && listing?.street && (
-                  <p
-                    style={{
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                      fontSize: '13px',
-                      fontWeight: 400,
-                      color: '#6b7280',
-                      margin: 0,
-                      letterSpacing: '-0.005em',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      lineHeight: '1.4'
-                    }}
-                  >
-                    {cityStateZip}
-                  </p>
-                )}
-              </div>
+          <X size={20} />
+        </button>
+
+        {/* Left Panel: Street View (55%) */}
+        <div className="hidden lg:block w-[55%] h-full relative bg-gray-900 group">
+          <div className="absolute inset-0 min-h-[400px]">
+            {listing && <StreetViewPanorama listing={listing} />}
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/5 pointer-events-none" />
+          <div className="absolute top-8 left-8">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-5 py-3 rounded-lg flex flex-col shadow-lg">
+              <span className="font-bold text-lg tracking-tight">{streetAddress || 'Address not available'}</span>
+              <span className="text-white/70 text-sm font-light">{cityStateZip}</span>
             </div>
           </div>
-
-          {/* Right side - Action Icons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-            {/* Camera Icon */}
-            <button
-              className="action-icon"
-              title="Add Photo"
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <Camera size={16} style={{ color: '#6b7280' }} />
-            </button>
-
-            {/* Favorite/Star Icon */}
-            <button
-              className="action-icon"
-              title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-              onClick={() => setIsFavorite(!isFavorite)}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <Star 
-                size={16} 
-                style={{ 
-                  color: isFavorite ? '#f59e0b' : '#6b7280', 
-                  fill: isFavorite ? '#f59e0b' : 'none',
-                  transition: 'all 0.15s ease'
-                }} 
-              />
-            </button>
-
-            {/* Owner Assignment */}
-            <button
-              className="action-icon-badge"
-              title="Assign Owner"
-              onClick={() => setShowOwnerSelector(!showOwnerSelector)}
-              style={{
-                position: 'relative',
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <User size={16} style={{ color: '#6b7280' }} />
-              {listing?.owner_id && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-2px',
-                  right: '-2px',
-                  minWidth: '16px',
-                  height: '16px',
-                  padding: '0 4px',
-                  borderRadius: '8px',
-                  background: '#6366f1',
-                  color: '#ffffff',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid #ffffff',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                }}>
-                  1
-                </span>
-              )}
-            </button>
-
-            {/* List Management */}
-            <button
-              className="action-icon-badge"
-              title="Manage Lists"
-              onClick={() => setShowListsManager(!showListsManager)}
-              style={{
-                position: 'relative',
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <List size={16} style={{ color: '#6b7280' }} />
-              {listing?.lists && listing.lists.length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-2px',
-                  right: '-2px',
-                  minWidth: '16px',
-                  height: '16px',
-                  padding: '0 4px',
-                  borderRadius: '8px',
-                  background: '#6366f1',
-                  color: '#ffffff',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid #ffffff',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                }}>
-                  {listing.lists.length}
-                </span>
-              )}
-            </button>
-
-            {/* Tag Management */}
-            <button
-              className="action-icon-badge"
-              title="Manage Tags"
-              onClick={() => setShowTagsInput(!showTagsInput)}
-              style={{
-                position: 'relative',
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <Tag size={16} style={{ color: '#6b7280' }} />
-              {listing?.tags && listing.tags.length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-2px',
-                  right: '-2px',
-                  minWidth: '16px',
-                  height: '16px',
-                  padding: '0 4px',
-                  borderRadius: '8px',
-                  background: '#6366f1',
-                  color: '#ffffff',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid #ffffff',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                }}>
-                  {listing.tags.length}
-                </span>
-              )}
-            </button>
-
-            {/* Pipeline Status Dropdown */}
-            <div style={{ position: 'relative' }}>
-              <PipelineDropdown
-                value={listing?.pipeline_status || 'new'}
-                onChange={(pipeline_status) => handleUpdate({ pipeline_status })}
-              />
-            </div>
-          </div>
+          <div className="absolute bottom-4 left-6 text-[11px] text-white/50 font-medium tracking-wide">© {new Date().getFullYear()} Google</div>
         </div>
 
-        {/* Main Content */}
-        <div
-          style={{
-            display: 'flex',
-            flex: 1,
-            overflow: 'hidden',
-            minHeight: 0
-          }}
-        >
-          {/* Left Panel: Street View Image & Property Info */}
-          <div
-            style={{
-              width: '50%',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
-            }}
-          >
-            {/* Google Street View Interactive */}
-            <div
-              style={{
-                minHeight: '400px',
-                background: '#f3f4f6',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {listing && <StreetViewPanorama listing={listing} />}
-            </div>
-
-            {/* Property Valuation Section */}
-            <div style={{
-              padding: '20px 24px',
-              background: '#ffffff',
-              borderTop: '1px solid #e5e7eb'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '10px' }}>
-                <span style={{
-                  fontSize: '24px',
-                  fontWeight: 600,
-                  color: '#111827',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                  letterSpacing: '-0.02em'
-                }}>
-                  {listing?.list_price ? `$${listing.list_price.toLocaleString()}` : 'N/A'}
-                </span>
-                <span style={{
-                  fontSize: '13px',
-                  color: '#6b7280',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                  fontWeight: 400
-                }}>
-                  Est. Value
-                </span>
-              </div>
-              
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                color: '#6b7280',
-                fontWeight: 400,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                marginBottom: '12px'
-              }}>
-                {listing?.beds && <span>{listing.beds} bd</span>}
-                {listing?.beds && listing?.full_baths && <span style={{ color: '#d1d5db' }}>·</span>}
-                {listing?.full_baths && <span>{formatBaths(listing.full_baths)} ba</span>}
-                {listing?.full_baths && listing?.sqft && <span style={{ color: '#d1d5db' }}>·</span>}
-                {listing?.sqft && <span>{listing.sqft.toLocaleString()} sqft</span>}
-              </div>
-
-              {/* Property Tags/Badges */}
-              {propertyBadges.length > 0 && (
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '6px'
-                }}>
-                  {propertyBadges.map((badge, idx) => (
-                    <span
-                      key={idx}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '4px',
-                        background: '#f3f4f6',
-                        color: '#374151',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        border: 'none',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                      }}
-                    >
-                      {badge}
-                    </span>
-                  ))}
+        {/* Right Panel: Content (45%) */}
+        <div className="w-full lg:w-[45%] h-full flex flex-col bg-white relative">
+          <div className="flex-grow overflow-y-auto px-10 py-10">
+            {/* Header: Address + Share / Favorite */}
+            <div className="mb-10">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h1 className="text-3xl font-extrabold text-slate-900 leading-none tracking-tight">{streetAddress || 'Address not available'}</h1>
+                  <p className="text-slate-500 mt-2 text-lg font-light">{cityStateZip || '—'}</p>
                 </div>
-              )}
-            </div>
-
-            {/* Contact Information Section */}
-            {(listing?.agent_name || listing?.agent_email || listing?.agent_phone) && (
-              <div style={{
-                padding: '20px 24px',
-                borderTop: '1px solid #e5e7eb',
-                overflow: 'auto',
-                flex: 1,
-                background: '#ffffff'
-              }}>
-                <h3 style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  fontWeight: 500,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  marginBottom: '16px',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                }}>
-                  Contact Information
-                </h3>
-                
-                {/* Primary Contact */}
-                <div style={{
-                  padding: '16px',
-                  background: '#f9fafb',
-                  borderRadius: '8px',
-                  marginBottom: '12px',
-                  border: '1px solid #e5e7eb'
-                }}>
-                  <h4 style={{
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    color: '#111827',
-                    margin: '0 0 6px 0',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                  }}>
-                    {listing.agent_name || 'Property Contact'}
-                  </h4>
-                  <p style={{
-                    fontSize: '13px',
-                    color: '#6b7280',
-                    lineHeight: '1.5',
-                    margin: '0 0 14px 0',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                  }}>
-                    {address}
-                  </p>
-                  
-                  <button style={{
-                    width: '100%',
-                    padding: '8px 16px',
-                    background: '#6366f1',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#4f46e5'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#6366f1'
-                  }}>
-                    Start Mail
+                <div className="flex gap-3">
+                  <button type="button" className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-zinc-900 hover:bg-gray-50 rounded-full transition-colors border border-transparent hover:border-gray-200" aria-label="Share">
+                    <Share2 size={20} />
                   </button>
-                </div>
-
-                {/* Associated Contact Card */}
-                {listing.agent_name && (
-                  <div style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    padding: '14px',
-                    background: '#ffffff',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#d1d5db'
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e5e7eb'
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
+                  <button
+                    type="button"
+                    onClick={() => setIsFavorite(!isFavorite)}
+                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors border border-transparent hover:border-red-100"
+                    aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h5 style={{
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          color: '#111827',
-                          margin: '0 0 6px 0',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                        }}>
-                          {listing.agent_name}
-                        </h5>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <span style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            background: '#f3f4f6',
-                            fontSize: '11px',
-                            color: '#374151',
-                            fontWeight: 500,
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif'
-                          }}>
-                            <Check size={10} style={{ color: '#6b7280' }} />
-                            Agent
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {listing.agent_email && (
-                          <a
-                            href={`mailto:${listing.agent_email}`}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '6px',
-                              background: '#f3f4f6',
-                              color: '#6b7280',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              textDecoration: 'none',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = '#e5e7eb'
-                              e.currentTarget.style.color = '#374151'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '#f3f4f6'
-                              e.currentTarget.style.color = '#6b7280'
-                            }}
-                          >
-                            <Mail size={14} />
-                          </a>
-                        )}
-                        {listing.agent_phone && (
-                          <a
-                            href={`tel:${listing.agent_phone}`}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '6px',
-                              background: '#f3f4f6',
-                              color: '#6b7280',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              textDecoration: 'none',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = '#e5e7eb'
-                              e.currentTarget.style.color = '#374151'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '#f3f4f6'
-                              e.currentTarget.style.color = '#6b7280'
-                            }}
-                          >
-                            <Phone size={14} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
+                    <Heart size={20} className={isFavorite ? 'fill-red-500 text-red-500' : ''} />
+                  </button>
+                  <button type="button" onClick={() => setShowOwnerSelector(!showOwnerSelector)} className="relative w-10 h-10 flex items-center justify-center text-slate-500 hover:text-zinc-900 hover:bg-gray-50 rounded-full transition-colors" aria-label="Assign owner">
+                    <User size={20} />
+                    {listing?.owner_id && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-900 text-white text-[10px] font-semibold flex items-center justify-center border-2 border-white">1</span>}
+                  </button>
+                  <button type="button" onClick={() => setShowListsManager(!showListsManager)} className="relative w-10 h-10 flex items-center justify-center text-slate-500 hover:text-zinc-900 hover:bg-gray-50 rounded-full transition-colors" aria-label="Manage lists">
+                    <List size={20} />
+                    {(listing?.lists?.length ?? 0) > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-900 text-white text-[10px] font-semibold flex items-center justify-center border-2 border-white">{listing!.lists!.length}</span>}
+                  </button>
+                  <button type="button" onClick={() => setShowTagsInput(!showTagsInput)} className="relative w-10 h-10 flex items-center justify-center text-slate-500 hover:text-zinc-900 hover:bg-gray-50 rounded-full transition-colors" aria-label="Manage tags">
+                    <Tag size={20} />
+                    {(listing?.tags?.length ?? 0) > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-900 text-white text-[10px] font-semibold flex items-center justify-center border-2 border-white">{listing!.tags!.length}</span>}
+                  </button>
+                  <div className="relative">
+                    <PipelineDropdown value={listing?.pipeline_status || 'new'} onChange={(pipeline_status) => handleUpdate({ pipeline_status })} />
                   </div>
-                )}
+                </div>
               </div>
-            )}
-          </div>
+              <div className="flex items-baseline gap-4">
+                <span className="text-5xl font-extrabold text-slate-900 tracking-tighter">
+                  {listing?.list_price ? `$${listing.list_price.toLocaleString()}` : '—'}
+                </span>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium text-slate-500 uppercase tracking-wide">Est. Value</span>
+                  {propertyBadges.length > 0 ? (
+                    <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded mt-0.5">{propertyBadges[0]}</span>
+                  ) : (
+                    <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded mt-0.5">Free & Clear</span>
+                  )}
+                </div>
+              </div>
+            </div>
 
-          {/* Right Panel: Tabbed Interface */}
-          <div
-            style={{
-              width: '50%',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
-            }}
-          >
-            {/* Tab Navigation */}
-            <div style={{
-              display: 'flex',
-              borderBottom: '1px solid #e5e7eb',
-              padding: '0 24px',
-              background: '#ffffff'
-            }}>
+            {/* Sticky Tabs */}
+            <div className="flex items-center gap-8 border-b border-gray-100 mb-8 sticky top-0 bg-white z-10 pt-2">
               {(['info', 'comps', 'mail', 'activity'] as TabType[]).map((tab) => (
                 <button
                   key={tab}
+                  type="button"
                   onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    fontSize: '14px',
-                    fontWeight: activeTab === tab ? 500 : 400,
-                    color: activeTab === tab ? '#111827' : '#6b7280',
-                    cursor: 'pointer',
-                    borderBottom: activeTab === tab ? '2px solid #6366f1' : '2px solid transparent',
-                    transition: 'all 0.15s ease',
-                    position: 'relative',
-                    top: '1px',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                    textTransform: 'capitalize',
-                    letterSpacing: '-0.01em'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (activeTab !== tab) {
-                      e.currentTarget.style.color = '#374151'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (activeTab !== tab) {
-                      e.currentTarget.style.color = '#6b7280'
-                    }
-                  }}
+                  className={`pb-4 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab ? 'text-zinc-900 border-zinc-900 font-semibold' : 'text-slate-500 hover:text-slate-900 border-transparent'}`}
                 >
-                  {tab}
+                  {tabLabels[tab]}
                 </button>
               ))}
             </div>
 
             {/* Tab Content */}
-            <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '20px'
-              }}
-            >
-              {activeTab === 'info' && (
-                <InfoTab listing={listing} />
-              )}
-              
-              {activeTab === 'comps' && (
-                <CompsTab />
-              )}
-              
-              {activeTab === 'mail' && (
-                <MailTab />
-              )}
-              
-              {activeTab === 'activity' && (
-                <ActivityTab />
-              )}
+            <div className="space-y-10">
+              {activeTab === 'info' && <InfoTab listing={listing} />}
+              {activeTab === 'comps' && <CompsTab />}
+              {activeTab === 'mail' && <MailTab />}
+              {activeTab === 'activity' && <ActivityTab />}
             </div>
-
-            {/* Conditional Popups */}
-            {showOwnerSelector && (
-              <div style={{
-                position: 'absolute',
-                top: '70px',
-                right: '20px',
-                zIndex: 10,
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                padding: '16px',
-                minWidth: '280px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '12px'
-                }}>
-                  <label style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#111827',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                  }}>
-                    Assign Owner
-                  </label>
-                  <button
-                    onClick={() => setShowOwnerSelector(false)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      display: 'flex'
-                    }}
-                  >
-                    <X size={16} style={{ color: '#6b7280' }} />
-                  </button>
-                </div>
-                <OwnerSelector
-                  supabase={supabase}
-                  value={listing?.owner_id || null}
-                  onChange={(owner_id) => {
-                    handleUpdate({ owner_id })
-                    setShowOwnerSelector(false)
-                  }}
-                />
-              </div>
-            )}
-
-            {showListsManager && (
-              <div style={{
-                position: 'absolute',
-                top: '70px',
-                right: '20px',
-                zIndex: 10,
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                padding: '16px',
-                minWidth: '280px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '12px'
-                }}>
-                  <label style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#111827',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                  }}>
-                    Manage Lists
-                  </label>
-                  <button
-                    onClick={() => setShowListsManager(false)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      display: 'flex'
-                    }}
-                  >
-                    <X size={16} style={{ color: '#6b7280' }} />
-                  </button>
-                </div>
-                <ListsManager
-                  supabase={supabase}
-                  listing={listing}
-                  onChange={(lists) => {
-                    handleUpdate({ lists })
-                  }}
-                />
-              </div>
-            )}
-
-            {showTagsInput && (
-              <div style={{
-                position: 'absolute',
-                top: '70px',
-                right: '20px',
-                zIndex: 10,
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                padding: '16px',
-                minWidth: '280px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '12px'
-                }}>
-                  <label style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#111827',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                  }}>
-                    Manage Tags
-                  </label>
-                  <button
-                    onClick={() => setShowTagsInput(false)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      display: 'flex'
-                    }}
-                  >
-                    <X size={16} style={{ color: '#6b7280' }} />
-                  </button>
-                </div>
-                <TagsInput
-                  supabase={supabase}
-                  initialTags={listing?.tags || []}
-                  onChange={(tags) => {
-                    handleUpdate({ tags })
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer with Pagination */}
-        <div
-          style={{
-            padding: '16px 24px',
-            borderTop: '1px solid #e5e7eb',
-            background: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexShrink: 0
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-          >
-            <button
-              onClick={goToPrevious}
-              disabled={currentIndex <= 0}
-              style={{
-                padding: '8px 14px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                background: currentIndex <= 0 ? '#f9fafb' : '#ffffff',
-                color: currentIndex <= 0 ? '#9ca3af' : '#374151',
-                cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                fontSize: '13px',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (currentIndex > 0) {
-                  e.currentTarget.style.background = '#f3f4f6'
-                  e.currentTarget.style.borderColor = '#d1d5db'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (currentIndex > 0) {
-                  e.currentTarget.style.background = '#ffffff'
-                  e.currentTarget.style.borderColor = '#e5e7eb'
-                }
-              }}
-            >
-              <ChevronLeft size={16} />
-              Previous
-            </button>
-            <button
-              onClick={goToNext}
-              disabled={currentIndex >= listingList.length - 1}
-              style={{
-                padding: '8px 14px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                background: currentIndex >= listingList.length - 1 ? '#f9fafb' : '#ffffff',
-                color: currentIndex >= listingList.length - 1 ? '#9ca3af' : '#374151',
-                cursor: currentIndex >= listingList.length - 1 ? 'not-allowed' : 'pointer',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                fontSize: '13px',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (currentIndex < listingList.length - 1) {
-                  e.currentTarget.style.background = '#f3f4f6'
-                  e.currentTarget.style.borderColor = '#d1d5db'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (currentIndex < listingList.length - 1) {
-                  e.currentTarget.style.background = '#ffffff'
-                  e.currentTarget.style.borderColor = '#e5e7eb'
-                }
-              }}
-            >
-              Next
-              <ChevronRight size={16} />
-            </button>
-            <span
-              style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                fontSize: '13px',
-                fontWeight: 400,
-                color: '#6b7280',
-                marginLeft: '8px'
-              }}
-            >
-              {currentIndex + 1} of {listingList.length}
-            </span>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px'
-            }}
-          >
-            {listing?.property_url && (
+          {/* Conditional Popups - absolute within right panel */}
+          {showOwnerSelector && (
+            <div className="absolute top-20 right-10 z-[60] bg-white border border-gray-200 rounded-xl shadow-lg p-4 min-w-[280px]">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-sm font-semibold text-slate-900">Assign Owner</label>
+                <button type="button" onClick={() => setShowOwnerSelector(false)} className="p-1 text-slate-500 hover:text-slate-900">
+                  <X size={16} />
+                </button>
+              </div>
+              <OwnerSelector supabase={supabase} value={listing?.owner_id || null} onChange={(owner_id) => { handleUpdate({ owner_id }); setShowOwnerSelector(false) }} />
+            </div>
+          )}
+          {showListsManager && (
+            <div className="absolute top-20 right-10 z-[60] bg-white border border-gray-200 rounded-xl shadow-lg p-4 min-w-[280px]">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-sm font-semibold text-slate-900">Manage Lists</label>
+                <button type="button" onClick={() => setShowListsManager(false)} className="p-1 text-slate-500 hover:text-slate-900">
+                  <X size={16} />
+                </button>
+              </div>
+              <ListsManager supabase={supabase} listing={listing} onChange={(lists) => handleUpdate({ lists })} />
+            </div>
+          )}
+          {showTagsInput && (
+            <div className="absolute top-20 right-10 z-[60] bg-white border border-gray-200 rounded-xl shadow-lg p-4 min-w-[280px]">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-sm font-semibold text-slate-900">Manage Tags</label>
+                <button type="button" onClick={() => setShowTagsInput(false)} className="p-1 text-slate-500 hover:text-slate-900">
+                  <X size={16} />
+                </button>
+              </div>
+              <TagsInput supabase={supabase} initialTags={listing?.tags || []} onChange={(tags) => handleUpdate({ tags })} />
+            </div>
+          )}
+
+          {/* Footer: Pagination + View Full Listing */}
+          <div className="px-10 py-6 border-t border-gray-100 bg-white/80 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-6">
+              <button
+                type="button"
+                onClick={goToPrevious}
+                disabled={currentIndex <= 0}
+                className="text-slate-500 hover:text-slate-900 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500"
+              >
+                <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+                <span className="hidden sm:inline">Previous</span>
+              </button>
+              <button
+                type="button"
+                onClick={goToNext}
+                disabled={currentIndex >= listingList.length - 1}
+                className="text-slate-500 hover:text-slate-900 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+            <div className="text-xs font-medium text-slate-400 tracking-wide hidden sm:block">
+              Item {currentIndex + 1} / {listingList.length}
+            </div>
+            {listing?.property_url ? (
               <a
                 href={listing.property_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  background: '#ffffff',
-                  color: '#374151',
-                  textDecoration: 'none',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  transition: 'all 0.15s ease',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f3f4f6'
-                  e.currentTarget.style.borderColor = '#d1d5db'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#ffffff'
-                  e.currentTarget.style.borderColor = '#e5e7eb'
-                }}
+                className="px-8 py-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-sm font-semibold shadow-lg shadow-gray-200 flex items-center gap-2 transition-all hover:-translate-y-0.5"
               >
-                View Property
-                <ChevronRight size={14} />
+                View Full Listing
+                <ExternalLink size={14} />
               </a>
+            ) : (
+              <span className="px-8 py-3.5 bg-gray-100 text-gray-400 rounded-xl text-sm font-semibold cursor-not-allowed">View Full Listing</span>
             )}
           </div>
         </div>
@@ -1704,10 +898,6 @@ function InfoTab({ listing }: { listing: Listing | null }) {
     { label: 'Geographic features', value: listing?.other?.geographic_features || '--', help: 'Notable geographic features near the property' },
   ]
 
-  // Get first two items for the initial display
-  const initialDetails = propertyDetails.slice(0, 2)
-  const moreDetails = propertyDetails.slice(2)
-
   // Land information data structure
   const landDetails = [
     { label: 'APN (Parcel ID)', value: listing?.other?.apn || listing?.other?.parcel_id || '17819000', help: 'Assessor Parcel Number - unique identifier for the property parcel' },
@@ -1727,10 +917,6 @@ function InfoTab({ listing }: { listing: Listing | null }) {
     { label: 'Flood zone', value: listing?.other?.flood_zone || 'X', help: 'FEMA flood zone designation indicating flood risk level' },
   ]
 
-  // Get first two items for the initial display (APN and Lot Size)
-  const initialLandDetails = landDetails.slice(0, 2)
-  const moreLandDetails = landDetails.slice(2)
-
   // Tax information data structure
   const taxDetails = [
     { label: 'Tax delinquent?', value: listing?.other?.tax_delinquent || 'No', help: 'Whether the property has delinquent tax payments' },
@@ -1746,1072 +932,159 @@ function InfoTab({ listing }: { listing: Listing | null }) {
     { label: 'Market improvement value', value: listing?.other?.market_improvement_value ? `$${parseInt(listing.other.market_improvement_value).toLocaleString()}` : '$308,900', help: 'Estimated market value of improvements' },
   ]
 
-  // Get first two items for the initial display (Tax delinquent? and Tax delinquent year)
-  const initialTaxDetails = taxDetails.slice(0, 2)
-  const moreTaxDetails = taxDetails.slice(2)
+  // First 4 property facts for initial display (Living Area, Year Built, Bedrooms, Bathrooms)
+  const displayPropertyFacts = propertyDetails.slice(0, 4)
+  const morePropertyFacts = propertyDetails.slice(4)
+  const displayLandDetails = landDetails.slice(0, 3)
+  const moreLandDetailsDisplay = landDetails.slice(3)
+  const displayTaxDetails = taxDetails.slice(0, 3)
+  const moreTaxDetailsDisplay = taxDetails.slice(3)
 
   return (
-    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif' }}>
-      {/* Key Metrics */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '12px',
-        marginBottom: '24px'
-      }}>
-        <div style={{
-          padding: '16px',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          border: '1px solid #e5e7eb'
-        }}>
-          <label style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            fontWeight: 500,
-            marginBottom: '8px',
-            display: 'block',
-            letterSpacing: '0.02em'
-          }}>
-            Estimated equity
-          </label>
-          <div style={{
-            fontSize: '24px',
-            fontWeight: 600,
-            color: '#111827',
-            letterSpacing: '-0.02em'
-          }}>
-            {listing?.list_price ? `$${listing.list_price.toLocaleString()}` : 'N/A'}
-          </div>
-        </div>
-
-        <div style={{
-          padding: '16px',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          border: '1px solid #e5e7eb'
-        }}>
-          <label style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            fontWeight: 500,
-            marginBottom: '8px',
-            display: 'block',
-            letterSpacing: '0.02em'
-          }}>
-            Percent equity
-          </label>
-          <div style={{
-            fontSize: '24px',
-            fontWeight: 600,
-            color: '#111827',
-            letterSpacing: '-0.02em'
-          }}>
-            100%
-          </div>
-        </div>
-      </div>
-
-      {/* Property Characteristics */}
-      <div style={{
-        marginBottom: '24px',
-        paddingBottom: '24px',
-        borderBottom: '1px solid #e5e7eb'
-      }}>
-        <h3 style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: '#111827',
-          marginBottom: '16px',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-          letterSpacing: '-0.01em'
-        }}>
-          Property Characteristics
-        </h3>
-
-        {/* Initial Two-Column Row: Living Area and Year Built */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          marginBottom: '12px'
-        }}>
-          {initialDetails.map((detail, idx) => (
-            <div
-              key={idx}
-              style={{
-                position: 'relative',
-                padding: '16px',
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%)',
-                borderRadius: '12px',
-                border: '1px solid rgba(99, 102, 241, 0.15)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)',
-                animation: `fadeInUp 0.5s ease-out ${idx * 0.1}s both`
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)'
-                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)'
-                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'
-                e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.2)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%)'
-                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.15)'
-                e.currentTarget.style.transform = 'translateY(0) scale(1)'
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.1)'
-              }}
-            >
-              {/* Help Icon */}
-              <button
-                onMouseEnter={() => setHelpTooltip(detail.label)}
-                onMouseLeave={() => setHelpTooltip(null)}
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  width: '22px',
-                  height: '22px',
-                  borderRadius: '50%',
-                  border: '1px solid rgba(99, 102, 241, 0.2)',
-                  background: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'help',
-                  padding: 0,
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 2px 4px rgba(99, 102, 241, 0.1)'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                  e.currentTarget.style.borderColor = '#6366f1'
-                  e.currentTarget.style.transform = 'scale(1.15)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)'
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)'
-                  e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)'
-                  e.currentTarget.style.transform = 'scale(1)'
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(99, 102, 241, 0.1)'
-                }}
-              >
-                <Info size={12} style={{ color: '#6366f1', transition: 'color 0.3s ease' }} />
-              </button>
-              
-              {/* Tooltip */}
-              {helpTooltip === detail.label && (
-                <div style={{
-                  position: 'absolute',
-                  top: '36px',
-                  right: '0',
-                  zIndex: 1000,
-                  padding: '10px 14px',
-                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  maxWidth: '250px',
-                  minWidth: '150px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.2)',
-                  whiteSpace: 'normal',
-                  lineHeight: '1.5',
-                  pointerEvents: 'none',
-                  animation: 'fadeInUp 0.2s ease-out',
-                  border: '1px solid rgba(99, 102, 241, 0.3)'
-                }}>
-                  {detail.help}
-                </div>
-              )}
-
-              <div style={{
-                fontSize: '11px',
-                color: '#6366f1',
-                fontWeight: 600,
-                marginBottom: '6px',
-                paddingRight: '32px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                {detail.label}:
+    <div className="space-y-10">
+      {/* Property Facts */}
+      <section>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Property Facts</h3>
+        <div className="divide-y divide-dashed divide-gray-200">
+          {displayPropertyFacts.map((detail, idx) => (
+            <div key={idx} className="py-3 flex justify-between items-center group">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">{detail.label}</span>
+                <button type="button" onMouseEnter={() => setHelpTooltip(detail.label)} onMouseLeave={() => setHelpTooltip(null)} className="opacity-0 group-hover:opacity-100 transition-opacity cursor-help" title={detail.help}>
+                  <Info size={16} className="text-gray-300" />
+                </button>
               </div>
-              <div style={{
-                fontSize: '20px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                fontWeight: 700
-              }}>
-                {detail.value}
-              </div>
+              <span className="text-base font-semibold text-slate-900">{detail.value}</span>
             </div>
           ))}
         </div>
-
-        {/* Click for More Button */}
-        {!showMoreDetails && (
-          <button
-            onClick={() => handleExpand(setShowMoreDetails, showMoreDetails)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px',
-              border: '1px solid #e5e7eb',
-              background: '#ffffff',
-              color: '#374151',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-              borderRadius: '6px',
-              transition: 'all 0.15s ease',
-              width: 'fit-content'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f3f4f6'
-              e.currentTarget.style.borderColor = '#d1d5db'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ffffff'
-              e.currentTarget.style.borderColor = '#e5e7eb'
-            }}
-          >
-            <ChevronDown size={14} />
-            Click for more
-          </button>
-        )}
-
-        {/* Expanded Details Section */}
-        {showMoreDetails && (
-          <div 
-            data-expanded-section
-            style={{
-              marginTop: '16px',
-              padding: '20px',
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(168, 85, 247, 0.03) 100%)',
-              borderRadius: '12px',
-              border: '1px solid rgba(99, 102, 241, 0.1)',
-              animation: 'fadeInUp 0.4s ease-out'
-            }}
-          >
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px'
-            }}>
-              {moreDetails.map((detail, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    position: 'relative',
-                    padding: '12px 14px',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(99, 102, 241, 0.1)',
-                    transition: 'all 0.3s ease',
-                    animation: `fadeInUp 0.4s ease-out ${idx * 0.05}s both`,
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)'
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.15)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.1)'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)'
-                  }}
-                >
-                  {/* Help Icon */}
-                  <button
-                    onMouseEnter={() => setHelpTooltip(detail.label)}
-                    onMouseLeave={() => setHelpTooltip(null)}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: '1px solid rgba(99, 102, 241, 0.2)',
-                      background: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'help',
-                      padding: 0,
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 2px 4px rgba(99, 102, 241, 0.1)'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                      e.currentTarget.style.borderColor = '#6366f1'
-                      e.currentTarget.style.transform = 'scale(1.2) rotate(360deg)'
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)'
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)'
-                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)'
-                      e.currentTarget.style.transform = 'scale(1) rotate(0deg)'
-                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(99, 102, 241, 0.1)'
-                    }}
-                  >
-                    <Info size={11} style={{ color: '#6366f1', transition: 'color 0.3s ease' }} />
-                  </button>
-                  
-                  {/* Tooltip */}
-                  {helpTooltip === detail.label && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '32px',
-                      right: '0',
-                      zIndex: 1000,
-                      padding: '10px 14px',
-                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      maxWidth: '250px',
-                      minWidth: '150px',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.2)',
-                      whiteSpace: 'normal',
-                      lineHeight: '1.5',
-                      pointerEvents: 'none',
-                      animation: 'fadeInUp 0.2s ease-out',
-                      border: '1px solid rgba(99, 102, 241, 0.3)'
-                    }}>
-                      {detail.help}
-                    </div>
-                  )}
-
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    fontWeight: 500,
-                    marginBottom: '4px',
-                    paddingRight: '26px'
-                  }}>
-                    {detail.label}:
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: '#111827',
-                    fontWeight: 500
-                  }}>
-                    {detail.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Collapse Button */}
-            <button
-              onClick={() => handleExpand(setShowMoreDetails, showMoreDetails)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                marginTop: '16px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-                color: '#6b7280',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                borderRadius: '8px',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                width: 'fit-content'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)'
-                e.currentTarget.style.color = '#374151'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'
-                e.currentTarget.style.color = '#6b7280'
-                e.currentTarget.style.transform = 'translateY(0)'
-              }}
-            >
-              <ChevronDown size={16} style={{ transform: 'rotate(180deg)', transition: 'transform 0.3s ease' }} />
-              Show less
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Land Information */}
-      <div style={{
-        marginBottom: '24px',
-        paddingBottom: '24px',
-        borderBottom: '1px solid #e5e7eb'
-      }}>
-        <h3 style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: '#111827',
-          marginBottom: '16px',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-          letterSpacing: '-0.01em'
-        }}>
-          Land Information
-        </h3>
-
-        {/* Initial Two-Column Row: APN and Lot Size */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          marginBottom: '12px'
-        }}>
-          {initialLandDetails.map((detail, idx) => (
-            <div
-              key={idx}
-              style={{
-                position: 'relative',
-                padding: '16px',
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%)',
-                borderRadius: '12px',
-                border: '1px solid rgba(16, 185, 129, 0.15)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)',
-                animation: `fadeInUp 0.5s ease-out ${idx * 0.1}s both`
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)'
-                e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)'
-                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'
-                e.currentTarget.style.boxShadow = '0 8px 20px rgba(16, 185, 129, 0.2)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%)'
-                e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.15)'
-                e.currentTarget.style.transform = 'translateY(0) scale(1)'
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.1)'
-              }}
-            >
-              {/* Help Icon */}
-              <button
-                onMouseEnter={() => setHelpTooltip(detail.label)}
-                onMouseLeave={() => setHelpTooltip(null)}
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  width: '22px',
-                  height: '22px',
-                  borderRadius: '50%',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  background: 'linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'help',
-                  padding: 0,
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.1)'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                  e.currentTarget.style.borderColor = '#10b981'
-                  e.currentTarget.style.transform = 'scale(1.15)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)'
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%)'
-                  e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.2)'
-                  e.currentTarget.style.transform = 'scale(1)'
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.1)'
-                }}
-              >
-                <Info size={12} style={{ color: '#10b981', transition: 'color 0.3s ease' }} />
+        {morePropertyFacts.length > 0 && (
+          <>
+            {!showMoreDetails && (
+              <button type="button" onClick={() => handleExpand(setShowMoreDetails, showMoreDetails)} className="mt-3 text-sm font-medium text-zinc-900 hover:text-zinc-800 flex items-center gap-1">
+                Show more facts
+                <ChevronDown size={16} />
               </button>
-              
-              {/* Tooltip */}
-              {helpTooltip === detail.label && (
-                <div style={{
-                  position: 'absolute',
-                  top: '36px',
-                  right: '0',
-                  zIndex: 1000,
-                  padding: '10px 14px',
-                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  maxWidth: '250px',
-                  minWidth: '150px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(16, 185, 129, 0.2)',
-                  whiteSpace: 'normal',
-                  lineHeight: '1.5',
-                  pointerEvents: 'none',
-                  animation: 'fadeInUp 0.2s ease-out',
-                  border: '1px solid rgba(16, 185, 129, 0.3)'
-                }}>
-                  {detail.help}
-                </div>
-              )}
+            )}
+            {showMoreDetails && (
+              <div data-expanded-section className="divide-y divide-dashed divide-gray-200 mt-2">
+                {morePropertyFacts.map((detail, idx) => (
+                  <div key={idx} className="py-3 flex justify-between items-center group">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-500">{detail.label}</span>
+                      <button type="button" onMouseEnter={() => setHelpTooltip(detail.label)} onMouseLeave={() => setHelpTooltip(null)} className="opacity-0 group-hover:opacity-100 transition-opacity cursor-help" title={detail.help}>
+                        <Info size={16} className="text-gray-300" />
+                      </button>
+                    </div>
+                    <span className="text-base font-semibold text-slate-900">{detail.value}</span>
+                  </div>
+                ))}
+                <button type="button" onClick={() => handleExpand(setShowMoreDetails, showMoreDetails)} className="mt-3 text-sm font-medium text-slate-500 hover:text-slate-700 flex items-center gap-1">
+                  Show less
+                  <ChevronDown size={16} className="rotate-180" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
-              <div style={{
-                fontSize: '11px',
-                color: '#10b981',
-                fontWeight: 600,
-                marginBottom: '6px',
-                paddingRight: '32px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                {detail.label}:
+      {/* Land Details */}
+      <section>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Land Details</h3>
+        <div className="divide-y divide-dashed divide-gray-200">
+          {displayLandDetails.map((detail, idx) => (
+            <div key={idx} className="py-3 flex justify-between items-center group">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">{detail.label}</span>
+                <button type="button" onMouseEnter={() => setHelpTooltip(detail.label)} onMouseLeave={() => setHelpTooltip(null)} className="opacity-0 group-hover:opacity-100 transition-opacity cursor-help" title={detail.help}>
+                  <Info size={16} className="text-gray-300" />
+                </button>
               </div>
-              <div style={{
-                fontSize: '20px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                fontWeight: 700
-              }}>
-                {detail.value}
-              </div>
+              <span className="text-base font-semibold text-slate-900 font-mono">{detail.value}</span>
             </div>
           ))}
         </div>
-
-        {/* Click for More Button */}
-        {!showMoreLandInfo && (
-          <button
-            onClick={() => handleExpand(setShowMoreLandInfo, showMoreLandInfo)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px',
-              border: '1px solid #e5e7eb',
-              background: '#ffffff',
-              color: '#374151',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-              borderRadius: '6px',
-              transition: 'all 0.15s ease',
-              width: 'fit-content'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f3f4f6'
-              e.currentTarget.style.borderColor = '#d1d5db'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ffffff'
-              e.currentTarget.style.borderColor = '#e5e7eb'
-            }}
-          >
-            <ChevronDown size={14} />
-            Click for more
-          </button>
-        )}
-
-        {/* Expanded Land Details Section */}
-        {showMoreLandInfo && (
-          <div 
-            data-expanded-section
-            style={{
-              marginTop: '16px',
-              padding: '20px',
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 150, 105, 0.03) 100%)',
-              borderRadius: '12px',
-              border: '1px solid rgba(16, 185, 129, 0.1)',
-              animation: 'fadeInUp 0.4s ease-out'
-            }}
-          >
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px'
-            }}>
-              {moreLandDetails.map((detail, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    position: 'relative',
-                    padding: '12px 14px',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(16, 185, 129, 0.1)',
-                    transition: 'all 0.3s ease',
-                    animation: `fadeInUp 0.4s ease-out ${idx * 0.05}s both`,
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
-                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.15)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
-                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.1)'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)'
-                  }}
-                >
-                  {/* Help Icon */}
-                  <button
-                    onMouseEnter={() => setHelpTooltip(detail.label)}
-                    onMouseLeave={() => setHelpTooltip(null)}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: '1px solid rgba(99, 102, 241, 0.2)',
-                      background: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'help',
-                      padding: 0,
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 2px 4px rgba(99, 102, 241, 0.1)'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                      e.currentTarget.style.borderColor = '#6366f1'
-                      e.currentTarget.style.transform = 'scale(1.2) rotate(360deg)'
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)'
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)'
-                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)'
-                      e.currentTarget.style.transform = 'scale(1) rotate(0deg)'
-                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(99, 102, 241, 0.1)'
-                    }}
-                  >
-                    <Info size={11} style={{ color: '#6366f1', transition: 'color 0.3s ease' }} />
-                  </button>
-                  
-                  {/* Tooltip */}
-                  {helpTooltip === detail.label && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '32px',
-                      right: '0',
-                      zIndex: 1000,
-                      padding: '10px 14px',
-                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      maxWidth: '250px',
-                      minWidth: '150px',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.2)',
-                      whiteSpace: 'normal',
-                      lineHeight: '1.5',
-                      pointerEvents: 'none',
-                      animation: 'fadeInUp 0.2s ease-out',
-                      border: '1px solid rgba(99, 102, 241, 0.3)'
-                    }}>
-                      {detail.help}
-                    </div>
-                  )}
-
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    fontWeight: 500,
-                    marginBottom: '4px',
-                    paddingRight: '26px'
-                  }}>
-                    {detail.label}:
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: '#111827',
-                    fontWeight: 500
-                  }}>
-                    {detail.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Collapse Button */}
-            <button
-              onClick={() => handleExpand(setShowMoreLandInfo, showMoreLandInfo)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                marginTop: '16px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-                color: '#6b7280',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                borderRadius: '8px',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                width: 'fit-content'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)'
-                e.currentTarget.style.color = '#374151'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'
-                e.currentTarget.style.color = '#6b7280'
-                e.currentTarget.style.transform = 'translateY(0)'
-              }}
-            >
-              <ChevronDown size={16} style={{ transform: 'rotate(180deg)', transition: 'transform 0.3s ease' }} />
-              Show less
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Tax Information */}
-      <div style={{ marginBottom: '24px' }}>
-        <h3 style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: '#111827',
-          marginBottom: '16px',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-          letterSpacing: '-0.01em'
-        }}>
-          Tax Information
-        </h3>
-
-        {/* Initial Two-Column Row: Tax delinquent? and Tax delinquent year */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          marginBottom: '12px'
-        }}>
-          {initialTaxDetails.map((detail, idx) => (
-            <div
-              key={idx}
-              style={{
-                position: 'relative',
-                padding: '16px',
-                background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(219, 39, 119, 0.05) 100%)',
-                borderRadius: '12px',
-                border: '1px solid rgba(236, 72, 153, 0.15)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 2px 8px rgba(236, 72, 153, 0.1)',
-                animation: `fadeInUp 0.5s ease-out ${idx * 0.1}s both`
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(219, 39, 119, 0.1) 100%)'
-                e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.3)'
-                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'
-                e.currentTarget.style.boxShadow = '0 8px 20px rgba(236, 72, 153, 0.2)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(219, 39, 119, 0.05) 100%)'
-                e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.15)'
-                e.currentTarget.style.transform = 'translateY(0) scale(1)'
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(236, 72, 153, 0.1)'
-              }}
-            >
-              {/* Help Icon */}
-              <button
-                onMouseEnter={() => setHelpTooltip(detail.label)}
-                onMouseLeave={() => setHelpTooltip(null)}
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  width: '22px',
-                  height: '22px',
-                  borderRadius: '50%',
-                  border: '1px solid rgba(236, 72, 153, 0.2)',
-                  background: 'linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'help',
-                  padding: 0,
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 2px 4px rgba(236, 72, 153, 0.1)'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
-                  e.currentTarget.style.borderColor = '#ec4899'
-                  e.currentTarget.style.transform = 'scale(1.15)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(236, 72, 153, 0.3)'
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)'
-                  e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.2)'
-                  e.currentTarget.style.transform = 'scale(1)'
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(236, 72, 153, 0.1)'
-                }}
-              >
-                <Info size={12} style={{ color: '#ec4899', transition: 'color 0.3s ease' }} />
+        {moreLandDetailsDisplay.length > 0 && (
+          <>
+            {!showMoreLandInfo && (
+              <button type="button" onClick={() => handleExpand(setShowMoreLandInfo, showMoreLandInfo)} className="mt-3 text-sm font-medium text-zinc-900 hover:text-zinc-800 flex items-center gap-1">
+                Show more land details
+                <ChevronDown size={16} />
               </button>
-              
-              {/* Tooltip */}
-              {helpTooltip === detail.label && (
-                <div style={{
-                  position: 'absolute',
-                  top: '36px',
-                  right: '0',
-                  zIndex: 1000,
-                  padding: '10px 14px',
-                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  maxWidth: '250px',
-                  minWidth: '150px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(236, 72, 153, 0.2)',
-                  whiteSpace: 'normal',
-                  lineHeight: '1.5',
-                  pointerEvents: 'none',
-                  animation: 'fadeInUp 0.2s ease-out',
-                  border: '1px solid rgba(236, 72, 153, 0.3)'
-                }}>
-                  {detail.help}
-                </div>
-              )}
+            )}
+            {showMoreLandInfo && (
+              <div data-expanded-section className="divide-y divide-dashed divide-gray-200 mt-2">
+                {moreLandDetailsDisplay.map((detail, idx) => (
+                  <div key={idx} className="py-3 flex justify-between items-center group">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-500">{detail.label}</span>
+                      <button type="button" onMouseEnter={() => setHelpTooltip(detail.label)} onMouseLeave={() => setHelpTooltip(null)} className="opacity-0 group-hover:opacity-100 transition-opacity cursor-help" title={detail.help}>
+                        <Info size={16} className="text-gray-300" />
+                      </button>
+                    </div>
+                    <span className="text-base font-semibold text-slate-900">{detail.value}</span>
+                  </div>
+                ))}
+                <button type="button" onClick={() => handleExpand(setShowMoreLandInfo, showMoreLandInfo)} className="mt-3 text-sm font-medium text-slate-500 hover:text-slate-700 flex items-center gap-1">
+                  Show less
+                  <ChevronDown size={16} className="rotate-180" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
-              <div style={{
-                fontSize: '11px',
-                color: '#ec4899',
-                fontWeight: 600,
-                marginBottom: '6px',
-                paddingRight: '32px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                {detail.label}:
+      {/* Tax Status */}
+      <section className="pb-4">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Tax Status</h3>
+        <div className="divide-y divide-dashed divide-gray-200">
+          {displayTaxDetails.map((detail, idx) => (
+            <div key={idx} className="py-3 flex justify-between items-center group">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">{detail.label}</span>
               </div>
-              <div style={{
-                fontSize: '20px',
-                background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                fontWeight: 700
-              }}>
-                {detail.value}
-              </div>
+              {detail.label.toLowerCase().includes('delinquent') && (detail.value === 'Yes' || detail.value === 'No') ? (
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${detail.value === 'No' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {detail.value}
+                </span>
+              ) : (
+                <span className="text-base font-semibold text-slate-900">{detail.value}</span>
+              )}
             </div>
           ))}
         </div>
-
-        {/* Click for More Button */}
-        {!showMoreTaxInfo && (
-          <button
-            onClick={() => handleExpand(setShowMoreTaxInfo, showMoreTaxInfo)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px',
-              border: '1px solid #e5e7eb',
-              background: '#ffffff',
-              color: '#374151',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif',
-              borderRadius: '6px',
-              transition: 'all 0.15s ease',
-              width: 'fit-content'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f3f4f6'
-              e.currentTarget.style.borderColor = '#d1d5db'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ffffff'
-              e.currentTarget.style.borderColor = '#e5e7eb'
-            }}
-          >
-            <ChevronDown size={14} />
-            Click for more
-          </button>
-        )}
-
-        {/* Expanded Tax Details Section */}
-        {showMoreTaxInfo && (
-          <div 
-            data-expanded-section
-            style={{
-              marginTop: '16px',
-              padding: '20px',
-              background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.03) 0%, rgba(219, 39, 119, 0.03) 100%)',
-              borderRadius: '12px',
-              border: '1px solid rgba(236, 72, 153, 0.1)',
-              animation: 'fadeInUp 0.4s ease-out'
-            }}
-          >
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px'
-            }}>
-              {moreTaxDetails.map((detail, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    position: 'relative',
-                    padding: '12px 14px',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(236, 72, 153, 0.1)',
-                    transition: 'all 0.3s ease',
-                    animation: `fadeInUp 0.4s ease-out ${idx * 0.05}s both`,
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)'
-                    e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.3)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(236, 72, 153, 0.15)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)'
-                    e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.1)'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)'
-                  }}
-                >
-                  {/* Help Icon */}
-                  <button
-                    onMouseEnter={() => setHelpTooltip(detail.label)}
-                    onMouseLeave={() => setHelpTooltip(null)}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: '1px solid rgba(99, 102, 241, 0.2)',
-                      background: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'help',
-                      padding: 0,
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 2px 4px rgba(99, 102, 241, 0.1)'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                      e.currentTarget.style.borderColor = '#6366f1'
-                      e.currentTarget.style.transform = 'scale(1.2) rotate(360deg)'
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)'
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)'
-                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)'
-                      e.currentTarget.style.transform = 'scale(1) rotate(0deg)'
-                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(99, 102, 241, 0.1)'
-                    }}
-                  >
-                    <Info size={11} style={{ color: '#6366f1', transition: 'color 0.3s ease' }} />
-                  </button>
-                  
-                  {/* Tooltip */}
-                  {helpTooltip === detail.label && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '32px',
-                      right: '0',
-                      zIndex: 1000,
-                      padding: '10px 14px',
-                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      maxWidth: '250px',
-                      minWidth: '150px',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.2)',
-                      whiteSpace: 'normal',
-                      lineHeight: '1.5',
-                      pointerEvents: 'none',
-                      animation: 'fadeInUp 0.2s ease-out',
-                      border: '1px solid rgba(99, 102, 241, 0.3)'
-                    }}>
-                      {detail.help}
+        {moreTaxDetailsDisplay.length > 0 && (
+          <>
+            {!showMoreTaxInfo && (
+              <button type="button" onClick={() => handleExpand(setShowMoreTaxInfo, showMoreTaxInfo)} className="mt-3 text-sm font-medium text-zinc-900 hover:text-zinc-800 flex items-center gap-1">
+                Show more tax details
+                <ChevronDown size={16} />
+              </button>
+            )}
+            {showMoreTaxInfo && (
+              <div data-expanded-section className="divide-y divide-dashed divide-gray-200 mt-2">
+                {moreTaxDetailsDisplay.map((detail, idx) => (
+                  <div key={idx} className="py-3 flex justify-between items-center group">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-500">{detail.label}</span>
+                      <button type="button" onMouseEnter={() => setHelpTooltip(detail.label)} onMouseLeave={() => setHelpTooltip(null)} className="opacity-0 group-hover:opacity-100 transition-opacity cursor-help" title={detail.help}>
+                        <Info size={16} className="text-gray-300" />
+                      </button>
                     </div>
-                  )}
-
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    fontWeight: 500,
-                    marginBottom: '4px',
-                    paddingRight: '26px'
-                  }}>
-                    {detail.label}:
+                    <span className="text-base font-semibold text-slate-900">{detail.value}</span>
                   </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: '#111827',
-                    fontWeight: 500
-                  }}>
-                    {detail.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Collapse Button */}
-            <button
-              onClick={() => handleExpand(setShowMoreTaxInfo, showMoreTaxInfo)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                marginTop: '16px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-                color: '#6b7280',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                borderRadius: '8px',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                width: 'fit-content'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)'
-                e.currentTarget.style.color = '#374151'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'
-                e.currentTarget.style.color = '#6b7280'
-                e.currentTarget.style.transform = 'translateY(0)'
-              }}
-            >
-              <ChevronDown size={16} style={{ transform: 'rotate(180deg)', transition: 'transform 0.3s ease' }} />
-              Show less
-            </button>
-          </div>
+                ))}
+                <button type="button" onClick={() => handleExpand(setShowMoreTaxInfo, showMoreTaxInfo)} className="mt-3 text-sm font-medium text-slate-500 hover:text-slate-700 flex items-center gap-1">
+                  Show less
+                  <ChevronDown size={16} className="rotate-180" />
+                </button>
+              </div>
+            )}
+          </>
         )}
-      </div>
+      </section>
     </div>
   )
 }

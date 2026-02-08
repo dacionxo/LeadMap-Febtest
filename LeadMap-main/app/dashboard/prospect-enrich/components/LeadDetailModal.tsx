@@ -19,6 +19,8 @@ import {
   User,
   X,
 } from "lucide-react";
+import Link from "next/link";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ListsManager from "./ListsManager";
 import OwnerSelector from "./OwnerSelector";
@@ -726,16 +728,15 @@ export default function LeadDetailModal({
             <div className="text-xs font-medium text-slate-400 tracking-wide hidden sm:block">
               Item {currentIndex + 1} / {listingList.length}
             </div>
-            {listing?.property_url ? (
-              <a
-                href={listing.property_url}
-                target="_blank"
-                rel="noopener noreferrer"
+            {listing?.listing_id ? (
+              <Link
+                href={`/dashboard/map?listingId=${encodeURIComponent(listing.listing_id)}`}
                 className="px-8 py-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-sm font-semibold shadow-lg shadow-gray-200 flex items-center gap-2 transition-all hover:-translate-y-0.5"
+                onClick={() => onClose()}
               >
                 View On Map
                 <ExternalLink size={14} />
-              </a>
+              </Link>
             ) : (
               <span className="px-8 py-3.5 bg-gray-100 text-gray-400 rounded-xl text-sm font-semibold cursor-not-allowed">
                 View On Map

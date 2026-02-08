@@ -1,6 +1,7 @@
 'use client'
 
 import { lazy, Suspense, useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import DashboardLayout from '../components/DashboardLayout'
 import MapView from '@/components/MapView'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
@@ -50,12 +51,19 @@ interface Listing {
 
 export default function MapPage() {
   const { profile } = useApp()
+  const searchParams = useSearchParams()
   const supabase = useMemo(() => createClientComponentClient(), [])
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Open property detail modal (with street view) when URL has ?listingId=...
+  useEffect(() => {
+    const id = searchParams.get('listingId')
+    if (id) setSelectedListingId(id)
+  }, [searchParams])
 
   useEffect(() => {
     if (profile?.id) {

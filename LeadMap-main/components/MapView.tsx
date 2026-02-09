@@ -66,9 +66,15 @@ interface MapViewProps {
   loading: boolean;
   onStreetViewListingClick?: (leadId: string) => void; // NEW: Callback to open property details modal
   fullScreen?: boolean;
+  /** When set, map flies to this center (e.g. from search bar geocode) */
+  flyToCenter?: { lat: number; lng: number } | null;
+  /** Zoom level when flying to search result (default 14) */
+  flyToZoom?: number;
+  /** Called after map has applied flyToCenter so parent can clear it */
+  onFlyToDone?: () => void;
 }
 
-const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading, onStreetViewListingClick, fullScreen }) => {
+const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading, onStreetViewListingClick, fullScreen, flyToCenter, flyToZoom = 14, onFlyToDone }) => {
   const [useGoogleMaps, setUseGoogleMaps] = useState<boolean | null>(null);
   const [googleMapsFailed, setGoogleMapsFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -260,6 +266,9 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading, onStreet
         onError={handleGoogleMapsError}
         onStreetViewListingClick={onStreetViewListingClick}
         fullScreen={fullScreen}
+        flyToCenter={flyToCenter}
+        flyToZoom={flyToZoom}
+        onFlyToDone={onFlyToDone}
       />
     );
   }
@@ -276,6 +285,9 @@ const MapView: React.FC<MapViewProps> = ({ isActive, listings, loading, onStreet
       loading={loading}
       onViewDetailsClick={onStreetViewListingClick}
       fullScreen={fullScreen}
+      flyToCenter={flyToCenter}
+      flyToZoom={flyToZoom}
+      onFlyToDone={onFlyToDone}
     />
       );
     } else {

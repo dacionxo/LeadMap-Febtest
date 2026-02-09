@@ -7,6 +7,8 @@ interface MapSearchBarProps {
   searchValue?: string
   /** Called when search input changes */
   onSearchChange?: (value: string) => void
+  /** Called when user submits search (Enter or search button) – use to geocode and fly map */
+  onSearchSubmit?: (query: string) => void
   /** Placeholder for the search input */
   placeholder?: string
   /** Called when Price filter is clicked */
@@ -27,6 +29,7 @@ interface MapSearchBarProps {
 export default function MapSearchBar({
   searchValue = '',
   onSearchChange,
+  onSearchSubmit,
   placeholder = 'Search by City, Zip, or Address',
   onPriceClick,
   onTypeClick,
@@ -37,8 +40,15 @@ export default function MapSearchBar({
     onSearchChange?.(e.target.value)
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const query = (searchValue ?? '').trim()
+    if (query) onSearchSubmit?.(query)
+  }
+
   return (
-    <div
+    <form
+      onSubmit={handleSubmit}
       className="w-full max-w-4xl rounded-full shadow-lg flex items-center py-1.5 px-2 pr-2 border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700"
       role="search"
       aria-label="Real estate search"
@@ -124,6 +134,6 @@ export default function MapSearchBar({
           <Icon icon="material-symbols:tune" className="w-4 h-4" aria-hidden />
         </button>
       </div>
-    </div>
+    </form>
   )
 }

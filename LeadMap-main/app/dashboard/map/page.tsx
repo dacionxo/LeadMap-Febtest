@@ -1,236 +1,251 @@
-'use client'
+"use client";
 
-import { lazy, Suspense, useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
-import DashboardLayout from '../components/DashboardLayout'
-import MapView from '@/components/MapView'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useApp } from '@/app/providers'
-import MapsOnboardingModal from './components/MapsOnboardingModal'
-import MapSearchBar from './components/MapSearchBar'
-import MapProfileNotificationButtons from './components/MapProfileNotificationButtons'
+import { useApp } from "@/app/providers";
+import MapView from "@/components/MapView";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useSearchParams } from "next/navigation";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import DashboardLayout from "../components/DashboardLayout";
+import MapProfileNotificationButtons from "./components/MapProfileNotificationButtons";
+import MapSearchBar from "./components/MapSearchBar";
+import MapsOnboardingModal from "./components/MapsOnboardingModal";
 
-const LeadDetailModal = lazy(() => import('../prospect-enrich/components/LeadDetailModal'))
+const LeadDetailModal = lazy(
+  () => import("../prospect-enrich/components/LeadDetailModal")
+);
 
 interface Listing {
-  listing_id: string
-  address?: string
-  street?: string
-  unit?: string
-  city?: string
-  state?: string
-  zip?: string
-  zip_code?: string
-  price?: number
-  list_price?: number
-  list_price_min?: number
-  latitude?: number
-  longitude?: number
-  lat?: number
-  lng?: number
-  property_type?: string
-  beds?: number
-  baths?: number
-  sqft?: number
-  year_built?: number
-  expired?: boolean
-  geo_source?: string | null
-  listing_source_name?: string | null
-  owner_email?: string
-  enrichment_confidence?: number | null
-  primary_photo?: string
-  url?: string
-  property_url?: string
-  text?: string
-  description?: string
-  agent_name?: string
-  agent_email?: string
-  time_listed?: string
-  created_at?: string
+  listing_id: string;
+  address?: string;
+  street?: string;
+  unit?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  zip_code?: string;
+  price?: number;
+  list_price?: number;
+  list_price_min?: number;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
+  property_type?: string;
+  beds?: number;
+  baths?: number;
+  sqft?: number;
+  year_built?: number;
+  expired?: boolean;
+  geo_source?: string | null;
+  listing_source_name?: string | null;
+  owner_email?: string;
+  enrichment_confidence?: number | null;
+  primary_photo?: string;
+  url?: string;
+  property_url?: string;
+  text?: string;
+  description?: string;
+  agent_name?: string;
+  agent_email?: string;
+  time_listed?: string;
+  created_at?: string;
 }
 
 export default function MapPage() {
-  const { profile } = useApp()
-  const searchParams = useSearchParams()
-  const supabase = useMemo(() => createClientComponentClient(), [])
-  const [listings, setListings] = useState<Listing[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
-  const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const { profile } = useApp();
+  const searchParams = useSearchParams();
+  const supabase = useMemo(() => createClientComponentClient(), []);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(
+    null
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [flyToCenter, setFlyToCenter] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Open property detail modal (with street view) when URL has ?listingId=...
   useEffect(() => {
-    const id = searchParams.get('listingId')
-    if (id) {
-      // Ensure Google Maps API is loaded before opening modal with street view
-      const checkGoogleMaps = () => {
-        if (typeof window !== 'undefined' && window.google?.maps) {
-          setSelectedListingId(id)
-        } else {
-          // Retry after a short delay if Google Maps isn't ready yet
-          setTimeout(checkGoogleMaps, 100)
-        }
-      }
-      checkGoogleMaps()
-    } else {
-      setSelectedListingId(null)
-    }
-  }, [searchParams])
+    const id = searchParams.get("listingId");
+    if (id) setSelectedListingId(id);
+  }, [searchParams]);
 
   useEffect(() => {
     if (profile?.id) {
-      fetchListings()
-      checkOnboardingStatus()
+      fetchListings();
+      checkOnboardingStatus();
     }
-  }, [profile?.id])
+  }, [profile?.id]);
 
   const checkOnboardingStatus = async () => {
     try {
-      const response = await fetch('/api/maps/onboarding-status', { credentials: 'include' })
+      const response = await fetch("/api/maps/onboarding-status", {
+        credentials: "include",
+      });
       if (response.ok) {
-        const data = await response.json()
-        setShowOnboarding(!data.completed)
+        const data = await response.json();
+        setShowOnboarding(!data.completed);
       } else {
-        setShowOnboarding(true)
+        setShowOnboarding(true);
       }
     } catch (error) {
-      console.error('Error checking onboarding status:', error)
-      setShowOnboarding(true)
+      console.error("Error checking onboarding status:", error);
+      setShowOnboarding(true);
     }
-  }
+  };
 
   const handleBeginSetup = async () => {
     try {
-      const response = await fetch('/api/maps/complete-onboarding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      })
+      const response = await fetch("/api/maps/complete-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
       if (response.ok) {
-        setShowOnboarding(false)
+        setShowOnboarding(false);
       }
     } catch (error) {
-      console.error('Error completing onboarding:', error)
+      console.error("Error completing onboarding:", error);
     }
-  }
+  };
 
   const handleMaybeLater = () => {
-    setShowOnboarding(false)
-  }
+    setShowOnboarding(false);
+  };
 
   const fetchListings = async () => {
     try {
-      setLoading(true)
-      
+      setLoading(true);
+
       // Fetch from all prospect tables (same as prospect-enrich page)
       const tablesToFetch = [
-        'listings',
-        'expired_listings',
-        'probate_leads',
-        'fsbo_leads',
-        'frbo_leads',
-        'imports',
-        'trash',
-        'foreclosure_listings'
-      ]
+        "listings",
+        "expired_listings",
+        "probate_leads",
+        "fsbo_leads",
+        "frbo_leads",
+        "imports",
+        "trash",
+        "foreclosure_listings",
+      ];
 
       // Fetch in parallel with error handling
       const promises = tablesToFetch.map(async (table) => {
         try {
           const result = await supabase
             .from(table)
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(2000) // Increased limit for map view
-        
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(2000); // Increased limit for map view
+
           if (result.error) {
-            console.warn(`Error fetching from ${table}:`, result.error)
-            return []
+            console.warn(`Error fetching from ${table}:`, result.error);
+            return [];
           }
-          return result.data || []
+          return result.data || [];
         } catch (error) {
-          console.warn(`Exception fetching from ${table}:`, error)
-          return []
+          console.warn(`Exception fetching from ${table}:`, error);
+          return [];
         }
-      })
+      });
 
-      const results = await Promise.allSettled(promises)
-      
+      const results = await Promise.allSettled(promises);
+
       // Aggregate all successful results
-      const allListings: Listing[] = []
+      const allListings: Listing[] = [];
       results.forEach((result) => {
-        if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-          allListings.push(...result.value)
+        if (result.status === "fulfilled" && Array.isArray(result.value)) {
+          allListings.push(...result.value);
         }
-      })
+      });
 
-      setListings(allListings)
+      setListings(allListings);
     } catch (error) {
-      console.error('Error fetching listings:', error)
+      console.error("Error fetching listings:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Convert listings to leads format for MapView
   const leads = useMemo(() => {
-    return listings.map(listing => {
+    return listings.map((listing) => {
       // Build address from multiple possible fields
-      const hasValue = (val: any): boolean => val != null && String(val).trim().length > 0
-      
+      const hasValue = (val: any): boolean =>
+        val != null && String(val).trim().length > 0;
+
       // Try address field first, then street, then build from parts
-      let address = listing.address || listing.street || ''
-      
+      let address = listing.address || listing.street || "";
+
       // If no direct address field, try to build from parts
-      if (!address || address.trim() === '') {
-        const addressParts = [
-          listing.street,
-          listing.unit
-        ].filter(val => hasValue(val))
-          .map(val => String(val).trim())
-        
+      if (!address || address.trim() === "") {
+        const addressParts = [listing.street, listing.unit]
+          .filter((val) => hasValue(val))
+          .map((val) => String(val).trim());
+
         if (addressParts.length > 0) {
-          address = addressParts.join(' ')
+          address = addressParts.join(" ");
         }
       }
-      
+
       // Build full address string for display
-      const city = listing.city || ''
-      const state = listing.state || ''
-      const zip = listing.zip || listing.zip_code || ''
-      
+      const city = listing.city || "";
+      const state = listing.state || "";
+      const zip = listing.zip || listing.zip_code || "";
+
       // If we have city/state/zip but no street address, show location info
-      const locationInfo = [city, state, zip].filter(val => hasValue(val)).join(', ')
-      
+      const locationInfo = [city, state, zip]
+        .filter((val) => hasValue(val))
+        .join(", ");
+
       // Calculate price drop percentage
-      let priceDropPercent = 0
-      if (listing.list_price_min && listing.list_price && listing.list_price_min > listing.list_price) {
-        priceDropPercent = ((listing.list_price_min - listing.list_price) / listing.list_price_min) * 100
+      let priceDropPercent = 0;
+      if (
+        listing.list_price_min &&
+        listing.list_price &&
+        listing.list_price_min > listing.list_price
+      ) {
+        priceDropPercent =
+          ((listing.list_price_min - listing.list_price) /
+            listing.list_price_min) *
+          100;
       }
 
       // Calculate days on market
-      let daysOnMarket = 0
+      let daysOnMarket = 0;
       if (listing.time_listed) {
-        daysOnMarket = parseInt(listing.time_listed) || 0
+        daysOnMarket = parseInt(listing.time_listed) || 0;
       } else if (listing.created_at) {
-        const createdDate = new Date(listing.created_at)
-        const now = new Date()
-        daysOnMarket = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+        const createdDate = new Date(listing.created_at);
+        const now = new Date();
+        daysOnMarket = Math.floor(
+          (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
       }
-      
+
       return {
-        id: listing.listing_id || listing.property_url || '',
-        address: address || (locationInfo ? `Property in ${locationInfo}` : 'Address not available'),
+        id: listing.listing_id || listing.property_url || "",
+        address:
+          address ||
+          (locationInfo
+            ? `Property in ${locationInfo}`
+            : "Address not available"),
         city: city,
         state: state,
         zip: zip,
         price: listing.price || listing.list_price || 0,
         price_drop_percent: priceDropPercent,
         days_on_market: daysOnMarket,
-        url: listing.url || listing.property_url || '',
-        latitude: listing.latitude || (listing.lat ? Number(listing.lat) : undefined),
-        longitude: listing.longitude || (listing.lng ? Number(listing.lng) : undefined),
+        url: listing.url || listing.property_url || "",
+        latitude:
+          listing.latitude || (listing.lat ? Number(listing.lat) : undefined),
+        longitude:
+          listing.longitude || (listing.lng ? Number(listing.lng) : undefined),
         property_type: listing.property_type,
         beds: listing.beds,
         sqft: listing.sqft,
@@ -242,20 +257,56 @@ export default function MapPage() {
         geo_source: listing.geo_source || listing.listing_source_name,
         owner_email: listing.owner_email,
         enrichment_confidence: listing.enrichment_confidence,
-        primary_photo: listing.primary_photo
-      }
-    })
-  }, [listings])
+        primary_photo: listing.primary_photo,
+      };
+    });
+  }, [listings]);
 
   // Handle Street View click from map
   const handleStreetViewClick = (leadId: string) => {
-    setSelectedListingId(leadId)
-  }
+    setSelectedListingId(leadId);
+  };
 
   // Close property detail modal
   const handleCloseModal = () => {
-    setSelectedListingId(null)
-  }
+    setSelectedListingId(null);
+  };
+
+  // Geocode search query and fly map to result
+  const handleSearchSubmit = async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setSearchError(null);
+    setIsSearching(true);
+    try {
+      const res = await fetch(
+        `/api/geocode?q=${encodeURIComponent(trimmed)}`,
+        { credentials: "include" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSearchError(
+          typeof data?.error === "string"
+            ? data.error
+            : "Could not find that location"
+        );
+        return;
+      }
+      if (data.lat != null && data.lng != null) {
+        setFlyToCenter({ lat: data.lat, lng: data.lng });
+        if (data.formattedAddress) setSearchQuery(data.formattedAddress);
+      }
+    } catch {
+      setSearchError("Search failed. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Clear flyToCenter after map has applied it (so we don't re-fly on re-renders)
+  const handleFlyToDone = () => {
+    setFlyToCenter(null);
+  };
 
   return (
     <DashboardLayout hideHeader fullBleed>
@@ -265,12 +316,26 @@ export default function MapPage() {
           {/* Map Section - full screen */}
           <div className="flex-1 relative">
             {/* Search bar - top center overlay */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full max-w-4xl px-4">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full max-w-4xl px-4 space-y-1">
               <MapSearchBar
                 searchValue={searchQuery}
-                onSearchChange={setSearchQuery}
+                onSearchChange={(v) => {
+                  setSearchQuery(v);
+                  setSearchError(null);
+                }}
+                onSearchSubmit={handleSearchSubmit}
                 placeholder="Search by City, Zip, or Address"
               />
+              {searchError && (
+                <p className="text-sm text-red-600 dark:text-red-400 text-center px-2">
+                  {searchError}
+                </p>
+              )}
+              {isSearching && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center px-2">
+                  Finding location...
+                </p>
+              )}
             </div>
 
             {/* Profile and notifications - top right, 30px left of default */}
@@ -286,6 +351,9 @@ export default function MapPage() {
                 loading={loading}
                 onStreetViewListingClick={handleStreetViewClick}
                 fullScreen
+                flyToCenter={flyToCenter}
+                flyToZoom={14}
+                onFlyToDone={handleFlyToDone}
               />
             </div>
           </div>
@@ -303,11 +371,13 @@ export default function MapPage() {
 
         {/* Property Detail Modal with Street View */}
         {selectedListingId && (
-          <Suspense fallback={
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="text-white">Loading...</div>
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="text-white">Loading...</div>
+              </div>
+            }
+          >
             <LeadDetailModal
               listingId={selectedListingId}
               listingList={listings}
@@ -317,5 +387,5 @@ export default function MapPage() {
         )}
       </div>
     </DashboardLayout>
-  )
+  );
 }

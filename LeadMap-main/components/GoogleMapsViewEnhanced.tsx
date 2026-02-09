@@ -45,6 +45,12 @@ interface GoogleMapsViewEnhancedProps {
   onError?: () => void;
   onStreetViewListingClick?: (leadId: string) => void; // NEW: Callback to open property details modal
   fullScreen?: boolean;
+  /** When set, map flies to this center (from search bar geocode) */
+  flyToCenter?: { lat: number; lng: number } | null;
+  /** Zoom level when flying to search result */
+  flyToZoom?: number;
+  /** Called after map has applied flyToCenter */
+  onFlyToDone?: () => void;
 }
 
 const MapComponent: React.FC<{ 
@@ -717,7 +723,7 @@ const render = (status: Status, onError?: () => void): React.ReactElement => {
   }
 };
 
-const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActive, listings, loading, onError, onStreetViewListingClick, fullScreen }) => {
+const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActive, listings, loading, onError, onStreetViewListingClick, fullScreen, flyToCenter, flyToZoom = 14, onFlyToDone }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -725,10 +731,38 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
   const searchMarkerRef = useRef<google.maps.Marker | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
 
-  // Callback when map is ready - memoized to prevent re-renders
+  // Apply flyTo when map is ready or when flyToCenter is set
+  const applyFlyTo = useCallback((map: google.maps.Map) => {
+    if (!flyToCenter) return;
+    map.setCenter({ lat: flyToCenter.lat, lng: flyToCenter.lng });
+    map.setZoom(typeof flyToZoom === 'number' ? flyToZoom : 14);
+    if (searchMarkerRef.current) {
+      searchMarkerRef.current.setMap(null);
+    }
+    if (typeof window !== 'undefined' && window.google?.maps) {
+      searchMarkerRef.current = new window.google.maps.Marker({
+        position: { lat: flyToCenter.lat, lng: flyToCenter.lng },
+        map,
+        title: 'Searched location',
+        icon: { url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' }
+      });
+    }
+    onFlyToDone?.();
+  }, [flyToCenter, flyToZoom, onFlyToDone]);
+
   const handleMapReady = useCallback((map: google.maps.Map) => {
     mapInstanceRef.current = map;
-  }, []);
+    applyFlyTo(map);
+  }, [applyFlyTo]);
+
+  // Fly map to search result when flyToCenter is set (map may already be ready)
+  useEffect(() => {
+    if (!flyToCenter || !mapInstanceRef.current) {
+      if (!flyToCenter) onFlyToDone?.();
+      return;
+    }
+    applyFlyTo(mapInstanceRef.current);
+  }, [flyToCenter, flyToZoom, onFlyToDone, applyFlyTo]);
 
   // Existing inline Street View helper (kept for fallback if needed)
   const openInlineStreetView = useCallback((lat: number, lng: number) => {

@@ -785,13 +785,19 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
     if (pending) applyFlyTo(map, pending);
   }, [applyFlyTo]);
 
+  // Defer flyTo to next frame so it runs after markers effect (fixes search when zoomed out)
   useEffect(() => {
     const target = flyToCenter ?? pendingFlyToRef.current;
     if (!target || !mapInstanceRef.current) {
       if (!flyToCenter) onFlyToDone?.();
       return;
     }
-    applyFlyTo(mapInstanceRef.current, target);
+    const map = mapInstanceRef.current;
+    const raf = requestAnimationFrame(() => {
+      if (!mapInstanceRef.current || mapInstanceRef.current !== map) return;
+      applyFlyTo(map, target);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [flyToCenter, flyToZoom, onFlyToDone, applyFlyTo]);
 
   // Existing inline Street View helper (kept for fallback if needed)

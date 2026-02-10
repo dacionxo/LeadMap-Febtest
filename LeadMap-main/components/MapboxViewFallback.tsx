@@ -345,7 +345,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     pendingFlyToRef.current = flyToCenter ?? null;
   }, [flyToCenter]);
 
-  // Fly map to the searched location and zoom in around the marker; H5: call onFlyToDone only when move ends
+  // Fly map to the searched location and zoom in; defer to next frame so it runs after markers effect (fixes search when zoomed out)
   useEffect(() => {
     const target = flyToCenter ?? pendingFlyToRef.current;
     if (!target || !map.current || !mapLoaded) {
@@ -361,35 +361,39 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     const zoom = typeof flyToZoom === "number" ? flyToZoom : 16;
     const m = map.current;
     setSuppressAutoFit(true);
-    m.flyTo({
-      center: [lng, lat],
-      zoom,
-      duration: 1500,
-      essential: true,
-    });
-    if (searchMarker.current) {
-      searchMarker.current.remove();
-    }
-    const el = document.createElement("div");
-    el.innerHTML = `
+
+    const applyFly = () => {
+      if (!map.current || map.current !== m) return;
+      m.flyTo({
+        center: [lng, lat],
+        zoom,
+        duration: 1500,
+        essential: true,
+      });
+      if (searchMarker.current) {
+        searchMarker.current.remove();
+      }
+      const el = document.createElement("div");
+      el.innerHTML = `
       <div style="
         width: 24px; height: 24px; border-radius: 50%;
         background-color: #ff6b6b; border: 3px solid white;
         box-shadow: 0 2px 8px rgba(0,0,0,0.4);
       "></div>
     `;
-    searchMarker.current = new mapboxgl.Marker(el)
-      .setLngLat([lng, lat])
-      .addTo(m);
-    const done = onFlyToDone;
-    const onMoveEnd = () => {
-      m.off("moveend", onMoveEnd);
-      done?.();
+      searchMarker.current = new mapboxgl.Marker(el)
+        .setLngLat([lng, lat])
+        .addTo(m);
+      const done = onFlyToDone;
+      const onMoveEnd = () => {
+        m.off("moveend", onMoveEnd);
+        done?.();
+      };
+      m.once("moveend", onMoveEnd);
     };
-    m.once("moveend", onMoveEnd);
-    return () => {
-      m.off("moveend", onMoveEnd);
-    };
+
+    const raf = requestAnimationFrame(applyFly);
+    return () => cancelAnimationFrame(raf);
   }, [flyToCenter, flyToZoom, mapLoaded, onFlyToDone]);
 
   // Search for addresses using Mapbox Geocoding API

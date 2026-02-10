@@ -730,12 +730,17 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
   const [isSearching, setIsSearching] = useState(false);
   const searchMarkerRef = useRef<google.maps.Marker | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const pendingFlyToRef = useRef<{ lat: number; lng: number } | null>(null);
 
-  // Apply flyTo: center map on the searched location, zoom in around the marker, then notify when done
-  const applyFlyTo = useCallback((map: google.maps.Map) => {
-    if (!flyToCenter) return;
-    const lat = Number(flyToCenter.lat);
-    const lng = Number(flyToCenter.lng);
+  // H2/H3: Keep pending flyTo in ref so we never lose it (map may not be ready when user searches)
+  useEffect(() => {
+    pendingFlyToRef.current = flyToCenter ?? null;
+  }, [flyToCenter]);
+
+  const applyFlyTo = useCallback((map: google.maps.Map, target: { lat: number; lng: number } | null) => {
+    if (!target) return;
+    const lat = Number(target.lat);
+    const lng = Number(target.lng);
     if (Number.isNaN(lat) || Number.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
     const latLng = { lat, lng };
     const zoom = typeof flyToZoom === 'number' ? flyToZoom : 16;
@@ -752,27 +757,27 @@ const GoogleMapsViewEnhanced: React.FC<GoogleMapsViewEnhancedProps> = ({ isActiv
         icon: { url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' }
       });
     }
-    // Defer clear so the map has painted the new center/zoom before parent clears flyToCenter
     const done = onFlyToDone;
-    if (done) {
-      requestAnimationFrame(() => {
-        setTimeout(done, 50);
-      });
+    if (done && typeof window !== 'undefined' && window.google?.maps?.event) {
+      window.google.maps.event.addListenerOnce(map, 'idle', () => done());
+    } else if (done) {
+      done();
     }
-  }, [flyToCenter, flyToZoom, onFlyToDone]);
+  }, [flyToZoom, onFlyToDone]);
 
   const handleMapReady = useCallback((map: google.maps.Map) => {
     mapInstanceRef.current = map;
-    applyFlyTo(map);
+    const pending = pendingFlyToRef.current;
+    if (pending) applyFlyTo(map, pending);
   }, [applyFlyTo]);
 
-  // Fly map to search result when flyToCenter is set (map may already be ready)
   useEffect(() => {
-    if (!flyToCenter || !mapInstanceRef.current) {
+    const target = flyToCenter ?? pendingFlyToRef.current;
+    if (!target || !mapInstanceRef.current) {
       if (!flyToCenter) onFlyToDone?.();
       return;
     }
-    applyFlyTo(mapInstanceRef.current);
+    applyFlyTo(mapInstanceRef.current, target);
   }, [flyToCenter, flyToZoom, onFlyToDone, applyFlyTo]);
 
   // Existing inline Street View helper (kept for fallback if needed)

@@ -70,6 +70,7 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
   const [zoomLevel, setZoomLevel] = useState<number | null>(null);
   const lastZoomRef = useRef<number | null>(null);
   const geocodingInProgress = useRef<Set<string>>(new Set());
+  const pendingFlyToRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Format price for marker label: $1.2M, $850k, $675k
   const formatPrice = (price: number): string => {
@@ -337,14 +338,20 @@ const MapboxViewFallback: React.FC<MapboxViewFallbackProps> = ({
     };
   }, [isActive]);
 
-  // Fly map to the searched location and zoom in around the marker; call onFlyToDone when move ends
+  // H2/H3: Keep pending flyTo in ref so we never lose it when map isn't ready yet
   useEffect(() => {
-    if (!flyToCenter || !map.current || !mapLoaded) {
+    pendingFlyToRef.current = flyToCenter ?? null;
+  }, [flyToCenter]);
+
+  // Fly map to the searched location and zoom in around the marker; H5: call onFlyToDone only when move ends
+  useEffect(() => {
+    const target = flyToCenter ?? pendingFlyToRef.current;
+    if (!target || !map.current || !mapLoaded) {
       if (!flyToCenter) onFlyToDone?.();
       return;
     }
-    const lat = Number(flyToCenter.lat);
-    const lng = Number(flyToCenter.lng);
+    const lat = Number(target.lat);
+    const lng = Number(target.lng);
     if (Number.isNaN(lat) || Number.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       onFlyToDone?.();
       return;

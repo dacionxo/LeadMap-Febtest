@@ -46,7 +46,9 @@ export async function GET(request: NextRequest) {
       if (data.status === "OK" && data.results?.[0]) {
         const r = data.results[0];
         const loc = r.geometry?.location;
-        if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") {
+        const latVal = loc && (typeof loc.lat === "number" ? loc.lat : undefined);
+        const lngVal = loc && (typeof loc.lng === "number" ? loc.lng : undefined);
+        if (latVal == null || lngVal == null) {
           const fallback = await tryMapboxGeocode(q, mapboxToken);
           if (fallback) return NextResponse.json(fallback);
           return NextResponse.json(
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
             { status: 502 }
           );
         }
-        const coords = isValidCoord(loc.lat, loc.lng);
+        const coords = isValidCoord(latVal, lngVal);
         if (!coords) {
           const fallback = await tryMapboxGeocode(q, mapboxToken);
           if (fallback) return NextResponse.json(fallback);
@@ -70,10 +72,16 @@ export async function GET(request: NextRequest) {
         });
       }
       if (data.status === "ZERO_RESULTS") {
+        const fallback = await tryMapboxGeocode(q, mapboxToken);
+        if (fallback) return NextResponse.json(fallback);
         return NextResponse.json(
           { error: "No results for this address or city" },
           { status: 404 }
         );
+      }
+      if (data.status === "OVER_QUERY_LIMIT" || data.status === "REQUEST_DENIED" || data.status === "INVALID_REQUEST") {
+        const fallback = await tryMapboxGeocode(q, mapboxToken);
+        if (fallback) return NextResponse.json(fallback);
       }
     } catch (err) {
       console.warn("[geocode] Google error:", err);

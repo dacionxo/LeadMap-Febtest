@@ -4,7 +4,7 @@ import { useApp } from "@/app/providers";
 import MapView from "@/components/MapView";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useSearchParams } from "next/navigation";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import MapProfileNotificationButtons from "./components/MapProfileNotificationButtons";
 import MapSearchBar from "./components/MapSearchBar";
@@ -314,10 +314,10 @@ export default function MapPage() {
     }
   };
 
-  // Clear flyToCenter after map has applied it (so we don't re-fly on re-renders)
-  const handleFlyToDone = () => {
+  // Clear flyToCenter only after map confirms it has applied (H5: stable callback)
+  const handleFlyToDone = useCallback(() => {
     setFlyToCenter(null);
-  };
+  }, []);
 
   return (
     <DashboardLayout hideHeader fullBleed>
